@@ -263,18 +263,34 @@ whatever was wrong, `docker restart caddy` rather than waiting.
 
 ## 8. Point Vercel at it
 
-In the Vercel project, **Settings → Environment Variables** — not the Domains
-page:
+The client needs to know where the server is, through `VITE_GAME_WS_URL`.
+`wss`, not `https`, and no path — the client appends `/ws` itself.
 
-| Name | Value | Environments |
-| --- | --- | --- |
-| `VITE_GAME_WS_URL` | `wss://game.example.com` | Production (and Preview, if you want previews to work) |
+This is a **build-time** value. Vite bakes it into the bundle, which has two
+consequences: it is not a secret (anyone can read it out of the published
+JavaScript), and setting it alone never changes anything — the bundle has to
+be rebuilt.
 
-`wss`, not `https`. No path — the client appends `/ws` itself.
+**Keep it in `vercel.json`**, which is how this repo is set up:
 
-This is a **build-time** variable: Vite bakes it into the bundle, so saving it
-changes nothing on its own. Go to **Deployments**, open the latest, and
-**Redeploy**.
+```json
+"build": { "env": { "VITE_GAME_WS_URL": "wss://game.example.com" } }
+```
+
+Since it is not a secret, there is nothing to gain from hiding it in a
+dashboard, and plenty to gain from version control: the deployment is
+reproducible, the value shows up in review, and pushing a change rebuilds
+automatically — no "did you remember to redeploy".
+
+The alternative is **Settings → Environment Variables** in the Vercel project
+(not the Domains page), followed by **Deployments → ⋯ → Redeploy** by hand.
+Use one or the other. Setting both leaves you guessing which one produced the
+bundle you are looking at, which is exactly the confusion this value causes
+when it goes wrong.
+
+Migrating from the dashboard to `vercel.json`: add it to the file and let the
+push deploy, confirm the bundle still carries the right URL with the command in
+step 9, and only then delete the dashboard variable — and confirm once more.
 
 ### A custom domain for the client, optionally
 
@@ -374,7 +390,7 @@ memory, so everyone is sent back to the spawn. Deploy when it is quiet.
 | Certificate never arrives | `docker logs caddy`. DNS not propagated, port 80 closed, or Caddy is between retries — restart it |
 | `404` on a WebSocket test | You are testing over HTTP/2. Add `--http1.1` |
 | `403` on the WebSocket | `ALLOWED_ORIGINS` does not match the page's origin exactly — scheme, host, no trailing slash |
-| Site says 找不到遊戲伺服器 | Browser console. `wss://.../ws failed` means the server or DNS; nothing at all means `VITE_GAME_WS_URL` was not baked in — did you redeploy? |
+| Site says 找不到遊戲伺服器 | Browser console. `wss://.../ws failed` means the server or DNS; nothing at all means `VITE_GAME_WS_URL` never reached the build — check it against the bundle (step 9) |
 | Vercel domain stuck on *Invalid Configuration* | Check the spelling against `dig +short NS` |
 | Works, then stops after a reboot | `docker ps -a`. Both containers need `--restart unless-stopped` |
 

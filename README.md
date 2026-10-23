@@ -182,7 +182,8 @@ you; otherwise put a reverse proxy in front.
 `packages/client/dist`, and sends the same security headers nginx does (plus
 `Cross-Origin-Opener-Policy`, which nginx leaves off because browsers ignore
 it on the plain-HTTP LAN setup). Set `VITE_GAME_WS_URL` as an environment
-variable in the Vercel project and redeploy.
+variable — this repo keeps it in `vercel.json` rather than the Vercel
+dashboard, since Vite bakes it into the public bundle and it is not a secret.
 
 Without that variable the client has nowhere to connect: it will say
 **找不到遊戲伺服器** on the join screen rather than spinning on "reconnecting"

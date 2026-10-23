@@ -1,0 +1,171 @@
+/* Self-hosted, SIL OFL 1.1. See ASSET_LICENSES.md. */
+@font-face {
+  font-family: 'Huninn Rounded';
+  src: url('/fonts/jf-openhuninn-2.1.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --ink: #4b4033;
+  --ink-soft: #7a6c5a;
+  --cream: #fdf7ec;
+  --cream-edge: #e8dcc6;
+  --grass: #a9dcc0;
+  --grass-deep: #7cc39f;
+  --sky: #cdebf4;
+  --rose: #f3b8bf;
+  --warn: #e8a35c;
+  --bad: #d98080;
+  --good: #7cc39f;
+
+  --radius: 18px;
+  --outline: 3px;
+
+  --font-ui: 'Huninn Rounded', 'Noto Sans TC', 'PingFang TC', 'Hiragino Sans',
+    system-ui, -apple-system, sans-serif;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* 100dvh tracks Safari's collapsing toolbars; svh is the stable fallback. */
+  height: 100svh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--grass);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  /* No rubber-band scroll, no pinch zoom, no double-tap zoom. */
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#game {
+  position: absolute;
+  inset: 0;
+  /* The canvas owns every gesture; the browser gets none of them. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#game canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+#hud {
+  position: absolute;
+  top: calc(var(--safe-top) + 10px);
+  left: calc(var(--safe-left) + 10px);
+  right: calc(var(--safe-right) + 10px);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  /* The HUD is decoration until a child opts back in. */
+  pointer-events: none;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.2;
+  box-shadow: 0 2px 0 var(--cream-edge);
+  white-space: nowrap;
+}
+
+.pill-unit {
+  color: var(--ink-soft);
+  margin-left: 2px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--warn);
+  flex: 0 0 auto;
+}
+
+#status-pill[data-state='connecting'] .dot {
+  background: var(--warn);
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+#status-pill[data-state='online'] .dot {
+  background: var(--good);
+}
+
+#status-pill[data-state='offline'] .dot {
+  background: var(--bad);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #status-pill[data-state='connecting'] .dot {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+#notice {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 24px);
+  transform: translateX(-50%);
+  max-width: min(86vw, 420px);
+  padding: 14px 18px;
+  border: var(--outline) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--cream);
+  box-shadow: 0 3px 0 var(--cream-edge);
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+#notice[hidden],
+.pill[hidden] {
+  display: none;
+}

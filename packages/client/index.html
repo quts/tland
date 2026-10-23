@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#a9dcc0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="description" content="A cozy little town by the river." />
+    <!-- Keep iOS from treating the canvas like a web page it can zoom and scroll. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>Riverside Town</title>
+    <link rel="preload" href="/fonts/jf-openhuninn-2.1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/src/ui/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="game" aria-label="Game world" role="application"></div>
+      <div id="hud">
+        <div id="status-pill" class="pill" data-state="connecting">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="status-text">連線中…</span>
+        </div>
+        <div id="count-pill" class="pill" hidden>
+          <span id="count-text">0</span><span class="pill-unit">人在線</span>
+        </div>
+      </div>
+      <div id="notice" role="status" hidden></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

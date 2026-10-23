@@ -1,0 +1,31 @@
+{
+  "name": "tland",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A cozy 2D top-down multiplayer world set in a stylized Taipei City.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/client"
+  ],
+  "scripts": {
+    "build": "npm run build -w @tland/shared && npm run build -w @tland/server && npm run build -w @tland/client",
+    "dev:client": "npm run dev -w @tland/client",
+    "dev:server": "npm run dev -w @tland/server",
+    "lint": "eslint .",
+    "typecheck": "npm run build -w @tland/shared && npm run typecheck -w @tland/server && npm run typecheck -w @tland/client",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}

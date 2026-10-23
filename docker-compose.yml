@@ -1,0 +1,46 @@
+# One command for the whole site:  docker compose up --build
+#
+# On a Mac running Apple Container instead of Docker, use the equivalent
+# scripts/container-up.sh, which builds the same two Dockerfiles.
+
+services:
+  game:
+    build:
+      context: .
+      dockerfile: docker/game.Dockerfile
+    environment:
+      GAME_PORT: "3000"
+      GAME_HOST: "0.0.0.0"
+      MAX_PLAYERS: "${MAX_PLAYERS:-50}"
+      TICK_HZ: "${TICK_HZ:-20}"
+    expose:
+      - "3000"
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    ports:
+      # Bound to all interfaces on purpose, so a phone on the same Wi-Fi can
+      # reach it at http://<your-mac-lan-ip>:8080
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      game:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true

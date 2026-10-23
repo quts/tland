@@ -188,6 +188,15 @@ Without that variable the client has nowhere to connect: it will say
 **找不到遊戲伺服器** on the join screen rather than spinning on "reconnecting"
 forever, and the join button stays disabled.
 
+**Leave the project's Root Directory empty.** This is an npm workspaces
+monorepo, so install and build have to run from the repository root; pointing
+Vercel at `packages/client` — which its dashboard will suggest, since that is
+where the Vite app lives — installs 24 packages instead of 141 and then fails
+with `Missing script: "build:client"`, because the root scripts and
+`@tland/shared` are not there. Leave Build Command, Install Command and
+Output Directory empty too: anything set in the dashboard overrides
+`vercel.json`.
+
 ### Moving later
 
 Nothing above is specific to a host. The game server is an ordinary container

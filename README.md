@@ -260,6 +260,11 @@ the sea, with bridges at the crossings. Towns are clusters rather than grids —
 block pattern reads as a circuit board from above, which is the opposite of
 the look this is going for.
 
+Arrivals are **scattered**. A joining player is dropped on a random street or
+plaza tile, so the town does not grow entirely around one spot. Grass and
+beaches are excluded from the pool: materialising in the middle of a meadow
+leaves you with nothing around you, and a beach usually faces you out to sea.
+
 Districts are **seed points, not rectangles**. Each is one coordinate, and
 every walkable tile belongs to whichever seed is nearest *on foot* — a
 multi-source flood fill, so rivers and ridges become the borders by

@@ -22,7 +22,14 @@ export interface TownMap {
   readonly name: string;
   readonly width: number;
   readonly height: number;
+  /** The fixed point the client draws before the server says where you are. */
   readonly spawn: { readonly x: number; readonly y: number };
+  /**
+   * Where a player may be dropped when they join: streets and plazas, never
+   * the middle of a field or a beach. Every town is represented, so arriving
+   * puts you somewhere that looks like a place and has somewhere to walk to.
+   */
+  readonly spawnPoints: readonly { readonly x: number; readonly y: number }[];
   readonly zones: readonly Zone[];
   terrainAt(x: number, y: number): Terrain;
   propAt(x: number, y: number): Prop;
@@ -232,11 +239,24 @@ export function getTownMap(): TownMap {
   }));
   const zoneOwner = assignZones(grid, zones);
 
+  // Streets and plazas, gathered once. Grass is excluded deliberately: a
+  // player who materialises in the middle of a meadow has nothing around
+  // them, and one who lands on a beach is usually facing the sea.
+  const spawnPoints: { x: number; y: number }[] = [];
+  for (let y = 0; y < grid.height; y += 1) {
+    for (let x = 0; x < grid.width; x += 1) {
+      if (!isOpen(grid, x, y)) continue;
+      const terrain = grid.terrain[indexOf(grid, x, y)] as Terrain;
+      if (terrain === 'path' || terrain === 'park') spawnPoints.push({ x, y });
+    }
+  }
+
   cached = {
     name: townData.name,
     width: grid.width,
     height: grid.height,
     spawn,
+    spawnPoints,
     zones,
     terrainAt: (x, y) =>
       inBounds(grid, x, y) ? (grid.terrain[indexOf(grid, x, y)] as Terrain) : 'water',

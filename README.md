@@ -182,7 +182,8 @@ you; otherwise put a reverse proxy in front.
 `packages/client/dist`, and sends the same security headers nginx does (plus
 `Cross-Origin-Opener-Policy`, which nginx leaves off because browsers ignore
 it on the plain-HTTP LAN setup). Set `VITE_GAME_WS_URL` as an environment
-variable in the Vercel project and redeploy.
+variable — this repo keeps it in `vercel.json` rather than the Vercel
+dashboard, since Vite bakes it into the public bundle and it is not a secret.
 
 Without that variable the client has nowhere to connect: it will say
 **找不到遊戲伺服器** on the join screen rather than spinning on "reconnecting"
@@ -197,11 +198,20 @@ with `Missing script: "build:client"`, because the root scripts and
 Output Directory empty too: anything set in the dashboard overrides
 `vercel.json`.
 
+#### EC2
+
+[DEPLOY-EC2.md](DEPLOY-EC2.md) is a step-by-step runbook for the other half:
+one EC2 instance, an Elastic IP, a domain, and Caddy in front for automatic
+TLS — then wiring it to the Vercel build. It has been followed end to end, and
+carries the notes for what actually goes wrong: Cloudflare's proxy silently
+preventing certificate issuance, and the two ways a healthy server looks broken
+when you test it with curl.
+
 ### Moving later
 
 Nothing above is specific to a host. The game server is an ordinary container
-image (`docker/game.Dockerfile`), so moving it to your own AWS is a matter of
-running the same image somewhere else and pointing `VITE_GAME_WS_URL` at it.
+image (`docker/game.Dockerfile`), so moving it anywhere else is a matter of
+running the same image and pointing `VITE_GAME_WS_URL` at it.
 
 ## How it fits together
 
@@ -265,5 +275,6 @@ Copy `.env.example` to `.env` to change ports or limits. No secrets are needed.
 
 ## Also here
 
+- [DEPLOY-EC2.md](DEPLOY-EC2.md) — putting the game server on EC2, with TLS.
 - [TESTING.md](TESTING.md) — manual iOS test checklist.
 - [ASSET_LICENSES.md](ASSET_LICENSES.md) — every font and asset, and its license.

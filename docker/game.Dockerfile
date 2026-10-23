@@ -5,8 +5,13 @@ COPY package.json package-lock.json* tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/server/package.json packages/server/
 COPY packages/client/package.json packages/client/
-# The client is a workspace sibling; skip its (large) deps for a server image.
-RUN npm install --workspaces --include-workspace-root
+# Only the workspaces this image needs. The client is a sibling in the
+# lockfile, and pulling its deps in would drag Phaser and the whole frontend
+# toolchain into a server image — about 150MB of download that never ships.
+RUN npm install \
+      --workspace @tland/shared \
+      --workspace @tland/server \
+      --include-workspace-root
 COPY packages/shared packages/shared
 COPY packages/server packages/server
 RUN npm run build -w @tland/shared && npm run build -w @tland/server

@@ -24,16 +24,67 @@ export class Hud {
   private readonly countPill = required('count-pill');
   private readonly countText = required('count-text');
   private readonly notice = required('notice');
+  private readonly joystick = required('joystick');
+  private readonly zoneBanner = required('zone-banner');
+  private zoneTimer: number | null = null;
+
+  private state: ConnectionState = 'connecting';
+  private count = 0;
+
+  get connectionState(): ConnectionState {
+    return this.state;
+  }
+
+  get playerCount(): number {
+    return this.count;
+  }
 
   setConnectionState(state: ConnectionState): void {
+    this.state = state;
     this.statusPill.dataset['state'] = state;
     this.statusText.textContent = STATUS_LABEL[state];
     if (state !== 'online') this.countPill.hidden = true;
   }
 
   setPlayerCount(count: number): void {
+    this.count = count;
     this.countText.textContent = String(count);
     this.countPill.hidden = false;
+  }
+
+  showJoystick(): void {
+    this.joystick.hidden = false;
+  }
+
+  /**
+   * Announce the district the player just walked into.
+   *
+   * The banner is removed from the flow after it fades, so it never sits
+   * invisibly over the world catching taps.
+   */
+  showZone(name: string | null): void {
+    if (this.zoneTimer !== null) {
+      clearTimeout(this.zoneTimer);
+      this.zoneTimer = null;
+    }
+    if (name === null) {
+      this.zoneBanner.classList.remove('is-visible');
+      this.zoneTimer = window.setTimeout(() => {
+        this.zoneBanner.hidden = true;
+      }, 300);
+      return;
+    }
+
+    this.zoneBanner.textContent = name;
+    this.zoneBanner.hidden = false;
+    // Let the element lay out before the transition starts.
+    requestAnimationFrame(() => this.zoneBanner.classList.add('is-visible'));
+    this.zoneTimer = window.setTimeout(() => {
+      this.zoneBanner.classList.remove('is-visible');
+      this.zoneTimer = window.setTimeout(() => {
+        this.zoneBanner.hidden = true;
+      }, 300);
+    }, 2200);
   }
 
   showNotice(text: string): void {

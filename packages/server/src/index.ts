@@ -9,6 +9,7 @@ import {
 } from '@tland/shared';
 import { config } from './config.ts';
 import { Room, type Connection } from './room.ts';
+import { normalizeNickname } from './validation.ts';
 
 const room = new Room(config.maxPlayers);
 
@@ -19,7 +20,7 @@ const httpServer = createServer((req, res) => {
       protocol: PROTOCOL_VERSION,
       tick: room.tick,
       players: room.size,
-      maxPlayers: config.maxPlayers,
+      maxPlayers: room.capacity,
       uptimeSeconds: Math.round(process.uptime()),
     });
     res.writeHead(200, {
@@ -72,32 +73,33 @@ const heartbeatTimer = setInterval(() => {
 }, HEARTBEAT_MS);
 heartbeatTimer.unref();
 
+/** How many malformed frames a client may send before we hang up. */
+const MAX_BAD_FRAMES = 12;
+
 wss.on('connection', (ws: WebSocket) => {
   const id = Room.newId();
   alive.set(ws, true);
   ws.on('pong', () => alive.set(ws, true));
-  const connection: Connection = {
-    id,
-    send: (message) => sendTo(ws, message),
-    close: () => ws.close(),
-  };
 
-  /** A socket that never sends a valid `hello` is dropped. */
+  const connection: Connection = { id, send: (message) => sendTo(ws, message) };
+
   let greeted = false;
+  let joined = false;
+  let badFrames = 0;
+
+  /** A socket that never says hello is dropped rather than left hanging. */
   const helloTimer = setTimeout(() => {
     if (!greeted) ws.close(1002, 'no hello');
   }, 10_000);
 
-  // A connection only occupies a slot once it has been admitted, so a flood of
-  // half-open sockets cannot fill the room.
-  let admitted = false;
+  const fail = (message: ServerMessage): void => sendTo(ws, message);
 
   ws.on('message', (data, isBinary) => {
     // Any traffic at all proves the socket is still there.
     alive.set(ws, true);
 
     if (isBinary) {
-      sendTo(ws, {
+      fail({
         t: 'error',
         code: 'bad_message',
         message: 'Binary frames are not supported.',
@@ -109,20 +111,24 @@ wss.on('connection', (ws: WebSocket) => {
 
     const message = parseClientMessage(data.toString());
     if (message === null) {
-      sendTo(ws, {
+      badFrames += 1;
+      fail({
         t: 'error',
         code: 'bad_message',
         message: 'Unrecognized message.',
         fatal: false,
       });
+      if (badFrames >= MAX_BAD_FRAMES) ws.close(1002, 'too many bad frames');
       return;
     }
+
+    const now = Date.now();
 
     switch (message.t) {
       case 'hello': {
         if (greeted) return;
         if (message.protocol !== PROTOCOL_VERSION) {
-          sendTo(ws, {
+          fail({
             t: 'error',
             code: 'bad_protocol',
             message: 'This page is out of date. Please reload.',
@@ -131,8 +137,40 @@ wss.on('connection', (ws: WebSocket) => {
           ws.close(1002, 'bad protocol');
           return;
         }
+        greeted = true;
+        clearTimeout(helloTimer);
+        sendTo(ws, {
+          t: 'ready',
+          protocol: PROTOCOL_VERSION,
+          playerCount: room.size,
+          maxPlayers: room.capacity,
+        });
+        return;
+      }
+
+      case 'join': {
+        if (!greeted) return;
+        if (joined) {
+          fail({
+            t: 'error',
+            code: 'already_joined',
+            message: 'You are already in the town.',
+            fatal: false,
+          });
+          return;
+        }
+        const nick = normalizeNickname(message.nick);
+        if (nick === null) {
+          fail({
+            t: 'error',
+            code: 'bad_nickname',
+            message: 'Please pick a name with at least one visible character.',
+            fatal: false,
+          });
+          return;
+        }
         if (room.isFull) {
-          sendTo(ws, {
+          fail({
             t: 'error',
             code: 'room_full',
             message: 'The town is full right now. Please try again in a bit!',
@@ -141,22 +179,59 @@ wss.on('connection', (ws: WebSocket) => {
           ws.close(1013, 'room full');
           return;
         }
-        greeted = true;
-        clearTimeout(helloTimer);
-        room.add(connection);
-        admitted = true;
+
+        const self = room.join(connection, nick, message.avatar, now);
+        joined = true;
         sendTo(ws, {
           t: 'welcome',
-          protocol: PROTOCOL_VERSION,
           selfId: id,
           tick: room.tick,
-          playerCount: room.size,
+          you: { x: self.x, y: self.y },
+          players: room.roster(id),
         });
-        room.broadcast({ t: 'playerCount', playerCount: room.size }, id);
+        room.broadcast({ t: 'playerJoined', player: self }, id);
+        room.broadcast({ t: 'playerCount', playerCount: room.size });
         return;
       }
+
+      case 'move': {
+        if (!joined) return;
+        const correction = room.applyMove(
+          id,
+          message.x,
+          message.y,
+          message.dir,
+          message.moving,
+          now,
+        );
+        if (correction !== null) {
+          sendTo(ws, { t: 'correction', x: correction.x, y: correction.y });
+        }
+        return;
+      }
+
+      case 'chat': {
+        if (!joined) return;
+        const wait = room.chatRetryAfter(id, now);
+        if (!room.chat(id, message.text, now)) {
+          fail({
+            t: 'error',
+            code: 'rate_limited',
+            message: `Slow down a moment — try again in ${Math.ceil(wait / 1000)}s.`,
+            fatal: false,
+          });
+        }
+        return;
+      }
+
+      case 'emote': {
+        if (!joined) return;
+        room.emote(id, message.kind, now);
+        return;
+      }
+
       case 'ping': {
-        sendTo(ws, { t: 'pong', at: message.at, serverTime: Date.now() });
+        sendTo(ws, { t: 'pong', at: message.at, serverTime: now });
         return;
       }
     }
@@ -164,8 +239,9 @@ wss.on('connection', (ws: WebSocket) => {
 
   ws.on('close', () => {
     clearTimeout(helloTimer);
-    if (!admitted) return;
-    room.remove(id);
+    if (!joined) return;
+    room.leave(id);
+    room.broadcast({ t: 'playerLeft', id });
     room.broadcast({ t: 'playerCount', playerCount: room.size });
   });
 
@@ -177,7 +253,8 @@ tickTimer.unref();
 
 httpServer.listen(config.port, config.host, () => {
   console.log(
-    `[game] listening on http://${config.host}:${config.port} (ws ${WS_PATH}, max ${config.maxPlayers} players)`,
+    `[game] listening on http://${config.host}:${config.port}` +
+      ` (ws ${WS_PATH}, max ${room.capacity} players, ${config.tickHz} Hz)`,
   );
 });
 

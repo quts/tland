@@ -6,7 +6,7 @@ import {
   type ServerMessage,
 } from '@tland/shared';
 
-export type ConnectionState = 'connecting' | 'online' | 'offline';
+export type ConnectionState = 'connecting' | 'online' | 'offline' | 'unreachable';
 
 export interface ConnectionHandlers {
   onState(state: ConnectionState): void;
@@ -19,7 +19,32 @@ const RECONNECT_BASE_MS = 500;
 const RECONNECT_MAX_MS = 15_000;
 const PING_INTERVAL_MS = 10_000;
 
+/**
+ * Failed attempts before we stop saying "reconnecting" and admit there is
+ * probably no server at the other end.
+ *
+ * Only applies before the first successful connection. Once a session has
+ * worked, a drop is far more likely to be the network or a backgrounded tab,
+ * and the client should keep quietly retrying.
+ */
+const ATTEMPTS_BEFORE_UNREACHABLE = 4;
+
+/**
+ * Where the game server lives.
+ *
+ * Same origin by default, which is what the nginx deployment serves: the web
+ * container proxies `/ws` to the game container. Set `VITE_GAME_WS_URL` at
+ * build time to point the client somewhere else — needed when the static
+ * files are on a host that cannot run a long-lived WebSocket server, so the
+ * game server sits on its own machine.
+ */
 function websocketUrl(): string {
+  const configured = import.meta.env.VITE_GAME_WS_URL?.trim();
+  if (configured !== undefined && configured !== '') {
+    return configured.endsWith(WS_PATH)
+      ? configured
+      : `${configured.replace(/\/+$/, '')}${WS_PATH}`;
+  }
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${scheme}//${location.host}${WS_PATH}`;
 }
@@ -37,6 +62,7 @@ export class Connection {
   private reconnectTimer: number | null = null;
   private pingTimer: number | null = null;
   private closedForGood = false;
+  private everConnected = false;
   private state: ConnectionState = 'connecting';
   /** Round-trip time of the last completed ping, in ms. */
   latencyMs = 0;
@@ -73,7 +99,11 @@ export class Connection {
   private open(): void {
     if (this.closedForGood) return;
     this.clearTimers();
-    this.setState(this.attempt === 0 ? 'connecting' : 'connecting');
+    this.setState(
+      !this.everConnected && this.attempt >= ATTEMPTS_BEFORE_UNREACHABLE
+        ? 'unreachable'
+        : 'connecting',
+    );
 
     const socket = new WebSocket(websocketUrl());
     this.socket = socket;
@@ -89,7 +119,10 @@ export class Connection {
       const message = parseServerMessage(event.data);
       if (message === null) return;
 
-      if (message.t === 'welcome') this.setState('online');
+      if (message.t === 'ready' || message.t === 'welcome') {
+        this.everConnected = true;
+        this.setState('online');
+      }
       if (message.t === 'pong') {
         this.latencyMs = Math.max(0, Date.now() - message.at);
       }
@@ -106,7 +139,11 @@ export class Connection {
       if (this.socket === socket) this.socket = null;
       this.clearTimers();
       if (this.closedForGood) return;
-      this.setState('offline');
+      this.setState(
+        !this.everConnected && this.attempt >= ATTEMPTS_BEFORE_UNREACHABLE
+          ? 'unreachable'
+          : 'offline',
+      );
       this.scheduleReconnect();
     };
 

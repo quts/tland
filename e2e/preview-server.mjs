@@ -11,6 +11,8 @@ import { extname, join, normalize, resolve } from 'node:path';
 const ROOT = resolve(process.argv[2] ?? 'packages/client/dist');
 const PORT = Number(process.env.E2E_WEB_PORT ?? 4173);
 const GAME_HOST = process.env.E2E_GAME_HOST ?? '127.0.0.1';
+// Loopback is right for the test runner; override to reach it from outside.
+const BIND_HOST = process.env.E2E_BIND_HOST ?? '127.0.0.1';
 const GAME_PORT = Number(process.env.E2E_GAME_PORT ?? 3100);
 
 const CONTENT_TYPES = new Map([
@@ -99,6 +101,6 @@ server.on('upgrade', (req, socket, head) => {
   socket.on('error', () => upstream.destroy());
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`[e2e] serving ${ROOT} on http://127.0.0.1:${PORT}`);
+server.listen(PORT, BIND_HOST, () => {
+  console.log(`[e2e] serving ${ROOT} on http://${BIND_HOST}:${PORT}`);
 });

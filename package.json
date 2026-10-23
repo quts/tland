@@ -20,7 +20,8 @@
     "lint": "eslint .",
     "typecheck": "npm run build -w @tland/shared && npm run typecheck -w @tland/server && npm run typecheck -w @tland/client",
     "test": "vitest run",
-    "test:e2e": "npm run build && playwright test"
+    "test:e2e": "npm run build && playwright test",
+    "build:client": "npm run build -w @tland/shared && npm run build -w @tland/client"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

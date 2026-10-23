@@ -131,6 +131,69 @@ Bind mounts deliver no filesystem events, so `node --watch` and Vite's HMR do
 not see edits made on the host. Restart the container after changing server
 code.
 
+## Deploying
+
+The two halves have different needs, and that decides where each can live.
+
+- **The client** is static files. Any static host will do.
+- **The game server** must be a *long-lived process that keeps state in
+  memory*: the room, who is in it, and who can hear whom all live between
+  connections. A serverless platform cannot host it — and that is not a
+  question of paying for a bigger plan, it is what serverless is. Vercel,
+  Netlify Functions, Cloudflare Workers and Lambda are all out for this
+  process, on any tier.
+
+So there are two shapes.
+
+### Together, behind nginx
+
+Both containers on one machine — a VPS, EC2, Fly.io, Render, anything that
+runs a container. `docker compose up --build` is the whole deployment, nginx
+serves the client and proxies `/ws`, and everything is same-origin. Nothing
+needs configuring.
+
+### Split: static host plus a small server
+
+Put the client on a static host and the game server on a small always-on
+machine. Two settings connect them:
+
+| Where | Setting | Example |
+| --- | --- | --- |
+| Client, at **build** time | `VITE_GAME_WS_URL` | `wss://town-game.example.com` |
+| Game server | `ALLOWED_ORIGINS` | `https://your-town.example.com` |
+
+`VITE_GAME_WS_URL` is baked into the bundle by Vite, so changing it needs a
+rebuild, not just a restart. Leave it unset and the client talks to `/ws` on
+its own origin, which is what the nginx deployment wants.
+
+`ALLOWED_ORIGINS` matters more than it looks. **WebSocket upgrades are not
+subject to CORS**, so a game server on a public address will happily accept a
+socket from anybody's web page unless it checks the origin itself. Set it as
+soon as the server is reachable from the internet. Leave it unset behind
+nginx, where the server is only reachable from inside the container network.
+
+The server also needs TLS in front of it when the client is on HTTPS: a page
+served over `https:` cannot open a `ws:` socket. Most hosts terminate TLS for
+you; otherwise put a reverse proxy in front.
+
+#### Vercel
+
+`vercel.json` is set up for the client half: it builds `@tland/client`, serves
+`packages/client/dist`, and sends the same security headers nginx does (plus
+`Cross-Origin-Opener-Policy`, which nginx leaves off because browsers ignore
+it on the plain-HTTP LAN setup). Set `VITE_GAME_WS_URL` as an environment
+variable in the Vercel project and redeploy.
+
+Without that variable the client has nowhere to connect: it will say
+**找不到遊戲伺服器** on the join screen rather than spinning on "reconnecting"
+forever, and the join button stays disabled.
+
+### Moving later
+
+Nothing above is specific to a host. The game server is an ordinary container
+image (`docker/game.Dockerfile`), so moving it to your own AWS is a matter of
+running the same image somewhere else and pointing `VITE_GAME_WS_URL` at it.
+
 ## How it fits together
 
 ```
@@ -188,6 +251,8 @@ Copy `.env.example` to `.env` to change ports or limits. No secrets are needed.
 | `GAME_PORT` | `3000` | Game server port, internal to the container network |
 | `MAX_PLAYERS` | `50` | Room capacity |
 | `TICK_HZ` | `20` | Server simulation and broadcast rate |
+| `ALLOWED_ORIGINS` | unset | Origins the game server accepts sockets from; unset allows any. Set it once the server is public — see [Deploying](#deploying) |
+| `VITE_GAME_WS_URL` | unset | Absolute WebSocket URL of the game server, baked into the client at build time. Unset means same origin |
 
 ## Also here
 

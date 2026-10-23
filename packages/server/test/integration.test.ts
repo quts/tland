@@ -404,6 +404,37 @@ describe('game server', () => {
     expect(error).toMatchObject({ code: 'bad_message', fatal: false });
   });
 
+  it('refuses an upgrade from an origin that is not on the list', async () => {
+    const guarded = createGameServer({
+      maxPlayers: 2,
+      tickHz: 20,
+      allowedOrigins: ['https://town.example.com'],
+    });
+    const guardedPort = await guarded.listen(0, '127.0.0.1');
+    try {
+      const refused = new WebSocket(`ws://127.0.0.1:${guardedPort}/ws`, {
+        origin: 'https://evil.example.com',
+      });
+      await expect(
+        new Promise((_resolve, reject) => {
+          refused.once('open', () => reject(new Error('should not have opened')));
+          refused.once('error', (error) => reject(error));
+        }),
+      ).rejects.toThrow();
+
+      const accepted = new WebSocket(`ws://127.0.0.1:${guardedPort}/ws`, {
+        origin: 'https://town.example.com',
+      });
+      await new Promise<void>((resolve, reject) => {
+        accepted.once('open', () => resolve());
+        accepted.once('error', reject);
+      });
+      accepted.close();
+    } finally {
+      await guarded.close();
+    }
+  });
+
   it('serves a health check', async () => {
     await connect('小美');
     const response = await fetch(`http://127.0.0.1:${port}/healthz`);

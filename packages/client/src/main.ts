@@ -133,9 +133,18 @@ async function main(): Promise<void> {
   const connection = new Connection({
     onState: (state) => {
       hud.setConnectionState(state);
-      if (state !== 'online') {
-        joinScreen.setReady(false, '重新連線中…');
+      if (state === 'online') return;
+      if (state === 'unreachable') {
+        // Several attempts and never a single successful connection: the
+        // server is almost certainly not deployed or not reachable from here.
+        // Saying so beats spinning on "reconnecting" forever.
+        joinScreen.setReady(false, '找不到遊戲伺服器');
+        joinScreen.showError(
+          '目前連不上遊戲伺服器，所以還不能進入小鎮。如果你是自己架的，請確認遊戲伺服器有在執行。',
+        );
+        return;
       }
+      joinScreen.setReady(false, '重新連線中…');
     },
     onMessage: (message) => {
       switch (message.t) {

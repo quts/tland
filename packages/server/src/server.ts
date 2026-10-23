@@ -15,6 +15,11 @@ export interface GameServerOptions {
   tickHz: number;
   /** How often to sweep for sockets that stopped answering. */
   heartbeatMs?: number;
+  /**
+   * Origins permitted to open a socket. Empty allows any, which is right
+   * when the server is only reachable from behind its own reverse proxy.
+   */
+  allowedOrigins?: readonly string[];
 }
 
 export interface GameServer {
@@ -38,6 +43,17 @@ const HELLO_TIMEOUT_MS = 10_000;
 export function createGameServer(options: GameServerOptions): GameServer {
   const room = new Room(options.maxPlayers);
   const heartbeatMs = options.heartbeatMs ?? 30_000;
+  const allowedOrigins = options.allowedOrigins ?? [];
+
+  /**
+   * WebSocket upgrades are not subject to CORS, so a public game server has
+   * to check the origin itself or anyone's page can use it as their backend.
+   */
+  function originAllowed(origin: string | undefined): boolean {
+    if (allowedOrigins.length === 0) return true;
+    if (origin === undefined) return false;
+    return allowedOrigins.includes(origin.replace(/\/+$/, ''));
+  }
 
   const httpServer: Server = createServer((req, res) => {
     if (req.method === 'GET' && req.url === '/healthz') {
@@ -67,6 +83,11 @@ export function createGameServer(options: GameServerOptions): GameServer {
     // Only one endpoint speaks WebSocket; anything else is dropped outright.
     const path = (req.url ?? '').split('?')[0];
     if (path !== WS_PATH) {
+      socket.destroy();
+      return;
+    }
+    if (!originAllowed(req.headers.origin)) {
+      socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
       socket.destroy();
       return;
     }

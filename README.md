@@ -109,11 +109,17 @@ reachable from your phone at `http://<mac-lan-ip>:5173`:
 ./scripts/dev-serve.sh
 ```
 
-The WebKit end-to-end suite, in the official Playwright image:
+The WebKit end-to-end suite, in the official Playwright image — iPhone and
+iPad, portrait and landscape:
 
 ```bash
 ./scripts/e2e.sh
 ```
+
+It needs a roomier container than the default: an iPad-sized WebGL surface at
+a device pixel ratio of 2 pushes WebKit past 1 GB, and the browser is killed
+mid-test. `scripts/e2e.sh` asks for 4 GB and 6 CPUs; override with
+`PLAYWRIGHT_MEMORY` and `PLAYWRIGHT_CPUS`.
 
 `node_modules/` and `dist/` end up in the working tree and hold linux/arm64
 binaries. They are gitignored and are only meant to be used from inside a

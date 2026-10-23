@@ -104,6 +104,15 @@ address.
 ```
 
 The end-to-end suite builds the client, starts the game server and a static
-preview, and drives WebKit with both an iPhone and an iPad profile: it joins,
-walks, brings in a second player, and checks that a bubble crosses between
-them.
+preview, and drives WebKit with four profiles — iPhone and iPad, each in
+portrait and landscape. Each one joins, walks by tapping, sends a message and
+sees its own bubble, fires an emote, opens the minimap, and checks the layout
+fits without the page scrolling.
+
+What two players can see of each other is covered separately, by
+`packages/server/test/integration.test.ts`: two real WebSocket clients against
+a real server, asserting the join handshake, movement relay, position
+validation, the exact proximity radii including the hysteresis band, the chat
+rate limit and the room-full refusal. Playwright's Linux WebKit will not
+automate a second page or context, and the server's relay logic is what a
+two-browser test would really have been asserting.

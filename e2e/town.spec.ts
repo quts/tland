@@ -1,12 +1,19 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * End-to-end smoke test against the production build in WebKit.
+ * Browser smoke test against the production build, in WebKit.
  *
  * It drives the page the way a player would — tapping, typing, pressing the
  * on-screen buttons — and reads back state through `window.__town`, the small
  * read-only bridge the client installs. Asserting on canvas pixels would be
  * both slow and flaky; asserting on the state behind them is neither.
+ *
+ * This covers one player on one device. What two players can see of each
+ * other is covered by packages/server/test/integration.test.ts, which drives
+ * two real WebSocket clients against the real server: Playwright's Linux
+ * WebKit refuses to automate a second page or context, so a two-browser test
+ * cannot run here, and the server relay is what that test would be asserting
+ * anyway.
  */
 
 declare global {
@@ -57,30 +64,18 @@ async function joinTown(page: Page, nickname: string): Promise<void> {
   });
 }
 
-/**
- * A second player, as another tab rather than another browser context.
- *
- * Playwright's Linux WebKit cannot drive a second context — it logs
- * "automation is not allowed in the context" and the new page never
- * responds. The app keeps nothing in cookies or storage, so sharing a
- * context changes nothing about what is being tested.
- */
-async function openSecondPlayer(page: Page): Promise<Page> {
-  const second = await page.context().newPage();
-  reportFailures(second, 'second');
-  return second;
-}
-
 test.describe('Riverside Town', () => {
   test.describe.configure({ timeout: 90_000 });
 
-  test('a player can join, walk, and be heard nearby', async ({ page }) => {
-    reportFailures(page, 'first');
+  test('a player can join, walk and be heard', async ({ page }) => {
+    reportFailures(page, 'player');
 
     await joinTown(page, '小美');
 
     await expect(page.locator('#game canvas')).toBeVisible();
     await expect(page.locator('#joystick')).toBeVisible();
+    await expect(page.locator('#status-text')).toHaveText('已連線');
+    // Standing somewhere that belongs to a named district.
     expect(await page.evaluate(() => window.__town?.zone())).not.toBeNull();
 
     /* -------- walking -------- */
@@ -103,81 +98,64 @@ test.describe('Riverside Town', () => {
       { timeout: 15_000 },
     );
 
-    /* -------- a second player -------- */
+    /* -------- speaking -------- */
 
-    const second = await openSecondPlayer(page);
-    try {
-      await joinTown(second, '阿寬');
+    await page.locator('#chat-open').click();
+    await page.locator('#chat-input').fill('哈囉，這裡真舒服');
+    await page.locator('#chat-input').press('Enter');
 
-      await page.waitForFunction(
-        () => (window.__town?.others().length ?? 0) >= 1,
-        null,
-        { timeout: 20_000 },
-      );
-      await second.waitForFunction(
-        () => (window.__town?.others().length ?? 0) >= 1,
-        null,
-        { timeout: 20_000 },
-      );
+    await expect
+      .poll(() => page.evaluate(() => window.__town?.bubbles() ?? []), {
+        timeout: 15_000,
+      })
+      .toContain('哈囉，這裡真舒服');
 
-      await expect(page.locator('#count-text')).toHaveText('2');
+    // The field folds away again rather than covering the world.
+    await expect(page.locator('#chat-open')).toBeVisible();
 
-      /* -------- proximity chat -------- */
+    /* -------- emotes and the minimap -------- */
 
-      // The second player spawns beside the first, inside the three-tile
-      // earshot, so the line should reach both of them.
-      await second.locator('#chat-open').click();
-      await second.locator('#chat-input').fill('有人在嗎');
-      await second.locator('#chat-input').press('Enter');
+    await page.locator('.emote-button').first().click();
+    await page.locator('#minimap-toggle').click();
+    await expect(page.locator('#minimap')).toBeVisible();
 
-      await expect
-        .poll(() => second.evaluate(() => window.__town?.bubbles() ?? []), {
-          timeout: 15_000,
-        })
-        .toContain('有人在嗎');
-
-      await expect
-        .poll(() => page.evaluate(() => window.__town?.bubbles() ?? []), {
-          timeout: 15_000,
-        })
-        .toContain('有人在嗎');
-
-      /* -------- emotes -------- */
-
-      // Nothing to assert in the DOM; this is a crash check on the emote path.
-      await second.locator('.emote-button').first().click();
-      await page.waitForTimeout(500);
-      expect(await page.evaluate(() => window.__town?.joined())).toBe(true);
-    } finally {
-      await second.close();
-    }
+    // Still alive after all of that.
+    expect(await page.evaluate(() => window.__town?.joined())).toBe(true);
   });
 
-  test('the layout survives a rotation', async ({ page }) => {
-    reportFailures(page, 'rotate');
-    await joinTown(page, '轉轉');
-
-    const portrait = page.viewportSize();
-    expect(portrait).not.toBeNull();
-    const { width, height } = portrait as NonNullable<typeof portrait>;
-
-    await page.setViewportSize({ width: height, height: width });
-    await page.waitForTimeout(500);
+  test('the layout fits this viewport', async ({ page }) => {
+    reportFailures(page, 'layout');
+    await joinTown(page, '看看');
 
     const metrics = await page.evaluate(() => {
       const canvas = document.querySelector('#game canvas') as HTMLCanvasElement;
       const rect = canvas.getBoundingClientRect();
+      const joystick = document
+        .getElementById('joystick')
+        ?.getBoundingClientRect();
       return {
         canvasWidth: Math.round(rect.width),
+        canvasHeight: Math.round(rect.height),
         innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
         scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+        joystickBottom: joystick ? Math.round(joystick.bottom) : 0,
+        joystickLeft: joystick ? Math.round(joystick.left) : 0,
       };
     });
 
-    // The canvas still fills its parent, and the page has not gained a
-    // horizontal scrollbar.
+    // The canvas fills its parent in both dimensions.
     expect(metrics.canvasWidth).toBeGreaterThan(metrics.innerWidth * 0.9);
+    expect(metrics.canvasHeight).toBeGreaterThan(metrics.innerHeight * 0.9);
+
+    // Nothing has pushed the page into scrolling.
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth + 1);
-    expect(await page.evaluate(() => window.__town?.joined())).toBe(true);
+    expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.innerHeight + 1);
+
+    // The joystick is on screen and reachable with a left thumb.
+    expect(metrics.joystickLeft).toBeGreaterThanOrEqual(0);
+    expect(metrics.joystickBottom).toBeLessThanOrEqual(metrics.innerHeight);
   });
+
 });

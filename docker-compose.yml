@@ -17,6 +17,9 @@ services:
       - "3000"
     restart: unless-stopped
     read_only: true
+    # A read-only root still needs somewhere scratch; Node expects /tmp.
+    tmpfs:
+      - /tmp
     security_opt:
       - no-new-privileges:true
     healthcheck:

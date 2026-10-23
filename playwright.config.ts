@@ -23,25 +23,48 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
 
+  // Artifacts go outside the repo: this runs over a bind mount into a VM,
+  // where writing a multi-megabyte trace is slow enough to stall teardown.
+  outputDir: process.env['PLAYWRIGHT_OUTPUT_DIR'] ?? 'test-results',
+
   use: {
     baseURL: `http://127.0.0.1:${WEB_PORT}`,
     trace: 'retain-on-failure',
+    video: 'off',
+    screenshot: 'only-on-failure',
   },
 
+  /**
+   * Orientation is a project rather than a `setViewportSize` call inside a
+   * test: resizing the window mid-test wedges Playwright's Linux WebKit, and
+   * running the same assertions in a landscape viewport covers the same
+   * ground without it.
+   */
   projects: [
     {
       name: 'iphone',
       use: { ...devices['iPhone 13'], browserName: 'webkit' },
     },
     {
+      name: 'iphone-landscape',
+      use: { ...devices['iPhone 13 landscape'], browserName: 'webkit' },
+    },
+    {
       name: 'ipad',
       use: { ...devices['iPad (gen 7)'], browserName: 'webkit' },
+    },
+    {
+      name: 'ipad-landscape',
+      use: { ...devices['iPad (gen 7) landscape'], browserName: 'webkit' },
     },
   ],
 
   webServer: [
     {
-      command: 'npm run start -w @tland/server',
+      // `node` directly, not `npm run start`: Playwright kills the process it
+      // spawned, and an npm wrapper leaves the real server holding the port,
+      // so teardown waits for a port that never frees.
+      command: 'node packages/server/dist/index.js',
       port: GAME_PORT,
       env: { GAME_PORT: String(GAME_PORT), GAME_HOST: '127.0.0.1' },
       reuseExistingServer: !process.env['CI'],

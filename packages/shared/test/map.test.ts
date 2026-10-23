@@ -38,7 +38,7 @@ describe('town map', () => {
 
   it('also names the larger surrounding districts', () => {
     const named = new Set(map.zones.map((zone) => zone.name));
-    for (const district of ['淡水', '板橋', '新店', '烏來']) {
+    for (const district of ['淡水', '板橋', '新店', '烏來', '三重', '鶯歌']) {
       expect(named).toContain(district);
     }
   });
@@ -48,13 +48,52 @@ describe('town map', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('reports the district under a tile inside a zone', () => {
-    const zone = map.zones[0];
-    expect(zone).toBeDefined();
-    expect(map.zoneAt(zone!.x, zone!.y)).toBe(zone!.name);
-    expect(map.zoneAt(zone!.x + zone!.width - 1, zone!.y + zone!.height - 1)).toBe(
-      zone!.name,
-    );
+  it('puts every district on ground you can stand on', () => {
+    for (const zone of map.zones) {
+      expect(map.isWalkable(zone.x, zone.y)).toBe(true);
+      expect(map.zoneAt(zone.x, zone.y)).toBe(zone.name);
+    }
+  });
+
+  describe('district coverage', () => {
+    // Walk the whole island once and count who owns what.
+    const owned = new Map<string, number>();
+    let walkable = 0;
+    let unnamed = 0;
+    for (let y = 0; y < map.height; y += 1) {
+      for (let x = 0; x < map.width; x += 1) {
+        if (!map.isWalkable(x, y)) continue;
+        walkable += 1;
+        const zone = map.zoneAt(x, y);
+        if (zone === null) {
+          unnamed += 1;
+          continue;
+        }
+        owned.set(zone, (owned.get(zone) ?? 0) + 1);
+      }
+    }
+
+    it('leaves no walkable tile without a district', () => {
+      expect(unnamed).toBe(0);
+      expect(walkable).toBeGreaterThan(0);
+    });
+
+    it('gives every district enough ground to be noticed', () => {
+      // A district smaller than this is crossed before its banner is read,
+      // which is how 三重 came to exist on the map but never be seen.
+      const MINIMUM_TILES = 25;
+      const tooSmall = map.zones
+        .map((zone) => [zone.name, owned.get(zone.name) ?? 0] as const)
+        .filter(([, tiles]) => tiles < MINIMUM_TILES);
+      expect(tooSmall).toEqual([]);
+    });
+
+    it('cannot hide one district underneath another', () => {
+      // Every district owns ground, and the ground sums to the whole island —
+      // so no two can be claiming the same tile.
+      expect(owned.size).toBe(map.zones.length);
+      expect([...owned.values()].reduce((a, b) => a + b, 0)).toBe(walkable);
+    });
   });
 
   it('is an island: sea on every corner, and sea most of the way round', () => {

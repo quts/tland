@@ -472,37 +472,98 @@ for (const [from, to] of BRIDGES) layBridge(from, to);
 /* ------------------------------------------------------------------ */
 
 /**
- * The twelve districts of the city proper, plus the larger surrounding ones,
- * laid over the map where each really sits. Rectangles, so they overlap the
- * coastline harmlessly — a zone only names the ground you are standing on.
+ * Districts are seed points, not rectangles.
+ *
+ * Sizes vary a lot, and that is correct rather than a bug to tune away: the
+ * real districts range from a few square kilometres to a few hundred. What is
+ * not acceptable is a district too small to notice, so every one of these is
+ * checked by a test to own a usable patch of ground.
+ *
+ * Every walkable tile belongs to whichever seed is nearest *on foot* — the
+ * assignment is a multi-source flood fill in map.ts, so rivers and ridges
+ * become the borders by themselves. Rectangles were the earlier model and
+ * they went wrong in three ways at once: they overlapped, so one name
+ * silently hid another; they left three fifths of the island nameless; and
+ * one of them (三重) was covered so completely that it could never be seen.
+ *
+ * A seed only has to be somewhere in the right part of the map. If it lands
+ * on water or a cliff it is snapped to the nearest walkable tile below.
  */
-const ZONES = [
-  { name: '北投', x: 48, y: 44, w: 18, h: 14 },
-  { name: '士林', x: 56, y: 50, w: 16, h: 16 },
-  { name: '大同', x: 56, y: 66, w: 9, h: 11 },
-  { name: '中山', x: 65, y: 62, w: 12, h: 12 },
-  { name: '內湖', x: 80, y: 56, w: 16, h: 13 },
-  { name: '南港', x: 88, y: 69, w: 12, h: 11 },
-  { name: '松山', x: 77, y: 64, w: 11, h: 9 },
-  { name: '萬華', x: 56, y: 77, w: 10, h: 10 },
-  { name: '中正', x: 66, y: 74, w: 10, h: 9 },
-  { name: '大安', x: 74, y: 73, w: 11, h: 11 },
-  { name: '信義', x: 83, y: 73, w: 11, h: 10 },
-  { name: '文山', x: 70, y: 84, w: 16, h: 12 },
-  { name: '淡水', x: 32, y: 36, w: 18, h: 14 },
-  { name: '板橋', x: 48, y: 78, w: 12, h: 10 },
-  { name: '新莊', x: 44, y: 70, w: 12, h: 8 },
-  { name: '三重', x: 52, y: 70, w: 8, h: 8 },
-  { name: '中和', x: 58, y: 86, w: 12, h: 8 },
-  { name: '新店', x: 64, y: 92, w: 16, h: 14 },
-  { name: '汐止', x: 92, y: 56, w: 16, h: 12 },
-  { name: '林口', x: 10, y: 40, w: 18, h: 16 },
-  { name: '三峽', x: 30, y: 98, w: 20, h: 18 },
-  { name: '烏來', x: 56, y: 110, w: 28, h: 30 },
-  { name: '坪林', x: 86, y: 92, w: 22, h: 20 },
-  { name: '瑞芳', x: 104, y: 54, w: 24, h: 22 },
-  { name: '金山', x: 64, y: 16, w: 22, h: 14 },
+const DISTRICT_SEEDS = [
+  // The city proper.
+  ['北投', 57, 51],
+  ['士林', 64, 59],
+  ['大同', 61, 71],
+  ['中山', 70, 67],
+  ['松山', 81, 67],
+  ['內湖', 88, 60],
+  ['南港', 95, 73],
+  ['中正', 68, 78],
+  ['萬華', 59, 83],
+  ['大安', 79, 77],
+  ['信義', 88, 77],
+  ['文山', 77, 90],
+
+  // North coast, west to east.
+  ['石門', 52, 12],
+  ['三芝', 47, 27],
+  ['金山', 74, 23],
+  ['萬里', 86, 33],
+
+  // The river mouth and the west.
+  ['淡水', 41, 44],
+  ['八里', 34, 52],
+  ['林口', 19, 48],
+
+  // The west bank of the basin. These sit across the river from the city
+  // proper, so they are placed on the far bank rather than beside it.
+  ['蘆洲', 50, 66],
+  ['三重', 52, 72],
+  ['五股', 44, 68],
+  ['泰山', 38, 73],
+  ['新莊', 46, 78],
+  ['板橋', 54, 84],
+  ['中和', 63, 89],
+  ['土城', 54, 93],
+  ['樹林', 44, 88],
+  ['鶯歌', 30, 93],
+
+  // South, up the valley and into the range.
+  ['新店', 74, 100],
+  ['深坑', 84, 87],
+  ['石碇', 92, 95],
+  ['坪林', 97, 107],
+  ['烏來', 69, 124],
+  ['三峽', 44, 110],
+
+  // East and north-east.
+  ['汐止', 101, 62],
+  ['平溪', 104, 80],
+  ['瑞芳', 116, 64],
+  ['貢寮', 128, 70],
 ];
+
+/** Nearest walkable tile to a seed, so no district is stranded offshore. */
+function snapToLand(x, y) {
+  if (walkable(x, y)) return [x, y];
+  for (let r = 1; r <= 24; r += 1) {
+    let best = null;
+    let bestDistance = Infinity;
+    for (let dy = -r; dy <= r; dy += 1) {
+      for (let dx = -r; dx <= r; dx += 1) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        if (!walkable(x + dx, y + dy)) continue;
+        const d = dx * dx + dy * dy;
+        if (d < bestDistance) {
+          bestDistance = d;
+          best = [x + dx, y + dy];
+        }
+      }
+    }
+    if (best) return best;
+  }
+  return null;
+}
 
 /* ------------------------------------------------------------------ */
 /* Spawn, and making sure the world is one piece                       */
@@ -555,6 +616,16 @@ for (let y = 0; y < HEIGHT; y += 1) {
 
 const rows = grid.map((row) => row.join(''));
 
+const ZONES = [];
+for (const [name, x, y] of DISTRICT_SEEDS) {
+  const seed = snapToLand(x, y);
+  if (seed === null) {
+    console.warn(`  ! no walkable tile near ${name} (${x}, ${y}); dropping it`);
+    continue;
+  }
+  ZONES.push({ name, x: seed[0], y: seed[1] });
+}
+
 const town = {
   version: 2,
   name: 'Riverside Town',
@@ -577,7 +648,7 @@ const town = {
     '*': 'park',
   },
   grid: rows,
-  zones: ZONES.map(({ name, x, y, w, h }) => ({ name, x, y, w, h })),
+  zones: ZONES,
 };
 
 writeFileSync(join(mapDir, 'town.json'), `${JSON.stringify(town, null, 2)}\n`);

@@ -8,13 +8,14 @@ import {
   type Terrain,
 } from './terrain.js';
 
-/** A named district. Coordinates are in tiles. */
+/**
+ * A named district, as the single point it radiates from. Coordinates are in
+ * tiles. The ground each one owns is worked out by `assignZones`.
+ */
 export interface Zone {
   readonly name: string;
   readonly x: number;
   readonly y: number;
-  readonly width: number;
-  readonly height: number;
 }
 
 export interface TownMap {
@@ -166,6 +167,49 @@ function openStrandedRegions(grid: Grid, spawnX: number, spawnY: number): void {
   }
 }
 
+/**
+ * Give every walkable tile the district it is nearest to *on foot*.
+ *
+ * A multi-source flood fill from the seeds, spreading only over ground you
+ * could actually walk, so a river or a ridge becomes a border without anyone
+ * having to draw one. Three properties come for free, each of which the
+ * earlier rectangles got wrong: no tile can belong to two districts, no
+ * walkable tile is left nameless, and a district can never be hidden
+ * underneath another.
+ */
+function assignZones(grid: Grid, zones: readonly Zone[]): Int16Array {
+  const owner = new Int16Array(grid.width * grid.height).fill(-1);
+  const queue: number[] = [];
+
+  zones.forEach((zone, index) => {
+    if (!isOpen(grid, zone.x, zone.y)) return;
+    const start = indexOf(grid, zone.x, zone.y);
+    if (owner[start] !== -1) return; // two seeds on one tile; first wins
+    owner[start] = index;
+    queue.push(start);
+  });
+
+  for (let head = 0; head < queue.length; head += 1) {
+    const current = queue[head] as number;
+    const x = current % grid.width;
+    const y = (current - x) / grid.width;
+    for (const [nx, ny] of [
+      [x + 1, y],
+      [x - 1, y],
+      [x, y + 1],
+      [x, y - 1],
+    ] as ReadonlyArray<readonly [number, number]>) {
+      if (!isOpen(grid, nx, ny)) continue;
+      const neighbor = indexOf(grid, nx, ny);
+      if (owner[neighbor] !== -1) continue;
+      owner[neighbor] = owner[current] as number;
+      queue.push(neighbor);
+    }
+  }
+
+  return owner;
+}
+
 let cached: TownMap | null = null;
 
 /** The one shared map. Built once, then reused. */
@@ -185,9 +229,8 @@ export function getTownMap(): TownMap {
     name: zone.name,
     x: zone.x * cell,
     y: zone.y * cell,
-    width: zone.w * cell,
-    height: zone.h * cell,
   }));
+  const zoneOwner = assignZones(grid, zones);
 
   cached = {
     name: townData.name,
@@ -201,17 +244,9 @@ export function getTownMap(): TownMap {
       inBounds(grid, x, y) ? (grid.props[indexOf(grid, x, y)] as Prop) : 'none',
     isWalkable: (x, y) => isOpen(grid, x, y),
     zoneAt: (x, y) => {
-      for (const zone of zones) {
-        if (
-          x >= zone.x &&
-          x < zone.x + zone.width &&
-          y >= zone.y &&
-          y < zone.y + zone.height
-        ) {
-          return zone.name;
-        }
-      }
-      return null;
+      if (!inBounds(grid, x, y)) return null;
+      const index = zoneOwner[indexOf(grid, x, y)] as number;
+      return index === -1 ? null : (zones[index] as Zone).name;
     },
   };
 

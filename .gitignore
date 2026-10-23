@@ -7,7 +7,3 @@ coverage/
 test-results/
 playwright-report/
 .vite/
-
-# Auto-created by editor tooling; this project runs its dev servers in
-# containers (scripts/dev-serve.sh), never on the host.
-.claude/

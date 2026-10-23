@@ -9,6 +9,20 @@ listed below. There are no downloaded sprites, icons, logos, sounds, or music.
 relevant, `generateTexture()`. No raster or vector art files are bundled, and
 no third-party art is used, traced, or adapted.
 
+## The map outline
+
+`packages/shared/src/map/coastline.txt` is a land/sea mask, one character per
+tile, of the combined Taipei City and New Taipei City administrative outline.
+It was traced from a reference image down to a 136 x 160 grid — coarse enough
+that what survives is the geographic fact of where the coast runs, which is
+not something anyone owns. **The reference image itself is deliberately not in
+this repository**, so nothing here depends on its provenance.
+
+Everything inside the outline — rivers, hills, parks, streets, towns — is
+placed by `scripts/build-map.mjs`, positioned to echo the real geography
+rather than to reproduce any map of it. Place names are used as names; no
+map publisher's rendering, styling or data is reused.
+
 Landmarks and scenery, when they arrive in later milestones, are generic
 original shapes (a tall tower, a temple roof, a bridge). No real organization's
 logo, trademark, wordmark, or emblem appears anywhere in this project.

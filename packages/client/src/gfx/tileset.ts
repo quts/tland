@@ -35,9 +35,11 @@ export const TILE = {
   bench: 20,
   treeTrunk: 21,
   treeCanopy: 22,
+  parkA: 23,
+  parkB: 24,
 } as const;
 
-const TILE_COUNT = 23;
+const TILE_COUNT = 25;
 
 type Draw = (g: Phaser.GameObjects.Graphics, ox: number, oy: number) => void;
 
@@ -203,6 +205,22 @@ const DRAW: Record<number, Draw> = {
   [TILE.buildingGround]: (g, ox) => {
     fill(g, PALETTE.grass, ox);
     speckle(g, ox, PALETTE.grassAlt, [[16, 20, 5]]);
+  },
+  // Park lawn: mown short and brighter than the open grass, so the civic
+  // squares read as tended ground rather than another field.
+  [TILE.parkA]: (g, ox) => {
+    fill(g, PALETTE.lawn, ox);
+    speckle(g, ox, PALETTE.lawnAlt, [
+      [9, 11, 1.8],
+      [23, 21, 1.5],
+    ]);
+  },
+  [TILE.parkB]: (g, ox) => {
+    fill(g, PALETTE.lawn, ox);
+    speckle(g, ox, PALETTE.lawnAlt, [[17, 16, 3.4]]);
+    g.fillStyle(PALETTE.petalCream, 1);
+    g.fillCircle(ox + 8, 24, 1.6);
+    g.fillCircle(ox + 25, 9, 1.4);
   },
   [TILE.flowerRose]: (g, ox) => drawFlower(g, ox, PALETTE.petalRose),
   [TILE.flowerCream]: (g, ox) => drawFlower(g, ox, PALETTE.petalCream),

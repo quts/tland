@@ -20,6 +20,11 @@ export interface GameServerOptions {
    * when the server is only reachable from behind its own reverse proxy.
    */
   allowedOrigins?: readonly string[];
+  /**
+   * Pin arrivals to one tile rather than scattering them across the island.
+   * Tests that need two players in earshot set this; the game does not.
+   */
+  fixedSpawn?: { x: number; y: number };
 }
 
 export interface GameServer {
@@ -41,7 +46,7 @@ const HELLO_TIMEOUT_MS = 10_000;
  * talk to it with real sockets, and shut it down again.
  */
 export function createGameServer(options: GameServerOptions): GameServer {
-  const room = new Room(options.maxPlayers);
+  const room = new Room(options.maxPlayers, options.fixedSpawn);
   const heartbeatMs = options.heartbeatMs ?? 30_000;
   const allowedOrigins = options.allowedOrigins ?? [];
 

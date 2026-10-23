@@ -85,18 +85,44 @@ test.describe('Riverside Town', () => {
     expect(box).not.toBeNull();
     const { x, y, width, height } = box as NonNullable<typeof box>;
 
-    // Tap well above the character to send them walking north.
-    await page.touchscreen.tap(x + width * 0.5, y + height * 0.22);
-
-    await page.waitForFunction(
-      (start) => {
+    const movedFrom = (start: { x: number; y: number } | undefined) =>
+      page.evaluate((from) => {
         const now = window.__town?.position();
-        if (now === undefined || start === undefined) return false;
-        return Math.hypot(now.x - start.x, now.y - start.y) > 16;
-      },
-      before,
-      { timeout: 15_000 },
-    );
+        if (now === undefined || from === undefined) return false;
+        return Math.hypot(now.x - from.x, now.y - from.y) > 16;
+      }, start);
+
+    // Arrivals are scattered, so the player may be against a coast or a cliff
+    // with no ground in the direction tapped. Try each side in turn; one of
+    // them has somewhere to walk, or the player could not have arrived there.
+    const targets = [
+      [0.5, 0.22],
+      [0.5, 0.78],
+      [0.22, 0.5],
+      [0.78, 0.5],
+    ] as const;
+
+    let walked = false;
+    for (const [fx, fy] of targets) {
+      await page.touchscreen.tap(x + width * fx, y + height * fy);
+      try {
+        await page.waitForFunction(
+          (from) => {
+            const now = window.__town?.position();
+            if (now === undefined || from === undefined) return false;
+            return Math.hypot(now.x - from.x, now.y - from.y) > 16;
+          },
+          before,
+          { timeout: 5_000 },
+        );
+        walked = true;
+        break;
+      } catch {
+        // Nothing that way; try the next side.
+      }
+    }
+    expect(walked, 'tapping should walk the player somewhere').toBe(true);
+    expect(await movedFrom(before)).toBe(true);
 
     /* -------- speaking -------- */
 

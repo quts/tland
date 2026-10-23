@@ -10,6 +10,7 @@ import {
   type ClientMessage,
   type ServerMessage,
 } from '@tland/shared';
+import { findPath } from '@tland/shared';
 import { createGameServer, type GameServer } from '../src/server.ts';
 
 /**
@@ -38,6 +39,12 @@ class TestClient {
       if (message.t === 'welcome') {
         this.id = message.selfId;
         this.position = { ...message.you };
+      }
+      // The server rejected a claimed position. Follow it, or this client's
+      // idea of where it is drifts away from the truth and every distance
+      // measured from it becomes fiction.
+      if (message.t === 'correction') {
+        this.position = { x: message.x, y: message.y };
       }
     });
   }
@@ -115,12 +122,57 @@ function ticks(count: number): Promise<void> {
   return sleep(TICK_MS * count + 40);
 }
 
-/** A walkable tile `tiles` to the east of the spawn, in world pixels. */
-function eastOfSpawn(tiles: number): { x: number; y: number } {
-  return {
-    x: (map.spawn.x + tiles) * TILE_SIZE + TILE_SIZE / 2,
-    y: map.spawn.y * TILE_SIZE + TILE_SIZE / 2,
-  };
+const tileOf = (p: { x: number; y: number }) => ({
+  x: Math.floor(p.x / TILE_SIZE),
+  y: Math.floor(p.y / TILE_SIZE),
+});
+const centreOf = (t: { x: number; y: number }) => ({
+  x: t.x * TILE_SIZE + TILE_SIZE / 2,
+  y: t.y * TILE_SIZE + TILE_SIZE / 2,
+});
+
+/**
+ * Walk a client somewhere, by the route the game's own pathfinder would take.
+ *
+ * Pushing in a straight line is not good enough: wherever a player happens to
+ * arrive, a building is usually a few tiles away, and a walk that stops short
+ * makes a proximity test pass for the wrong reason. Returns how far it got, so
+ * the caller can refuse to conclude anything from a walk that was blocked.
+ */
+async function walkTo(
+  client: TestClient,
+  target: { x: number; y: number },
+): Promise<number> {
+  const start = client.position;
+  const route = findPath(map.width, map.height, tileOf(start), target, {
+    isWalkable: map.isWalkable,
+    maxNodes: 20_000,
+  });
+  for (const step of route ?? []) {
+    const to = centreOf(step);
+    client.moveTo(to.x, to.y);
+    // Long enough that a diagonal step is inside the server's speed limit.
+    await ticks(4);
+  }
+  return Math.hypot(client.position.x - start.x, client.position.y - start.y);
+}
+
+/** A walkable tile roughly `tiles` away from a point, for walking tests. */
+function tileAbout(from: { x: number; y: number }, tiles: number) {
+  const origin = tileOf(from);
+  let best: { x: number; y: number } | null = null;
+  let bestError = Infinity;
+  for (let y = 0; y < map.height; y += 1) {
+    for (let x = 0; x < map.width; x += 1) {
+      if (!map.isWalkable(x, y)) continue;
+      const error = Math.abs(Math.hypot(x - origin.x, y - origin.y) - tiles);
+      if (error < bestError) {
+        bestError = error;
+        best = { x, y };
+      }
+    }
+  }
+  return best as { x: number; y: number };
 }
 
 describe('game server', () => {
@@ -129,7 +181,13 @@ describe('game server', () => {
   const clients: TestClient[] = [];
 
   beforeEach(async () => {
-    server = createGameServer({ maxPlayers: 3, tickHz: 20 });
+    // Pinned: most of these need two players able to hear each other, and
+    // arrivals are scattered across the island in the real game.
+    server = createGameServer({
+      maxPlayers: 3,
+      tickHz: 20,
+      fixedSpawn: map.spawn,
+    });
     port = await server.listen(0, '127.0.0.1');
   });
 
@@ -172,6 +230,42 @@ describe('game server', () => {
     expect(map.isWalkable(tileX, tileY)).toBe(true);
   });
 
+  it('drops players in different places rather than all on one tile', async () => {
+    // Spawning is random, so this asserts the distribution rather than any
+    // particular tile: twenty arrivals landing on one or two spots would mean
+    // the randomness is not reaching the room.
+    const seen = new Set<string>();
+    for (let i = 0; i < 20; i += 1) {
+      const room = createGameServer({ maxPlayers: 50, tickHz: 20 });
+      const spawn = room.room.join(
+        { id: `p${i}`, send: () => {} },
+        `p${i}`,
+        { body: 0, shirt: 0, hat: 'none', accessory: 'none' },
+        Date.now(),
+      );
+      seen.add(`${Math.round(spawn.x)},${Math.round(spawn.y)}`);
+      await room.close();
+    }
+    expect(seen.size).toBeGreaterThan(8);
+  });
+
+  it('never drops two players on the same tile', async () => {
+    const crowd = createGameServer({ maxPlayers: 50, tickHz: 20 });
+    const taken = new Set<string>();
+    for (let i = 0; i < 30; i += 1) {
+      const spawn = crowd.room.join(
+        { id: `p${i}`, send: () => {} },
+        `p${i}`,
+        { body: 0, shirt: 0, hat: 'none', accessory: 'none' },
+        Date.now(),
+      );
+      const tile = `${Math.floor(spawn.x / TILE_SIZE)},${Math.floor(spawn.y / TILE_SIZE)}`;
+      expect(taken.has(tile)).toBe(false);
+      taken.add(tile);
+    }
+    await crowd.close();
+  });
+
   it('rejects a nickname with nothing visible in it', async () => {
     const client = await connect();
     client.send({ t: 'hello', protocol: PROTOCOL_VERSION });
@@ -203,12 +297,12 @@ describe('game server', () => {
     const bob = await connect('阿寬');
     alice.clear();
 
-    const target = eastOfSpawn(1);
+    const target = { x: bob.position.x + 8, y: bob.position.y };
     bob.moveTo(target.x, target.y);
     await ticks(3);
 
-    const states = alice.all('state');
-    const update = states
+    const update = alice
+      .all('state')
       .flatMap((state) => state.players)
       .find((player) => player.id === bob.id);
     expect(update).toBeDefined();
@@ -220,8 +314,7 @@ describe('game server', () => {
     await connect('阿寬');
     alice.clear();
 
-    const target = eastOfSpawn(1);
-    alice.moveTo(target.x, target.y);
+    alice.moveTo(alice.position.x + 8, alice.position.y);
     await ticks(3);
 
     const own = alice
@@ -233,7 +326,7 @@ describe('game server', () => {
 
   it('corrects a player who claims to have teleported', async () => {
     const client = await connect('小美');
-    const far = eastOfSpawn(40);
+    const far = { x: client.position.x + 40 * TILE_SIZE, y: client.position.y };
     client.moveTo(far.x, far.y);
     const correction = await client.next('correction');
     // Snapped back to where they actually were.
@@ -285,12 +378,9 @@ describe('game server', () => {
     const alice = await connect('小美');
     const bob = await connect('阿寬');
 
-    // Walk Bob out of earshot one legal step at a time.
-    for (let tiles = 1; tiles <= PROXIMITY_EXIT_RADIUS + 3; tiles += 1) {
-      const point = eastOfSpawn(tiles);
-      bob.moveTo(point.x, point.y);
-      await ticks(2);
-    }
+    const travelled = await walkTo(bob, tileAbout(bob.position, 12));
+    // If the walk was blocked, the rest of this proves nothing.
+    expect(travelled).toBeGreaterThan(PROXIMITY_EXIT_RADIUS * TILE_SIZE * 1.5);
     alice.clear();
 
     bob.send({ t: 'chat', text: '太遠了' });
@@ -302,14 +392,13 @@ describe('game server', () => {
     const alice = await connect('小美');
     const bob = await connect('阿寬');
 
-    // Close enough to come into range.
-    const near = eastOfSpawn(PROXIMITY_ENTER_RADIUS - 1);
-    bob.moveTo(near.x, near.y);
+    // They arrive within earshot; drift into the hysteresis band — past the
+    // entering radius, not yet past the exiting one.
     await ticks(2);
+    expect(server.room.canHear(alice.id as string, bob.id as string)).toBe(true);
 
-    // Now drift into the hysteresis band: past entering, not yet past exiting.
-    const between = eastOfSpawn(PROXIMITY_ENTER_RADIUS);
-    bob.moveTo(between.x, between.y);
+    // Drift into the hysteresis band: past entering, not yet past exiting.
+    await walkTo(bob, tileAbout(alice.position, PROXIMITY_ENTER_RADIUS + 1));
     await ticks(2);
     alice.clear();
 

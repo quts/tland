@@ -52,10 +52,18 @@ export class Room {
   private readonly players = new Map<string, Player>();
   private readonly proximity = new ProximityTracker();
   private readonly maxPlayers: number;
+  /**
+   * Pin every arrival to one tile instead of scattering them.
+   *
+   * Arrivals are random, which is right for the game and useless for a test
+   * that needs two players within earshot of each other. Those set this.
+   */
+  private readonly fixedSpawn: { x: number; y: number } | undefined;
   private currentTick = 0;
 
-  constructor(maxPlayers: number) {
+  constructor(maxPlayers: number, fixedSpawn?: { x: number; y: number }) {
     this.maxPlayers = maxPlayers;
+    this.fixedSpawn = fixedSpawn;
   }
 
   get tick(): number {
@@ -269,27 +277,14 @@ export class Room {
   }
 
   /**
-   * Spawn on or near the map's spawn tile.
+   * Drop a joining player somewhere random.
    *
-   * A ring of offsets keeps a crowd from stacking on one tile when several
-   * people join at once.
+   * Everyone used to arrive on the same handful of tiles, which made the
+   * middle of one district the whole game. Picking from the map's street and
+   * plaza tiles spreads arrivals over every town while still putting people
+   * somewhere that looks like a place.
    */
   private findSpawn(): { x: number; y: number } {
-    const base = map.spawn;
-    const offsets: ReadonlyArray<readonly [number, number]> = [
-      [0, 0],
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-      [1, 1],
-      [-1, 1],
-      [1, -1],
-      [-1, -1],
-      [2, 0],
-      [-2, 0],
-      [0, 2],
-    ];
     const occupied = new Set<string>();
     for (const player of this.players.values()) {
       occupied.add(
@@ -297,20 +292,43 @@ export class Room {
       );
     }
 
-    for (const [dx, dy] of offsets) {
-      const tileX = base.x + dx;
-      const tileY = base.y + dy;
-      if (!map.isWalkable(tileX, tileY)) continue;
-      if (occupied.has(`${tileX},${tileY}`)) continue;
-      return {
-        x: tileX * TILE_SIZE + TILE_SIZE / 2,
-        y: tileY * TILE_SIZE + TILE_SIZE / 2,
-      };
+    const centre = (tile: { x: number; y: number }): { x: number; y: number } => ({
+      x: tile.x * TILE_SIZE + TILE_SIZE / 2,
+      y: tile.y * TILE_SIZE + TILE_SIZE / 2,
+    });
+
+    if (this.fixedSpawn !== undefined) {
+      // Spiral out from the pinned tile so two arrivals never stack.
+      const base = this.fixedSpawn;
+      for (let radius = 0; radius <= 6; radius += 1) {
+        for (let dy = -radius; dy <= radius; dy += 1) {
+          for (let dx = -radius; dx <= radius; dx += 1) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+            const tile = { x: base.x + dx, y: base.y + dy };
+            if (!map.isWalkable(tile.x, tile.y)) continue;
+            if (occupied.has(`${tile.x},${tile.y}`)) continue;
+            return centre(tile);
+          }
+        }
+      }
+      return centre(base);
     }
 
-    return {
-      x: base.x * TILE_SIZE + TILE_SIZE / 2,
-      y: base.y * TILE_SIZE + TILE_SIZE / 2,
-    };
+    const points = map.spawnPoints;
+    if (points.length > 0) {
+      // A handful of random draws finds a free tile unless the town is very
+      // full; the scan below is the guarantee, not the usual path.
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        const tile = points[Math.floor(Math.random() * points.length)];
+        if (tile === undefined) break;
+        if (occupied.has(`${tile.x},${tile.y}`)) continue;
+        return centre(tile);
+      }
+      for (const tile of points) {
+        if (!occupied.has(`${tile.x},${tile.y}`)) return centre(tile);
+      }
+    }
+
+    return centre(map.spawn);
   }
 }

@@ -19,6 +19,30 @@ describe('town map', () => {
     expect(map.isWalkable(map.spawn.x, map.spawn.y)).toBe(true);
   });
 
+  describe('spawn points', () => {
+    it('are all somewhere a player can stand', () => {
+      expect(map.spawnPoints.length).toBeGreaterThan(0);
+      for (const point of map.spawnPoints) {
+        expect(map.isWalkable(point.x, point.y)).toBe(true);
+      }
+    });
+
+    it('are streets and plazas, not fields and beaches', () => {
+      for (const point of map.spawnPoints) {
+        expect(['path', 'park']).toContain(map.terrainAt(point.x, point.y));
+      }
+    });
+
+    it('are spread over most of the island, not one district', () => {
+      const districts = new Set(
+        map.spawnPoints.map((point) => map.zoneAt(point.x, point.y)),
+      );
+      // Arriving should be able to put you in a lot of different places.
+      expect(map.spawnPoints.length).toBeGreaterThan(300);
+      expect(districts.size).toBeGreaterThan(15);
+    });
+  });
+
   it('treats everything outside the map as unwalkable', () => {
     expect(map.isWalkable(-1, 10)).toBe(false);
     expect(map.isWalkable(10, -1)).toBe(false);

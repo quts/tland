@@ -201,7 +201,10 @@ Output Directory empty too: anything set in the dashboard overrides
 
 [DEPLOY-EC2.md](DEPLOY-EC2.md) is a step-by-step runbook for the other half:
 one EC2 instance, an Elastic IP, a domain, and Caddy in front for automatic
-TLS — then wiring it to the Vercel build.
+TLS — then wiring it to the Vercel build. It has been followed end to end, and
+carries the notes for what actually goes wrong: Cloudflare's proxy silently
+preventing certificate issuance, and the two ways a healthy server looks broken
+when you test it with curl.
 
 ### Moving later
 

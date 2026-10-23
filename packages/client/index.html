@@ -19,6 +19,58 @@
   </head>
   <body>
     <div id="app">
+      <div id="join" class="join" hidden>
+        <div class="join-card" role="dialog" aria-labelledby="join-title">
+          <h1 id="join-title" class="join-title">河岸小鎮</h1>
+          <p class="join-subtitle">挑個名字和模樣，就可以進來散步了</p>
+
+          <canvas id="avatar-preview" class="avatar-preview" width="144" height="184"
+                  aria-label="Avatar preview"></canvas>
+
+          <div class="builder">
+            <div class="builder-row">
+              <span class="builder-label">膚色</span>
+              <div id="pick-body" class="swatches"></div>
+            </div>
+            <div class="builder-row">
+              <span class="builder-label">衣服</span>
+              <div id="pick-shirt" class="swatches"></div>
+            </div>
+            <div class="builder-row">
+              <span class="builder-label">帽子</span>
+              <div id="pick-hat" class="chips"></div>
+            </div>
+            <div class="builder-row">
+              <span class="builder-label">配件</span>
+              <div id="pick-accessory" class="chips"></div>
+            </div>
+          </div>
+
+          <label class="field">
+            <span class="field-label">暱稱</span>
+            <input
+              id="nickname"
+              class="field-input"
+              type="text"
+              maxlength="16"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              enterkeyhint="go"
+              placeholder="1–16 個字"
+            />
+          </label>
+
+          <p id="join-error" class="join-error" role="alert" hidden></p>
+
+          <button id="join-button" class="button-primary" type="button" disabled>
+            連線中…
+          </button>
+          <p id="join-count" class="join-count"></p>
+        </div>
+      </div>
+
       <div id="game" aria-label="Game world" role="application"></div>
       <div id="hud">
         <div id="status-pill" class="pill" data-state="connecting">
@@ -29,6 +81,44 @@
           <span id="count-text">0</span><span class="pill-unit">人在線</span>
         </div>
       </div>
+      <div
+        id="joystick"
+        class="joystick"
+        role="application"
+        aria-label="Movement joystick"
+        hidden
+      >
+        <div class="joystick-knob"></div>
+      </div>
+
+      <div id="zone-banner" class="zone-banner" aria-live="polite" hidden></div>
+
+      <div id="emote-bar" class="emote-bar" hidden></div>
+
+      <div id="chat-dock" class="chat-dock" hidden>
+        <button id="chat-open" class="chat-open" type="button" aria-label="Say something">
+          說話
+        </button>
+        <form id="chat-form" class="chat-form" hidden>
+          <input
+            id="chat-input"
+            class="chat-input"
+            type="text"
+            maxlength="120"
+            autocomplete="off"
+            autocapitalize="sentences"
+            enterkeyhint="send"
+            placeholder="說點什麼…"
+          />
+          <button class="chat-send" type="submit">送出</button>
+        </form>
+      </div>
+
+      <button id="minimap-toggle" class="minimap-toggle" type="button" hidden
+              aria-label="Toggle minimap">地圖</button>
+      <canvas id="minimap" class="minimap" width="160" height="120" hidden
+              aria-label="Minimap"></canvas>
+
       <div id="notice" role="status" hidden></div>
     </div>
     <script type="module" src="/src/main.ts"></script>

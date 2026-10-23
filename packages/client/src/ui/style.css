@@ -169,3 +169,439 @@ body {
 .pill[hidden] {
   display: none;
 }
+
+/* ---------------------------------------------------------------- */
+/* Joystick                                                          */
+/* ---------------------------------------------------------------- */
+
+.joystick {
+  position: absolute;
+  left: calc(var(--safe-left) + 18px);
+  bottom: calc(var(--safe-bottom) + 22px);
+  width: 124px;
+  height: 124px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cream) 62%, transparent);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--cream-edge) 70%, transparent);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  opacity: 0.78;
+  transition: opacity 140ms ease;
+}
+
+.joystick.is-active {
+  opacity: 1;
+}
+
+.joystick[hidden] {
+  display: none;
+}
+
+.joystick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 54px;
+  height: 54px;
+  margin: 0;
+  border: var(--outline) solid var(--ink);
+  border-radius: 50%;
+  background: var(--cream);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* A thumb-sized target is worth more than a pretty one on a small screen. */
+@media (max-height: 420px) {
+  .joystick {
+    width: 104px;
+    height: 104px;
+    bottom: calc(var(--safe-bottom) + 12px);
+  }
+
+  .joystick-knob {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* District banner                                                   */
+/* ---------------------------------------------------------------- */
+
+.zone-banner {
+  position: absolute;
+  top: calc(var(--safe-top) + 62px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  padding: 8px 22px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 999px;
+  background: var(--cream);
+  box-shadow: 0 3px 0 var(--cream-edge);
+  font-size: 17px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.zone-banner.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.zone-banner[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zone-banner {
+    transition: opacity 120ms linear;
+    transform: translateX(-50%);
+  }
+
+  .zone-banner.is-visible {
+    transform: translateX(-50%);
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Join screen                                                       */
+/* ---------------------------------------------------------------- */
+
+.join {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 12px) calc(var(--safe-right) + 12px)
+    calc(var(--safe-bottom) + 12px) calc(var(--safe-left) + 12px);
+  background: linear-gradient(170deg, var(--sky) 0%, var(--grass) 100%);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.join[hidden] {
+  display: none;
+}
+
+.join-card {
+  width: min(100%, 420px);
+  margin: auto;
+  padding: 22px 20px 20px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 26px;
+  background: var(--cream);
+  box-shadow: 0 4px 0 var(--cream-edge);
+  text-align: center;
+}
+
+.join-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.join-subtitle {
+  margin: 6px 0 14px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.avatar-preview {
+  display: block;
+  width: 144px;
+  height: 184px;
+  margin: 0 auto 10px;
+  image-rendering: auto;
+}
+
+.builder {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.builder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.builder-label {
+  flex: 0 0 42px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.swatches,
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+/* 44px targets: anything smaller is a miss on a phone. */
+.swatch {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: var(--outline) solid var(--ink);
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+}
+
+.swatch::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.swatch[aria-pressed='true'] {
+  box-shadow: 0 0 0 3px var(--cream), 0 0 0 6px var(--ink);
+}
+
+.chip {
+  min-height: 34px;
+  padding: 5px 13px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--grass);
+}
+
+.field {
+  display: block;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.field-input,
+.chat-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 14px;
+  background: var(--wall, #fff);
+  color: var(--ink);
+  font-family: inherit;
+  /* 16px or larger, or iOS zooms the page when the field is focused. */
+  font-size: 16px;
+}
+
+.field-input:focus-visible,
+.chat-input:focus-visible,
+.button-primary:focus-visible,
+.chip:focus-visible,
+.swatch:focus-visible {
+  outline: 3px solid var(--grass-deep);
+  outline-offset: 2px;
+}
+
+.join-error {
+  margin: 0 0 10px;
+  color: #b4615f;
+  font-size: 13px;
+}
+
+.join-error[hidden] {
+  display: none;
+}
+
+.button-primary {
+  width: 100%;
+  min-height: 50px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 16px;
+  background: var(--grass);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 17px;
+  box-shadow: 0 3px 0 var(--grass-deep);
+  cursor: pointer;
+}
+
+.button-primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.button-primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--grass-deep);
+}
+
+.join-count {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  min-height: 1em;
+}
+
+/* ---------------------------------------------------------------- */
+/* Chat and emotes                                                   */
+/* ---------------------------------------------------------------- */
+
+.chat-dock {
+  position: absolute;
+  right: calc(var(--safe-right) + 16px);
+  /* --vv-offset-bottom tracks the iOS keyboard, so the field is never
+     hidden underneath it. */
+  bottom: calc(var(--safe-bottom) + var(--vv-offset-bottom, 0px) + 22px);
+  left: calc(var(--safe-left) + 160px);
+  display: flex;
+  justify-content: flex-end;
+  transition: bottom 160ms ease;
+}
+
+.chat-dock[hidden] {
+  display: none;
+}
+
+.chat-open {
+  min-height: 46px;
+  padding: 10px 20px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  box-shadow: 0 3px 0 var(--cream-edge);
+  cursor: pointer;
+}
+
+.chat-open[hidden] {
+  display: none;
+}
+
+.chat-form {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.chat-form[hidden] {
+  display: none;
+}
+
+.chat-send {
+  flex: 0 0 auto;
+  min-height: 46px;
+  padding: 0 16px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 14px;
+  background: var(--grass);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.emote-bar {
+  position: absolute;
+  right: calc(var(--safe-right) + 16px);
+  bottom: calc(var(--safe-bottom) + var(--vv-offset-bottom, 0px) + 80px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.emote-bar[hidden] {
+  display: none;
+}
+
+.emote-button {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: var(--outline) solid var(--ink);
+  border-radius: 50%;
+  background: var(--cream);
+  box-shadow: 0 2px 0 var(--cream-edge);
+  cursor: pointer;
+}
+
+.emote-button:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.emote-button svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+/* Landscape phones have no vertical room for a column of emotes. */
+@media (max-height: 460px) {
+  .emote-bar {
+    flex-direction: row;
+    bottom: calc(var(--safe-bottom) + var(--vv-offset-bottom, 0px) + 74px);
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Minimap                                                           */
+/* ---------------------------------------------------------------- */
+
+.minimap-toggle {
+  position: absolute;
+  top: calc(var(--safe-top) + 10px);
+  right: calc(var(--safe-right) + 10px);
+  min-height: 38px;
+  padding: 7px 15px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  box-shadow: 0 2px 0 var(--cream-edge);
+  cursor: pointer;
+}
+
+.minimap-toggle[hidden] {
+  display: none;
+}
+
+.minimap {
+  position: absolute;
+  top: calc(var(--safe-top) + 56px);
+  right: calc(var(--safe-right) + 10px);
+  width: 160px;
+  height: 120px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 12px;
+  background: var(--cream);
+  box-shadow: 0 3px 0 var(--cream-edge);
+  image-rendering: pixelated;
+}
+
+.minimap[hidden] {
+  display: none;
+}

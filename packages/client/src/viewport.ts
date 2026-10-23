@@ -41,11 +41,17 @@ export function trackVisualViewport(): () => void {
 }
 
 /**
- * Suppress the browser gestures that fight with a game canvas on iOS:
- * pinch zoom, double-tap zoom, and the long-press callout.
+ * Suppress the browser gestures that fight with a game canvas on iOS: pinch
+ * zoom, double-tap zoom, and the long-press callout.
  *
- * `touch-action` in CSS covers most of this in modern Safari, but the
- * `gesture*` events still fire, and double-tap zoom needs the fast-tap guard.
+ * Double-tap zoom is handled by `touch-action` in the stylesheet
+ * (`manipulation` on the body, `none` on the canvas), which modern Safari
+ * honours. The older trick of calling `preventDefault()` on every quick
+ * `touchend` is deliberately not used: WebKit also suppresses the pointer
+ * events that follow, so it silently breaks tap-to-move.
+ *
+ * The `gesture*` events are Safari-specific and are not covered by
+ * `touch-action`, so they still need handling here.
  */
 export function suppressBrowserGestures(target: HTMLElement): void {
   for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
@@ -56,20 +62,8 @@ export function suppressBrowserGestures(target: HTMLElement): void {
 
   target.addEventListener('contextmenu', (event) => event.preventDefault());
 
-  // Two taps in quick succession would otherwise zoom the page.
-  let lastTouchEnd = 0;
-  document.addEventListener(
-    'touchend',
-    (event) => {
-      const now = Date.now();
-      if (now - lastTouchEnd < 320) event.preventDefault();
-      lastTouchEnd = now;
-    },
-    { passive: false },
-  );
-
-  // Multi-touch anywhere on the document is never a page gesture here.
-  document.addEventListener(
+  // A second finger on the canvas is never a page gesture here.
+  target.addEventListener(
     'touchmove',
     (event) => {
       if (event.touches.length > 1) event.preventDefault();
@@ -81,12 +75,25 @@ export function suppressBrowserGestures(target: HTMLElement): void {
 /**
  * Load the UI font before Phaser measures any text, so canvas text is not
  * rendered once in a fallback face and then left stale.
+ *
+ * Bounded by a deadline: the face is a couple of megabytes, and a slow or
+ * flaky connection must not leave the player staring at a blank screen. The
+ * CSS fallback stack covers the gap, and `font-display: swap` lets the real
+ * face appear whenever it does arrive.
  */
-export async function loadUiFont(): Promise<void> {
+export async function loadUiFont(timeoutMs = 4000): Promise<void> {
   if (!('fonts' in document)) return;
+  const deadline = new Promise<void>((resolve) => {
+    setTimeout(resolve, timeoutMs);
+  });
   try {
-    await document.fonts.load('16px "Huninn Rounded"');
-    await document.fonts.ready;
+    await Promise.race([
+      (async () => {
+        await document.fonts.load('16px "Huninn Rounded"');
+        await document.fonts.ready;
+      })(),
+      deadline,
+    ]);
   } catch {
     // A missing font is cosmetic; the CSS fallback stack takes over.
   }

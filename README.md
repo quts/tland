@@ -1,15 +1,26 @@
 # Riverside Town
 
 A cozy 2D top-down multiplayer world, set in a stylized town inspired by the
-shape of Taipei City. Open a URL on your phone, pick a name, walk around, and
-talk to whoever is standing nearby. No accounts, no database, no monetization.
+shape of Taipei City. Open a URL on your phone, pick a name and a look, walk
+around, and talk to whoever is standing nearby. No accounts, no database, no
+monetization.
 
 Non-commercial hobby project. Every graphic is generated in code; see
 [ASSET_LICENSES.md](ASSET_LICENSES.md).
 
-> **Status: milestone 1 of 5.** The repo skeleton, container setup, and an
-> empty Phaser scene that connects to the game server. The map, movement,
-> and chat arrive in later milestones.
+## What's in it
+
+- A 160 × 120 tile town, rendered from a hand-authored coarse grid, with the
+  twelve districts — 中正, 大同, 中山, 松山, 大安, 萬華, 信義, 士林, 北投,
+  內湖, 南港, 文山 — named as zones that announce themselves as you cross into
+  them. A river down the west side, another winding in from the north-east,
+  bridges where the roads cross them, and hills in the north and the south.
+- Touch controls: a virtual joystick, and tap-to-move with A* pathfinding.
+  WASD and the arrow keys work on a desktop.
+- An avatar builder: skin, shirt, hat and accessory, all drawn in code.
+- Proximity chat. Speech bubbles are visible only within about three tiles,
+  with hysteresis so they do not blink as people drift at the edge of earshot.
+- Four emotes, a minimap, and a live player count.
 
 ## Running it
 
@@ -62,12 +73,14 @@ can reach the Mac directly.
 but it has consequences worth knowing:
 
 - The WebSocket runs over `ws://`, not `wss://`. Nothing is encrypted.
-- Browsers ignore some security headers on a non-secure origin.
+- Browsers ignore some security headers on a non-secure origin — which is why
+  `Cross-Origin-Opener-Policy` is deliberately left off; see
+  `docker/security-headers.conf`.
 - Features gated behind a secure context (service workers, for instance) are
   unavailable. This project does not use any of them.
 
-Do not expose this to the public internet as-is. It has no TLS and no abuse
-protection beyond basic rate limits.
+Do not expose this to the public internet as-is. It has no TLS, and no abuse
+protection beyond the rate limits below.
 
 ## Development
 
@@ -96,9 +109,27 @@ reachable from your phone at `http://<mac-lan-ip>:5173`:
 ./scripts/dev-serve.sh
 ```
 
+The WebKit end-to-end suite, in the official Playwright image — iPhone and
+iPad, portrait and landscape:
+
+```bash
+./scripts/e2e.sh
+```
+
+It needs a roomier container than the default: an iPad-sized WebGL surface at
+a device pixel ratio of 2 pushes WebKit past 1 GB, and the browser is killed
+mid-test. `scripts/e2e.sh` asks for 4 GB and 6 CPUs; override with
+`PLAYWRIGHT_MEMORY` and `PLAYWRIGHT_CPUS`.
+
 `node_modules/` and `dist/` end up in the working tree and hold linux/arm64
 binaries. They are gitignored and are only meant to be used from inside a
-container.
+container. All of those containers are Debian-based so they share one
+`node_modules` with the glibc Playwright image; running `npm install` from an
+Alpine container instead would leave native bindings for the wrong libc.
+
+Bind mounts deliver no filesystem events, so `node --watch` and Vite's HMR do
+not see edits made on the host. Restart the container after changing server
+code.
 
 ## How it fits together
 
@@ -107,19 +138,45 @@ browser ──HTTP──> web (nginx)  ──/ws──> game (node + ws)
                   static client         in-memory room
 ```
 
-- **`packages/shared`** — message protocol and world constants, imported by
-  both sides so they cannot drift.
+- **`packages/shared`** — the wire protocol, the map, pathfinding, the
+  proximity tracker and the rate limiter. Imported by both sides, so the two
+  cannot drift apart and the interesting logic is unit-testable without a
+  browser or a socket.
 - **`packages/server`** — Node + [`ws`](https://github.com/websockets/ws).
-  Server-authoritative: it owns the room, validates every client message, and
-  reaps sockets that stop answering. State is in memory; restarting empties
-  the world.
-- **`packages/client`** — TypeScript + Vite + Phaser 3.
+  Server-authoritative: it owns the room, validates every claimed position
+  against the map and a speed limit, decides who can hear whom, sanitizes all
+  text, and reaps sockets that stop answering. State is in memory; restarting
+  empties the world.
+- **`packages/client`** — TypeScript + Vite + Phaser 3. Every texture is
+  produced at boot by `Graphics.generateTexture()`.
 - **`web`** serves the built client and reverse-proxies `/ws` and `/healthz`
   to `game`, adding the security headers.
 
-`ws` over Colyseus: the protocol is a handful of message types and one room,
-so a hand-written 20 Hz loop is less machinery than Colyseus's schema and room
-abstractions, and it keeps the server image small.
+**`ws` rather than Colyseus**: the protocol is a handful of message types and
+one room, so a hand-written 20 Hz loop is less machinery than Colyseus's
+schema and room abstractions, and it keeps the server image small.
+
+### The map
+
+`packages/shared/src/map/town.json` is the authored artifact: a 40 × 30 grid of
+terrain characters, one per coarse cell, plus the district rectangles. Each
+cell expands in code to 4 × 4 tiles of 32px, giving the 160 × 120 tile world.
+Decorations — trees, flowers, benches, rocks — are scattered from a fixed seed
+rather than hand-placed, so client and server agree on them without sending
+anything over the wire. Anything the scatter would have sealed off is cleared
+again by a flood fill from the spawn, and a test asserts every walkable tile
+stays reachable.
+
+### Limits
+
+| Thing | Limit |
+| --- | --- |
+| Players in the room | 50; further joins get a friendly refusal |
+| Chat messages | 5 per 10 seconds, 120 characters |
+| Emotes | 8 per 10 seconds |
+| Inbound frame size | 4 KB |
+| Malformed frames | 12, then the socket is closed |
+| Movement | validated against the map and a speed cap each time |
 
 ## Configuration
 
@@ -129,7 +186,7 @@ Copy `.env.example` to `.env` to change ports or limits. No secrets are needed.
 | --- | --- | --- |
 | `WEB_PORT` | `8080` | Port the site is published on |
 | `GAME_PORT` | `3000` | Game server port, internal to the container network |
-| `MAX_PLAYERS` | `50` | Room capacity; further joins get a friendly refusal |
+| `MAX_PLAYERS` | `50` | Room capacity |
 | `TICK_HZ` | `20` | Server simulation and broadcast rate |
 
 ## Also here

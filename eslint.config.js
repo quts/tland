@@ -32,4 +32,23 @@ export default tseslint.config(
       globals: { window: 'readonly', document: 'readonly', location: 'readonly' },
     },
   },
+  {
+    files: [
+      'packages/server/**/*.ts',
+      'e2e/**/*.{ts,mjs}',
+      '*.config.{ts,js,mjs}',
+      'playwright.config.ts',
+    ],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+      },
+    },
+  },
 );

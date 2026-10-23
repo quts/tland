@@ -1,6 +1,18 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
 
+/** Where the game server is, when running outside the containers. */
+const gamePort = Number(process.env['E2E_GAME_PORT'] ?? process.env['GAME_PORT'] ?? 3000);
+
+/**
+ * Mirror the nginx routes so the client code is identical in dev, in preview
+ * (which the end-to-end tests drive) and in the container build.
+ */
+const proxy = {
+  '/ws': { target: `ws://127.0.0.1:${gamePort}`, ws: true },
+  '/healthz': `http://127.0.0.1:${gamePort}`,
+};
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -13,15 +25,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
-    proxy: {
-      // In dev the game server runs separately; mirror the nginx route so the
-      // client code is identical in dev and in the container build.
-      '/ws': {
-        target: 'ws://localhost:3000',
-        ws: true,
-      },
-      '/healthz': 'http://localhost:3000',
-    },
+    proxy,
+  },
+  preview: {
+    host: '127.0.0.1',
+    port: 4173,
+    proxy,
   },
   build: {
     target: 'es2022',

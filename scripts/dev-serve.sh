@@ -28,7 +28,7 @@ exec container run --rm -i -t \
   -e "GAME_PORT=$GAME_PORT" \
   -e "MAX_PLAYERS=$MAX_PLAYERS" \
   -e "TICK_HZ=$TICK_HZ" \
-  node:22-alpine sh -lc '
+  node:22-slim sh -lc '
     set -e
     [ -d node_modules ] || npm install
     npm run dev -w @tland/server &

@@ -69,6 +69,8 @@ function groundTile(map: TownMap, x: number, y: number): number {
         map.terrainAt(x - 1, y) === 'bridge' || map.terrainAt(x + 1, y) === 'bridge';
       return eastWest ? TILE.bridgeAcross : TILE.bridgeAlong;
     }
+    case 'park':
+      return roll < 35 ? TILE.parkB : TILE.parkA;
     case 'building':
       return TILE.buildingGround;
   }

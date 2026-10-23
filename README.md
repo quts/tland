@@ -10,11 +10,12 @@ Non-commercial hobby project. Every graphic is generated in code; see
 
 ## What's in it
 
-- A 160 × 120 tile town, rendered from a hand-authored coarse grid, with the
-  twelve districts — 中正, 大同, 中山, 松山, 大安, 萬華, 信義, 士林, 北投,
-  內湖, 南港, 文山 — named as zones that announce themselves as you cross into
-  them. A river down the west side, another winding in from the north-east,
-  bridges where the roads cross them, and hills in the north and the south.
+- A 136 × 160 tile island: a river basin ringed by mountains, opening to the
+  sea on one side. The twelve districts of the city proper — 中正, 大同, 中山,
+  松山, 大安, 萬華, 信義, 士林, 北投, 內湖, 南港, 文山 — are named zones that
+  announce themselves as you cross into them, along with the larger
+  surrounding ones. Four rivers meeting in the basin, bridges at the
+  crossings, mountains north and south, parks, beaches and open sea.
 - Touch controls: a virtual joystick, and tap-to-move with A* pathfinding.
   WASD and the arrow keys work on a desktop.
 - An avatar builder: skin, shirt, hat and accessory, all drawn in code.
@@ -240,14 +241,29 @@ schema and room abstractions, and it keeps the server image small.
 
 ### The map
 
-`packages/shared/src/map/town.json` is the authored artifact: a 40 × 30 grid of
-terrain characters, one per coarse cell, plus the district rectangles. Each
-cell expands in code to 4 × 4 tiles of 32px, giving the 160 × 120 tile world.
-Decorations — trees, flowers, benches, rocks — are scattered from a fixed seed
-rather than hand-placed, so client and server agree on them without sending
-anything over the wire. Anything the scatter would have sealed off is cleared
-again by a flood fill from the spawn, and a test asserts every walkable tile
-stays reachable.
+An island of 136 x 160 tiles, a little over half of it sea. The silhouette is
+a stylized one, kept as a land/sea mask at one character per tile in
+`packages/shared/src/map/coastline.txt`.
+
+Everything inside that outline is placed by `scripts/build-map.mjs`, which
+writes `packages/shared/src/map/town.json` — the file the game actually reads:
+
+```bash
+./scripts/dev.sh node scripts/build-map.mjs --preview
+```
+
+The geography is arranged to give the basin a ring of high ground: a volcanic
+group to the north, a plateau west, ridges along the north-east coast, and a
+range filling the south. Four rivers meet in the basin and leave north-west to
+the sea, with bridges at the crossings. Towns are clusters rather than grids — a regular
+block pattern reads as a circuit board from above, which is the opposite of
+the look this is going for.
+
+Decorations on top of the terrain — trees, flowers, benches, rocks — are
+scattered at load time from a fixed seed, so client and server agree on them
+without sending anything over the wire. Anything that scatter would have
+sealed off is reopened by a flood fill from the spawn, and a test asserts
+every walkable tile stays reachable.
 
 ### Limits
 

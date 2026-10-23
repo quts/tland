@@ -9,9 +9,20 @@ listed below. There are no downloaded sprites, icons, logos, sounds, or music.
 relevant, `generateTexture()`. No raster or vector art files are bundled, and
 no third-party art is used, traced, or adapted.
 
-Landmarks and scenery, when they arrive in later milestones, are generic
-original shapes (a tall tower, a temple roof, a bridge). No real organization's
-logo, trademark, wordmark, or emblem appears anywhere in this project.
+## The map outline
+
+`packages/shared/src/map/coastline.txt` is a land/sea mask, one character per
+tile, of the island the game is set on. It is a stylized silhouette: the
+proportions were set by hand to suggest a river basin ringed by mountains and
+opening to the sea on one side, which is the shape the setting calls for.
+
+The coarse geography it evokes is a matter of where land and water happen to
+be, which is not something anyone owns. No map publisher's rendering, styling,
+tiles or data are reused, and **no reference image ships with this
+repository**.
+
+Everything inside the outline — rivers, hills, parks, streets, towns — is
+placed by `scripts/build-map.mjs`. Place names are used as names only.
 
 ## Fonts
 

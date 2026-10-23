@@ -10,6 +10,9 @@ export const PALETTE = {
   grassAlt: 0x9fd6b8,
   grassDeep: 0x7cc39f,
 
+  lawn: 0xb9e7c6,
+  lawnAlt: 0xa6ddb6,
+
   sand: 0xf0e0bd,
   sandAlt: 0xe6d3ab,
 

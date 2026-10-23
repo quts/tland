@@ -7,8 +7,8 @@ const map = getTownMap();
 
 describe('town map', () => {
   it('expands to the documented tile size', () => {
-    expect(map.width).toBe(160);
-    expect(map.height).toBe(120);
+    expect(map.width).toBe(136);
+    expect(map.height).toBe(160);
   });
 
   it('is cached, not rebuilt per call', () => {
@@ -26,23 +26,26 @@ describe('town map', () => {
     expect(map.isWalkable(10, map.height)).toBe(false);
   });
 
-  it('names all twelve districts', () => {
-    expect(map.zones.map((zone) => zone.name).sort()).toEqual(
-      [
-        '中正',
-        '大同',
-        '中山',
-        '松山',
-        '大安',
-        '萬華',
-        '信義',
-        '士林',
-        '北投',
-        '內湖',
-        '南港',
-        '文山',
-      ].sort(),
-    );
+  it('names all twelve districts of the city proper', () => {
+    const named = new Set(map.zones.map((zone) => zone.name));
+    for (const district of [
+      '中正', '大同', '中山', '松山', '大安', '萬華',
+      '信義', '士林', '北投', '內湖', '南港', '文山',
+    ]) {
+      expect(named).toContain(district);
+    }
+  });
+
+  it('also names the larger surrounding districts', () => {
+    const named = new Set(map.zones.map((zone) => zone.name));
+    for (const district of ['淡水', '板橋', '新店', '烏來']) {
+      expect(named).toContain(district);
+    }
+  });
+
+  it('gives every zone a distinct name', () => {
+    const names = map.zones.map((zone) => zone.name);
+    expect(new Set(names).size).toBe(names.length);
   });
 
   it('reports the district under a tile inside a zone', () => {
@@ -54,6 +57,45 @@ describe('town map', () => {
     );
   });
 
+  it('is an island: sea on every corner, and sea most of the way round', () => {
+    for (const [x, y] of [
+      [0, 0],
+      [map.width - 1, 0],
+      [0, map.height - 1],
+      [map.width - 1, map.height - 1],
+    ]) {
+      expect(map.terrainAt(x as number, y as number)).toBe('water');
+    }
+
+    let edge = 0;
+    let sea = 0;
+    for (let x = 0; x < map.width; x += 1) {
+      for (const y of [0, map.height - 1]) {
+        edge += 1;
+        if (map.terrainAt(x, y) === 'water') sea += 1;
+      }
+    }
+    for (let y = 0; y < map.height; y += 1) {
+      for (const x of [0, map.width - 1]) {
+        edge += 1;
+        if (map.terrainAt(x, y) === 'water') sea += 1;
+      }
+    }
+    // The outline brushes the frame in a couple of places; it must not be
+    // anywhere near running off it.
+    expect(sea / edge).toBeGreaterThan(0.97);
+  });
+
+  it('is mostly sea, as an island should be', () => {
+    let water = 0;
+    for (let y = 0; y < map.height; y += 1) {
+      for (let x = 0; x < map.width; x += 1) {
+        if (map.terrainAt(x, y) === 'water') water += 1;
+      }
+    }
+    expect(water / (map.width * map.height)).toBeGreaterThan(0.5);
+  });
+
   it('includes water, hills and bridges', () => {
     const seen = new Set<string>();
     for (let y = 0; y < map.height; y += 1) {
@@ -63,6 +105,7 @@ describe('town map', () => {
     expect(seen).toContain('hill');
     expect(seen).toContain('bridge');
     expect(seen).toContain('building');
+    expect(seen).toContain('park');
   });
 
   it('never leaves a blocking prop on unwalkable terrain', () => {
@@ -111,12 +154,13 @@ describe('town map', () => {
   });
 
   it('can be walked from the spawn to the far side of the map', () => {
-    // (159, 28) is the walkable tile furthest from the spawn, up in 內湖.
+    // (51, 3) is the walkable tile furthest from the spawn, out on the
+    // northern cape.
     const path = findPath(
       map.width,
       map.height,
       map.spawn,
-      { x: 159, y: 28 },
+      { x: 51, y: 3 },
       { isWalkable: map.isWalkable, maxNodes: 60_000 },
     );
     expect(path).not.toBeNull();

@@ -14,6 +14,7 @@ const TERRAIN_COLORS: Record<Terrain, string> = {
   path: '#eadbbd',
   bridge: '#c9a87c',
   building: '#e5d9c4',
+  park: '#b9e7c6',
 };
 
 export class Minimap {

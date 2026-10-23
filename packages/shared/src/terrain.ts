@@ -7,6 +7,7 @@ export const TERRAIN = [
   'path',
   'bridge',
   'building',
+  'park',
 ] as const;
 
 export type Terrain = (typeof TERRAIN)[number];
@@ -20,6 +21,7 @@ export const TERRAIN_BY_CHAR: Readonly<Record<string, Terrain>> = {
   '=': 'path',
   B: 'bridge',
   '#': 'building',
+  '*': 'park',
 };
 
 const WALKABLE: ReadonlySet<Terrain> = new Set<Terrain>([
@@ -27,6 +29,7 @@ const WALKABLE: ReadonlySet<Terrain> = new Set<Terrain>([
   'sand',
   'path',
   'bridge',
+  'park',
 ]);
 
 export function isWalkableTerrain(terrain: Terrain): boolean {

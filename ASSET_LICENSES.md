@@ -12,20 +12,17 @@ no third-party art is used, traced, or adapted.
 ## The map outline
 
 `packages/shared/src/map/coastline.txt` is a land/sea mask, one character per
-tile, of the combined Taipei City and New Taipei City administrative outline.
-It was traced from a reference image down to a 136 x 160 grid — coarse enough
-that what survives is the geographic fact of where the coast runs, which is
-not something anyone owns. **The reference image itself is deliberately not in
-this repository**, so nothing here depends on its provenance.
+tile, of the island the game is set on. It is a stylized silhouette: the
+proportions were set by hand to suggest a river basin ringed by mountains and
+opening to the sea on one side, which is the shape the setting calls for.
+
+The coarse geography it evokes is a matter of where land and water happen to
+be, which is not something anyone owns. No map publisher's rendering, styling,
+tiles or data are reused, and **no reference image ships with this
+repository**.
 
 Everything inside the outline — rivers, hills, parks, streets, towns — is
-placed by `scripts/build-map.mjs`, positioned to echo the real geography
-rather than to reproduce any map of it. Place names are used as names; no
-map publisher's rendering, styling or data is reused.
-
-Landmarks and scenery, when they arrive in later milestones, are generic
-original shapes (a tall tower, a temple roof, a bridge). No real organization's
-logo, trademark, wordmark, or emblem appears anywhere in this project.
+placed by `scripts/build-map.mjs`. Place names are used as names only.
 
 ## Fonts
 

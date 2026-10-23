@@ -1,7 +1,7 @@
 {
   "version": 2,
   "name": "Riverside Town",
-  "note": "Terrain at one character per tile. The coastline traces the real Taipei and New Taipei outline from coastline.txt; the rivers, hills, parks and streets on top of it are placed by scripts/build-map.mjs to echo where the real ones are. Stylized, not a survey.",
+  "note": "Terrain at one character per tile. The island silhouette comes from coastline.txt; the rivers, hills, parks and streets on top of it are placed by scripts/build-map.mjs. Stylized, not a survey.",
   "width": 136,
   "height": 160,
   "cellTiles": 1,

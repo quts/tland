@@ -10,10 +10,10 @@ Non-commercial hobby project. Every graphic is generated in code; see
 
 ## What's in it
 
-- A 136 × 160 tile island, its coastline traced from the real outline of
-  Taipei and New Taipei. The twelve districts of the city proper — 中正, 大同,
-  中山, 松山, 大安, 萬華, 信義, 士林, 北投, 內湖, 南港, 文山 — are named zones
-  that announce themselves as you cross into them, along with the larger
+- A 136 × 160 tile island: a river basin ringed by mountains, opening to the
+  sea on one side. The twelve districts of the city proper — 中正, 大同, 中山,
+  松山, 大安, 萬華, 信義, 士林, 北投, 內湖, 南港, 文山 — are named zones that
+  announce themselves as you cross into them, along with the larger
   surrounding ones. Four rivers meeting in the basin, bridges at the
   crossings, mountains north and south, parks, beaches and open sea.
 - Touch controls: a virtual joystick, and tap-to-move with A* pathfinding.
@@ -241,9 +241,9 @@ schema and room abstractions, and it keeps the server image small.
 
 ### The map
 
-An island of 136 x 160 tiles, a little over half of it sea. The coastline is
-the real outline of Taipei and New Taipei, traced to a land/sea mask at one
-character per tile in `packages/shared/src/map/coastline.txt`.
+An island of 136 x 160 tiles, a little over half of it sea. The silhouette is
+a stylized one, kept as a land/sea mask at one character per tile in
+`packages/shared/src/map/coastline.txt`.
 
 Everything inside that outline is placed by `scripts/build-map.mjs`, which
 writes `packages/shared/src/map/town.json` — the file the game actually reads:
@@ -252,10 +252,10 @@ writes `packages/shared/src/map/town.json` — the file the game actually reads:
 ./scripts/dev.sh node scripts/build-map.mjs --preview
 ```
 
-The geography follows the real thing loosely: a volcanic group north of the
-basin, a plateau west, ridges along the north-east coast, and a range filling
-the south. Four rivers meet in the basin and leave north-west to the sea, with
-bridges at the crossings. Towns are clusters rather than grids — a regular
+The geography is arranged to give the basin a ring of high ground: a volcanic
+group to the north, a plateau west, ridges along the north-east coast, and a
+range filling the south. Four rivers meet in the basin and leave north-west to
+the sea, with bridges at the crossings. Towns are clusters rather than grids — a regular
 block pattern reads as a circuit board from above, which is the opposite of
 the look this is going for.
 

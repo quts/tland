@@ -1,20 +1,19 @@
 /**
  * Build packages/shared/src/map/town.json.
  *
- * The coastline comes from `coastline.txt`, a land/ocean mask of the real
- * Taipei + New Taipei administrative outline at one character per tile. The
+ * The coastline comes from `coastline.txt`, a land/ocean mask of the island
+ * at one character per tile — a stylized silhouette, not a survey. The
  * geography on top of it — rivers, mountains, parks, towns and roads — is
- * authored here, placed to echo where the real ones are without pretending to
- * be a survey.
+ * authored here.
  *
  *   node scripts/build-map.mjs
  *
- * Reference points, in tiles, derived from the outline:
- *   Taipei basin   x 59-90,  y 55-82
- *   Tamsui mouth   x 36-42,  y 44-54
- *   Yangmingshan   centred (62, 36)
- *   Linkou plateau centred (22, 50)
- *   Southern range y 95-150
+ * Reference points, in tiles:
+ *   the basin        x 59-90,  y 55-82
+ *   the river mouth  x 36-42,  y 44-54
+ *   volcanic group   centred (62, 36)
+ *   western plateau  centred (22, 50)
+ *   southern range   y 95-150
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -560,10 +559,9 @@ const town = {
   version: 2,
   name: 'Riverside Town',
   note:
-    'Terrain at one character per tile. The coastline traces the real ' +
-    'Taipei and New Taipei outline from coastline.txt; the rivers, hills, ' +
-    'parks and streets on top of it are placed by scripts/build-map.mjs to ' +
-    'echo where the real ones are. Stylized, not a survey.',
+    'Terrain at one character per tile. The island silhouette comes from ' +
+    'coastline.txt; the rivers, hills, parks and streets on top of it are ' +
+    'placed by scripts/build-map.mjs. Stylized, not a survey.',
   width: WIDTH,
   height: HEIGHT,
   cellTiles: 1,

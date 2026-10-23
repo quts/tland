@@ -443,6 +443,8 @@ describe('game server', () => {
       status: 'ok',
       players: 1,
       maxPlayers: 3,
+      // Set by the deploy script; 'unknown' when run from a checkout.
+      commit: expect.any(String),
     });
   });
 });

@@ -60,6 +60,9 @@ export function createGameServer(options: GameServerOptions): GameServer {
       const body = JSON.stringify({
         status: 'ok',
         protocol: PROTOCOL_VERSION,
+        // Which build is actually serving. The deploy script passes this in,
+        // so "is my change live?" is answerable from a phone.
+        commit: process.env['GIT_COMMIT'] ?? 'unknown',
         tick: room.tick,
         players: room.size,
         maxPlayers: room.capacity,

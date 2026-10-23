@@ -388,10 +388,21 @@ was and exits non-zero.
 
 ### Install it
 
+Write the settings in one go — Amazon Linux 2023 ships `vi` and not `nano`,
+and an interactive editor is the last thing you want in a runbook you may be
+following from a phone:
+
 ```bash
-sudo cp /home/ec2-user/tland/deploy/tland.env.example /etc/tland.env
-sudo nano /etc/tland.env          # set ALLOWED_ORIGINS
+sudo tee /etc/tland.env >/dev/null <<'EOF'
+ALLOWED_ORIGINS=https://town.example.com,https://your-app.vercel.app
+TLAND_REPO=/home/ec2-user/tland
+TLAND_BRANCH=main
+TLAND_PORT=3000
+EOF
+cat /etc/tland.env
 ```
+
+`deploy/tland.env.example` lists every setting and what it does.
 
 ```bash
 sudo cp /home/ec2-user/tland/deploy/tland-deploy.service /etc/systemd/system/

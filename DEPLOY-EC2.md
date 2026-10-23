@@ -371,9 +371,15 @@ Once the instance can update itself, deploying is merging on GitHub — no SSH,
 no laptop. `scripts/ec2-deploy.sh` does the work and
 `deploy/tland-deploy.service` runs it.
 
-The script is **idempotent**: if the deployed commit already matches the branch
-and the container is healthy, it does nothing. So it is safe to run on every
-boot and on a timer.
+The script is **idempotent**: it asks the running container which commit it is
+serving, and if that already matches the branch it does nothing. Asking the
+container rather than the checkout matters — those differ exactly when a build
+failed, and comparing the checkout instead would mistake a failed deploy for a
+finished one and never retry it.
+
+A commit that will not build is tried once and then left alone until a new one
+arrives, so a broken branch cannot pin the instance at full CPU rebuilding it
+every time the timer fires.
 
 It is also **safe**: the new image is built and health-checked on a spare port
 *before* anything touches the running container. A build that fails, or an
@@ -447,7 +453,8 @@ journalctl -u tland-deploy -n 50 --no-pager
 
 | Line | Meaning |
 | --- | --- |
-| `already on … nothing to do` | The branch has not moved. Did the merge land? |
+| `already serving … nothing to do` | The branch has not moved. Did the merge land? |
+| `… already failed to deploy; waiting for a new commit` | That commit would not build. It is tried once, then left alone until you push a fix |
 | `build failed; the running server has not been touched` | A compile error reached `main`; CI should have caught it |
 | `the new image never became healthy; keeping the old one` | It built but will not start — the probe's own log is printed just above |
 | `another deploy is already running` | A timer fired during a slow build. Harmless |

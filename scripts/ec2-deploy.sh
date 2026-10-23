@@ -38,10 +38,16 @@ CONTAINER="${TLAND_CONTAINER:-tland-game}"
 IMAGE="${TLAND_IMAGE:-tland/game}"
 PORT="${TLAND_PORT:-3000}"
 PROBE_PORT="${TLAND_PROBE_PORT:-3999}"
+# Remembers a commit that would not build, so the next run does not grind
+# through the same failure.
+FAILED_MARK="${TLAND_FAILED_MARK:-/tmp/tland-deploy.failed}"
 ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-}"
 
 log() { printf '%s  %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
 die() { log "ERROR: $*"; exit 1; }
+# Set once the commit is known; a failure after that point is remembered.
+mark_failed() { [ -n "${short_sha:-}" ] && printf '%s' "$short_sha" >"$FAILED_MARK"; }
+fail() { mark_failed; die "$@"; }
 
 # One deploy at a time: a timer firing during a slow build must not start a
 # second one.
@@ -61,18 +67,41 @@ container_running() {
   [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null)" = "true" ]
 }
 
-if [ "$local_sha" = "$remote_sha" ] && container_running; then
-  log "already on ${remote_sha:0:8} and the server is running; nothing to do"
+# What is *actually serving*, not what happens to be checked out. Those differ
+# whenever a build failed: the checkout moved on, the container did not. Asking
+# the container means a failed deploy is retried on the next run instead of
+# being mistaken for a finished one.
+deployed_sha() {
+  docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" 2>/dev/null |
+    sed -n 's/^GIT_COMMIT=//p' | head -1
+}
+
+remote_short="$(git rev-parse --short "origin/$BRANCH")"
+running_sha="$(deployed_sha)"
+
+if [ "$running_sha" = "$remote_short" ] && container_running; then
+  log "already serving ${remote_short}; nothing to do"
   exit 0
 fi
 
+# A commit that failed to build once will fail again. Try it, then leave it
+# alone until a new one arrives, so a broken branch cannot pin the instance at
+# 100% CPU rebuilding it every time the timer fires.
+if [ "$(cat "$FAILED_MARK" 2>/dev/null)" = "$remote_short" ]; then
+  log "${remote_short} already failed to deploy; waiting for a new commit"
+  exit 0
+fi
+
+if [ -n "$running_sha" ]; then
+  log "serving ${running_sha}, want ${remote_short}"
+else
+  log "nothing is serving; deploying ${remote_short}"
+fi
+
 if [ "$local_sha" != "$remote_sha" ]; then
-  log "updating ${local_sha:0:8} -> ${remote_sha:0:8} on $BRANCH"
   # reset, not pull: this checkout is a deployment target, never a workspace,
   # and a stray local edit must not be able to stop a deploy.
   git reset --hard --quiet "origin/$BRANCH"
-else
-  log "on ${remote_sha:0:8} but the server is not running; rebuilding"
 fi
 
 short_sha="$(git rev-parse --short HEAD)"
@@ -80,7 +109,7 @@ candidate="$IMAGE:candidate"
 
 log "building $candidate"
 docker build --quiet -t "$candidate" -f docker/game.Dockerfile . >/dev/null \
-  || die "build failed; the running server has not been touched"
+  || fail "build failed; the running server has not been touched"
 
 # Prove the new image actually serves before retiring the old one.
 probe="${CONTAINER}-probe"
@@ -102,7 +131,7 @@ done
 docker logs "$probe" 2>&1 | tail -5 | sed 's/^/    probe: /'
 docker rm -f "$probe" >/dev/null 2>&1 || true
 
-[ -n "$healthy" ] || die "the new image never became healthy; keeping the old one"
+[ -n "$healthy" ] || fail "the new image never became healthy; keeping the old one"
 
 log "swapping in ${short_sha}"
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
@@ -118,10 +147,14 @@ docker run -d \
 for _ in $(seq 1 30); do
   if curl -fsS -m 2 "http://127.0.0.1:${PORT}/healthz" >/dev/null 2>&1; then
     log "live on ${short_sha}: $(curl -fsS -m 2 "http://127.0.0.1:${PORT}/healthz")"
+    rm -f "$FAILED_MARK"
+    # Images and build cache accumulate one layer set per deploy, and this
+    # instance has a small disk.
     docker image prune -f >/dev/null 2>&1 || true
+    docker builder prune -f --keep-storage 2GB >/dev/null 2>&1 || true
     exit 0
   fi
   sleep 1
 done
 
-die "swapped in ${short_sha} but it is not answering; check: docker logs $CONTAINER"
+fail "swapped in ${short_sha} but it is not answering; check: docker logs $CONTAINER"

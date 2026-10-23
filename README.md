@@ -11,11 +11,12 @@ Non-commercial hobby project. Every graphic is generated in code; see
 ## What's in it
 
 - A 136 × 160 tile island: a river basin ringed by mountains, opening to the
-  sea on one side. The twelve districts of the city proper — 中正, 大同, 中山,
-  松山, 大安, 萬華, 信義, 士林, 北投, 內湖, 南港, 文山 — are named zones that
-  announce themselves as you cross into them, along with the larger
-  surrounding ones. Four rivers meeting in the basin, bridges at the
-  crossings, mountains north and south, parks, beaches and open sea.
+  sea on one side. **39 named districts** cover every walkable tile and
+  announce themselves as you cross into them — the twelve of the city proper
+  (中正, 大同, 中山, 松山, 大安, 萬華, 信義, 士林, 北投, 內湖, 南港, 文山)
+  plus the surrounding ones, out to the coasts. Four rivers meeting in the
+  basin, bridges at the crossings, mountains north and south, parks, beaches
+  and open sea.
 - Touch controls: a virtual joystick, and tap-to-move with A* pathfinding.
   WASD and the arrow keys work on a desktop.
 - An avatar builder: skin, shirt, hat and accessory, all drawn in code.
@@ -258,6 +259,15 @@ range filling the south. Four rivers meet in the basin and leave north-west to
 the sea, with bridges at the crossings. Towns are clusters rather than grids — a regular
 block pattern reads as a circuit board from above, which is the opposite of
 the look this is going for.
+
+Districts are **seed points, not rectangles**. Each is one coordinate, and
+every walkable tile belongs to whichever seed is nearest *on foot* — a
+multi-source flood fill, so rivers and ridges become the borders by
+themselves. Rectangles were the first attempt and they went wrong three ways
+at once: they overlapped, so one name silently hid another; they left three
+fifths of the island nameless; and 三重 was covered so completely it could
+never be seen at all. None of those is expressible in this model, and tests
+hold the line on coverage and on districts being big enough to notice.
 
 Decorations on top of the terrain — trees, flowers, benches, rocks — are
 scattered at load time from a fixed seed, so client and server agree on them

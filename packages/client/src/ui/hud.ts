@@ -4,6 +4,7 @@ const STATUS_LABEL: Record<ConnectionState, string> = {
   connecting: '連線中…',
   online: '已連線',
   offline: '連線中斷，重試中…',
+  unreachable: '找不到遊戲伺服器',
 };
 
 function required<T extends HTMLElement>(id: string): T {
@@ -41,7 +42,8 @@ export class Hud {
 
   setConnectionState(state: ConnectionState): void {
     this.state = state;
-    this.statusPill.dataset['state'] = state;
+    // The pill only has three looks; an unreachable server is a kind of offline.
+    this.statusPill.dataset['state'] = state === 'unreachable' ? 'offline' : state;
     this.statusText.textContent = STATUS_LABEL[state];
     if (state !== 'online') this.countPill.hidden = true;
   }

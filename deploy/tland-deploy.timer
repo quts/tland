@@ -1,0 +1,14 @@
+# Optional. With this enabled you never need to reboot to deploy: merge on
+# GitHub and the instance picks it up within the interval. The script is
+# idempotent, so a check that finds nothing new costs one git fetch.
+[Unit]
+Description=Check for a new Riverside Town build
+Requires=tland-deploy.service
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

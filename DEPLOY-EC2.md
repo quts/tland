@@ -365,20 +365,110 @@ curl -s https://your-app.vercel.app/assets/$(curl -s https://your-app.vercel.app
 
 Nothing printed means the variable was not set, or it was set and not redeployed.
 
-## Afterwards
+## 10. Deploy by merging
 
-**Deploying a new version:**
+Once the instance can update itself, deploying is merging on GitHub — no SSH,
+no laptop. `scripts/ec2-deploy.sh` does the work and
+`deploy/tland-deploy.service` runs it.
+
+The script is **idempotent**: if the deployed commit already matches the branch
+and the container is healthy, it does nothing. So it is safe to run on every
+boot and on a timer.
+
+It is also **safe**: the new image is built and health-checked on a spare port
+*before* anything touches the running container. A build that fails, or an
+image that will not answer `/healthz`, leaves the live server exactly where it
+was and exits non-zero.
+
+### Install it
 
 ```bash
-ssh -i your-key.pem ec2-user@game.example.com
-cd tland && git pull
-docker build -t tland/game:latest -f docker/game.Dockerfile .
-docker stop tland-game && docker rm tland-game
-# then the same docker run as step 6
+sudo cp /home/ec2-user/tland/deploy/tland.env.example /etc/tland.env
+sudo nano /etc/tland.env          # set ALLOWED_ORIGINS
+```
+
+```bash
+sudo cp /home/ec2-user/tland/deploy/tland-deploy.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable tland-deploy.service
+```
+
+That is systemd's equivalent of an `@reboot` cron entry, and the right tool
+here: Amazon Linux 2023 ships systemd but not cron, and `journalctl` gives you
+the log without any extra plumbing.
+
+Run it once by hand to check it works — and to replace whatever is running now:
+
+```bash
+sudo systemctl start tland-deploy && journalctl -u tland-deploy -n 30 --no-pager
+```
+
+### Deploying from a phone, two ways
+
+**Reboot to deploy.** Merge the pull request in the GitHub app, then restart
+the instance from the AWS Console app. The service runs at boot, pulls, builds
+and swaps.
+
+**Or never reboot at all.** Install the timer as well and the instance checks
+for itself every five minutes:
+
+```bash
+sudo cp /home/ec2-user/tland/deploy/tland-deploy.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now tland-deploy.timer
+```
+
+Then merging *is* deploying. A check that finds nothing new costs one
+`git fetch`, so the idle cost is nothing.
+
+### Checking it landed, from a phone
+
+`/healthz` reports the commit that is actually serving:
+
+```
+https://game.example.com/healthz
+```
+
+```json
+{"status":"ok","protocol":2,"commit":"a3b6963","players":0,"uptimeSeconds":12}
+```
+
+Compare `commit` with the short SHA on GitHub. A small `uptimeSeconds`
+alongside the new SHA means the swap just happened.
+
+### When a deploy goes wrong
+
+The live server keeps running, so the symptom is "my change is not live", not
+an outage. The log says why:
+
+```bash
+journalctl -u tland-deploy -n 50 --no-pager
+```
+
+| Line | Meaning |
+| --- | --- |
+| `already on … nothing to do` | The branch has not moved. Did the merge land? |
+| `build failed; the running server has not been touched` | A compile error reached `main`; CI should have caught it |
+| `the new image never became healthy; keeping the old one` | It built but will not start — the probe's own log is printed just above |
+| `another deploy is already running` | A timer fired during a slow build. Harmless |
+
+## Afterwards
+
+**Deploying a new version** is step 10: merge, and the instance picks it up.
+By hand, if you want to watch it happen:
+
+```bash
+sudo systemctl start tland-deploy && journalctl -u tland-deploy -f
 ```
 
 Players are disconnected and reconnect by themselves, but the room is in
 memory, so everyone is sent back to the spawn. Deploy when it is quiet.
+
+**A change to the map or the world needs both halves.** The server validates
+every move against its own copy of the map, so a client on a new map and a
+server on an old one is not a cosmetic mismatch: the server rejects anything
+outside the world it knows and snaps the player back. Merge, then make sure
+the instance has picked it up before telling anyone.
 
 **If something is wrong:**
 

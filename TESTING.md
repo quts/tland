@@ -6,8 +6,9 @@ the software keyboard, backgrounding, safe areas, and how the controls feel
 under a thumb.
 
 Setup: `./scripts/container-up.sh` (or `docker compose up --build`), then open
-`http://<mac-lan-ip>:8080` on the device. See the README for finding that
-address.
+`http://<mac-lan-ip>:8080/?view=2d` on the device for the 2D checklists below,
+or the plain address for the 3D one further down. See the README for finding
+that address.
 
 ## Join screen
 
@@ -93,9 +94,10 @@ address.
 - [ ] The minimap does not cause a hitch when toggled on.
 - [ ] The device does not get noticeably warm after a few minutes.
 
-## The 3D view (`?view=3d`)
+## The 3D view (the default)
 
-Open `http://<mac-lan-ip>:8080/?view=3d&debug=1`. `debug=1` adds the readout
+Open `http://<mac-lan-ip>:8080/?view=3d&debug=1` — naming the view also
+undoes a remembered 2D choice from the checklists above. `debug=1` adds the readout
 in the top-left corner: frame rate, frame time (average and worst), CPU time
 per frame, draw calls, triangles, and live geometries and textures. Write the
 numbers down; they are the point of this section.
@@ -143,11 +145,13 @@ calls**.
       and the world comes back by itself after about two seconds, still
       following you.
 - [ ] Turn WebGL 2.0 off (Settings → Apps → Safari → Advanced → Feature
-      Flags) and open `?view=3d`: the page explains that 3D is unavailable
+      Flags) and open the plain address: the page explains that 3D is unavailable
       and lets you into the 2D town instead. Turn it back on afterwards.
 - [ ] On a device that cannot keep up (or with Low Power Mode on), after
       about five seconds under 30 fps a card offers to switch to 2D. It only
       asks; choosing **繼續用 3D** keeps 3D and it does not ask again.
+- [ ] Choosing **改用 2D** there reloads in 2D, and opening the plain address
+      afterwards stays in 2D.
 
 ### Crowds
 
@@ -182,7 +186,9 @@ portrait and landscape. In 2D each one joins, walks by tapping, sends a
 message and sees its own bubble, fires an emote, opens the minimap, and checks
 the layout fits without the page scrolling.
 
-The 3D spec (`e2e/view3d.spec.ts`) joins with `?view=3d`, checks the draw-call
+The 2D spec opens `?view=2d`. The 3D spec (`e2e/view3d.spec.ts`) checks that
+the plain address opens 3D and that choosing 2D is remembered, joins, checks
+the draw-call
 budget, taps a tile chosen a few steps away and waits for the player to stand
 on exactly that tile, and checks the join screen's 3D preview changes with the
 avatar. It asserts behaviour, never frame rate: WebGL in a container may be

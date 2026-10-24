@@ -182,12 +182,12 @@ async function waitForHttp(url: string, timeoutMs = 15_000): Promise<void> {
  * server through its own `fixedSpawn` option, which the server's integration
  * tests use for the same reason.
  */
-export async function startStack(gamePort: number, webPort: number): Promise<Stack> {
+export async function startStack(gamePort: number, webPort: number, fixedSpawn?: { x: number; y: number }): Promise<Stack> {
   const [{ createGameServer }, { getTownMap }] = await Promise.all([
     import('../packages/server/dist/server.js'),
     import('@tland/shared'),
   ]);
-  const server = createGameServer({ maxPlayers: 50, tickHz: 20, fixedSpawn: getTownMap().spawn });
+  const server = createGameServer({ maxPlayers: 50, tickHz: 20, fixedSpawn: fixedSpawn ?? getTownMap().spawn });
   await server.listen(gamePort, '127.0.0.1');
 
   const web: ChildProcess = spawn(process.execPath, ['e2e/preview-server.mjs', 'packages/client/dist'], {

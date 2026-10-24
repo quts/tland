@@ -29,6 +29,7 @@ import {
 import { DebugHud } from './debugHud.js';
 import { groundMaterial, waterMaterial } from './surfaceMaterials.js';
 import { ViewPrompt } from './viewPrompt.js';
+import { addTownLights } from './lighting.js';
 
 /** Below this for LOW_FPS_SECONDS in a row, offer the 2D view. */
 const LOW_FPS = 30;
@@ -175,12 +176,8 @@ export class Renderer3D implements Renderer {
       this.scene.background = new THREE.Color(PALETTE.water);
       // A light haze towards the top of the screen, where the view runs far.
       this.scene.fog = new THREE.Fog(PALETTE.water, CAMERA_DISTANCE + 12, CAMERA_DISTANCE + 70);
-      // Sky and bounce light do most of the work; the sun only gives faces a
-      // direction. No shadow maps: contact shadows are baked or blobs.
-      this.scene.add(new THREE.HemisphereLight(0xeef8ff, 0xb7cfa4, 2.2));
-      const sun = new THREE.DirectionalLight(0xfff2df, 1.6);
-      sun.position.set(-0.6, 1, 0.45);
-      this.scene.add(sun);
+      // Shared warm sun, soft sky bounce and a restrained front fill.
+      addTownLights(this.scene);
 
       this.surface = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
       this.surface.name = 'surface';
@@ -315,10 +312,7 @@ export class Renderer3D implements Renderer {
     const pixels = this.previewPixels as Uint8Array;
 
     const stage = new THREE.Scene();
-    stage.add(new THREE.HemisphereLight(0xeef8ff, 0xb7cfa4, 2.2));
-    const light = new THREE.DirectionalLight(0xfff2df, 1.6);
-    light.position.set(-0.6, 1, 0.8);
-    stage.add(light);
+    addTownLights(stage);
     const avatar = this.characters.previewMesh(parts);
     // A three-quarter turn reads as a figure rather than a badge.
     avatar.rotation.y = -0.4;

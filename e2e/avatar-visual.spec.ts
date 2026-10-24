@@ -25,6 +25,7 @@ test.describe('avatar readability', () => {
     await page.waitForTimeout(700);
     const metrics = await page.evaluate(() => window.__town?.stats());
     expect(metrics?.drawCalls).toBeLessThan(150);
+    expect(metrics?.triangles).toBeLessThan(300_000);
     console.log('visual metrics', JSON.stringify({ viewport: page.viewportSize(), drawCalls: metrics?.drawCalls, triangles: metrics?.triangles }));
     await page.screenshot({ path: testInfo.outputPath('reference-town.png') });
     const viewport = page.viewportSize()!;

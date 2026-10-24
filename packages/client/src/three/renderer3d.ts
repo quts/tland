@@ -19,7 +19,7 @@ import {
   cssToNdc,
   joystickToWorld,
   ndcToCss,
-  orthoFrame,
+  viewportFrame,
   screenToTerrain,
   tilesAcross,
   worldToScreen,
@@ -536,7 +536,7 @@ export class Renderer3D implements Renderer {
     this.renderer.setPixelRatio(resolutionCap());
     this.renderer.setSize(this.width, this.height);
     // Orthographic: the frame, not a distance, decides how much town is in view.
-    orthoFrame(tilesAcross(this.width), this.width / this.height, this.view);
+    viewportFrame(this.width, this.height, this.view);
     this.camera.left = -this.view.halfWidth;
     this.camera.right = this.view.halfWidth;
     this.camera.top = this.view.halfHeight;

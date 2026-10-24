@@ -8,6 +8,9 @@ test.describe('avatar readability', () => {
 
   test('keeps the reference outfit visible in preview and the town', async ({ page }, testInfo) => {
     const errors = collectErrors(page);
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
     await page.goto(stack.baseURL + '/?view=3d');
     await expect(page.locator('#join-button')).toHaveText('進入小鎮');
     await page.locator('#pick-hat .chip').nth(2).click();
@@ -20,6 +23,9 @@ test.describe('avatar readability', () => {
     await expect.poll(() => page.evaluate(() => window.__town?.stats()?.drawCalls ?? 0)).toBeGreaterThan(0);
     // Wait for submitted geometry and face instances to reach the rendered frame.
     await page.waitForTimeout(700);
+    const metrics = await page.evaluate(() => window.__town?.stats());
+    expect(metrics?.drawCalls).toBeLessThan(150);
+    console.log('visual metrics', JSON.stringify({ viewport: page.viewportSize(), drawCalls: metrics?.drawCalls, triangles: metrics?.triangles }));
     await page.screenshot({ path: testInfo.outputPath('reference-town.png') });
     const viewport = page.viewportSize()!;
     await page.screenshot({ path: testInfo.outputPath('reference-detail.png'), clip: {

@@ -5,7 +5,7 @@ import type { AvatarParts } from '../gfx/avatar.js';
 import { resolutionCap } from '../viewport.js';
 import type { AvatarImage, Renderer, RendererContext, RendererStats } from '../render/renderer.js';
 import type { RemoteMotion } from '../world/remoteMotion.js';
-import { buildGround, buildShallows, cornerHeights, heightSampler, maxHeight, WATER_LEVEL } from './ground.js';
+import { buildGround, cornerHeights, heightSampler, maxHeight, WATER_LEVEL } from './ground.js';
 import { buildProps } from './props.js';
 import { CharacterLayer } from './characters.js';
 import { AVATAR_TOP } from './avatar3d.js';
@@ -27,6 +27,7 @@ import {
   type Vec3,
 } from './cameraRig.js';
 import { DebugHud } from './debugHud.js';
+import { groundMaterial, waterMaterial } from './surfaceMaterials.js';
 import { ViewPrompt } from './viewPrompt.js';
 
 /** Below this for LOW_FPS_SECONDS in a row, offer the 2D view. */
@@ -190,12 +191,11 @@ export class Renderer3D implements Renderer {
       const heights = cornerHeights(map);
       this.heightAt = heightSampler(map, heights);
       this.peak = maxHeight(heights);
-      this.scene.add(buildGround(map, heights, this.surface));
-      this.scene.add(buildShallows(map, this.surface));
+      this.scene.add(buildGround(map, heights, groundMaterial(map)));
 
       const water = new THREE.Mesh(
         new THREE.PlaneGeometry(map.width + 400, map.height + 400).rotateX(-Math.PI / 2),
-        new THREE.MeshLambertMaterial({ color: PALETTE.water }),
+        waterMaterial(map),
       );
       water.name = 'water';
       water.position.set(map.width / 2, WATER_LEVEL, map.height / 2);

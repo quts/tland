@@ -682,3 +682,128 @@ body {
   font: inherit;
   font-size: 12px;
 }
+
+/* ---------------------------------------------------------------- */
+/* 3D view: name tags, bubbles and emotes over the canvas            */
+/* ---------------------------------------------------------------- */
+
+.world-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+.overlay-anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+
+.overlay-anchor[hidden] {
+  display: none;
+}
+
+.name-tag {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  transform: translateX(-50%);
+  padding: 1px 7px 2px;
+  border-radius: 999px;
+  background: rgba(253, 247, 236, 0.86);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.name-tag:empty {
+  display: none;
+}
+
+.bubble3d {
+  position: absolute;
+  left: 0;
+  bottom: 30px;
+  width: max-content;
+  max-width: 190px;
+  padding: 6px 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: 13px;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  animation: bubble-in 160ms ease-out;
+  transition: opacity 450ms linear;
+}
+
+/* The tail, pointing down at the speaker. */
+.bubble3d::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-right: 2.5px solid var(--ink);
+  border-bottom: 2.5px solid var(--ink);
+  background: var(--cream);
+  transform: rotate(45deg);
+}
+
+.bubble3d.is-fading {
+  opacity: 0;
+}
+
+.emote3d {
+  position: absolute;
+  left: 22px;
+  bottom: 2px;
+  animation: emote-in 240ms ease-out, emote-out 400ms linear 1500ms forwards;
+}
+
+.emote3d canvas {
+  display: block;
+}
+
+@keyframes bubble-in {
+  from {
+    transform: translateX(-50%) scale(0.86);
+  }
+  to {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@keyframes emote-in {
+  from {
+    transform: translateY(16px) scale(0.4);
+  }
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes emote-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble3d,
+  .emote3d {
+    animation: none;
+  }
+}

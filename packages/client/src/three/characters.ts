@@ -54,7 +54,9 @@ export class CharacterLayer {
     shadowMaterial: THREE.Material,
   ) {
     this.group.name = 'characters';
-    const faceMaterial = new THREE.MeshLambertMaterial({
+    const faceMaterial = new THREE.MeshPhongMaterial({
+      specular: 0x262016,
+      shininess: 24,
       map: faceTexture(),
       transparent: true,
       depthWrite: false,

@@ -1,0 +1,66 @@
+[
+  {
+    "device": "iPhone 13",
+    "variant": "before",
+    "fps": 23.75,
+    "stats": {
+      "fps": 23.529411764705884,
+      "drawCalls": 45,
+      "triangles": 86626
+    },
+    "position": {
+      "x": 2192,
+      "y": 2320
+    },
+    "width": 390,
+    "height": 664
+  },
+  {
+    "device": "iPhone 13",
+    "variant": "after",
+    "fps": 20.97902097902098,
+    "stats": {
+      "fps": 21.27659574468085,
+      "drawCalls": 45,
+      "triangles": 86813
+    },
+    "position": {
+      "x": 2192,
+      "y": 2320
+    },
+    "width": 390,
+    "height": 664
+  },
+  {
+    "device": "iPad (gen 7)",
+    "variant": "before",
+    "fps": 8.85608856088561,
+    "stats": {
+      "fps": 8.80281690140845,
+      "drawCalls": 38,
+      "triangles": 46254
+    },
+    "position": {
+      "x": 2192,
+      "y": 2320
+    },
+    "width": 810,
+    "height": 1080
+  },
+  {
+    "device": "iPad (gen 7)",
+    "variant": "after",
+    "fps": 8.20079522862823,
+    "stats": {
+      "fps": 8.291873963515755,
+      "drawCalls": 38,
+      "triangles": 46441
+    },
+    "position": {
+      "x": 2192,
+      "y": 2320
+    },
+    "width": 810,
+    "height": 1080
+  }
+]

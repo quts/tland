@@ -17,6 +17,7 @@ for (const scene of ['street', 'woodland'] as const) test.describe('camera ' + s
  test.afterAll(async () => { await stack.close(); });
  test('captures the same stationary outfit and street', async ({ page }, testInfo) => {
   const errors = collectErrors(page), sockets: string[] = [];
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('websocket', socket => sockets.push(socket.url()));
   await page.goto(stack.baseURL + '/?view=3d');
   await expect(page.locator('#join-button')).toHaveText('進入小鎮');

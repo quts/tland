@@ -41,9 +41,8 @@ float surfaceNoise(vec2 p) {
 }
 `;
 
-/** Keep Lambert lighting and existing geometry; detail is anchored in world space. */
-function detailMaterial(fragment: string): THREE.MeshLambertMaterial {
-  const material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+/** Keep per-fragment lighting and existing geometry; detail is anchored in world space. */
+function detailMaterial<T extends THREE.MeshLambertMaterial | THREE.MeshPhongMaterial>(fragment: string, material: T): T {
   material.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 surfaceWorld;')
@@ -89,7 +88,7 @@ float clover = min(min(length(leaf - vec2(radius, 0.0)), length(leaf + vec2(radi
 float motif = (1.0 - smoothstep(radius * 0.72, radius, clover)) * step(0.68, seed) * smoothstep(0.85, 1.0, terrain.a);
 pigment *= 1.0 - motif * 0.20;
 diffuseColor.rgb *= pigment;
-`);
+`, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
   material.name = 'soft-terrain';
   const compile = material.onBeforeCompile;
   material.onBeforeCompile = (shader, renderer) => {
@@ -135,7 +134,7 @@ export function shoreDepthTexture(map: TownMap): THREE.DataTexture {
 }
 
 /** One continuous water surface replaces the separate tiled shallows overlay. */
-export function waterMaterial(map: TownMap): THREE.MeshLambertMaterial {
+export function waterMaterial(map: TownMap): THREE.MeshPhongMaterial {
   const texture = shoreDepthTexture(map);
   const material = detailMaterial(`
 vec2 p = surfaceWorld.xz;
@@ -148,13 +147,18 @@ float wave = sin(p.x * 7.0 + p.y * 4.0 + bend * 9.0);
 float crest = smoothstep(0.93, 1.0, wave) * smoothstep(0.4, 0.65, surfaceNoise(p * 2.0));
 diffuseColor.rgb *= 0.98 + surfaceNoise(p * 0.8) * 0.04;
 diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.18, crest * 0.28);
-`);
+`, new THREE.MeshPhongMaterial({ flatShading: true }));
   material.name = 'continuous-water';
-  material.vertexColors = false;
-  material.color.setHex(PALETTE.water);
+  // Restrained reflectance avoids broad white glare on a pastel river.
+  material.specular.setHex(0x36515b);
+  material.shininess = 40;
+  material.color.setHex(PALETTE.water).multiplyScalar(0.90);
   const compile = material.onBeforeCompile;
   material.onBeforeCompile = (shader, renderer) => {
     compile.call(material, shader, renderer);
+    // Ripples perturb only the lighting normal; the picking/collision plane stays flat.
+    shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_begin>',
+      '#include <normal_fragment_begin>\nnormal = normalize(normal + mat3(viewMatrix) * vec3(sin(surfaceWorld.x * 4.2 + surfaceWorld.z * 2.3) * 0.10, 0.0, cos(surfaceWorld.z * 4.8 - surfaceWorld.x * 1.7) * 0.08));');
     shader.uniforms['shoreDepth'] = { value: texture };
     shader.uniforms['shoreSize'] = { value: new THREE.Vector2(map.width, map.height) };
     shader.uniforms['foamPigment'] = { value: new THREE.Color(PALETTE.waterFoam) };

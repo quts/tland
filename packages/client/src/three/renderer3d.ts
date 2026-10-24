@@ -30,7 +30,7 @@ import {
 import { DebugHud } from './debugHud.js';
 import { groundMaterial, waterMaterial } from './surfaceMaterials.js';
 import { ViewPrompt } from './viewPrompt.js';
-import { addTownLights } from './lighting.js';
+import { addTownLights, townMaterial } from './lighting.js';
 
 /** Below this for LOW_FPS_SECONDS in a row, offer the 2D view. */
 const LOW_FPS = 30;
@@ -110,8 +110,8 @@ export class Renderer3D implements Renderer {
   private readonly prompt: ViewPrompt;
   private readonly debugHud: DebugHud | null;
   private readonly marker: THREE.Mesh;
-  private readonly surface: THREE.MeshLambertMaterial;
-  private readonly characterMaterial: THREE.MeshLambertMaterial;
+  private readonly surface: THREE.MeshPhongMaterial;
+  private readonly characterMaterial: THREE.MeshPhongMaterial;
   private readonly unlisten: () => void;
 
   // Camera state, reused every frame.
@@ -180,10 +180,10 @@ export class Renderer3D implements Renderer {
       // Shared warm sun, soft sky bounce and a restrained front fill.
       addTownLights(this.scene);
 
-      this.surface = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+      this.surface = townMaterial();
       this.surface.name = 'surface';
       // Characters are round; smooth shading keeps them soft.
-      this.characterMaterial = new THREE.MeshLambertMaterial({ vertexColors: true });
+      this.characterMaterial = townMaterial(true);
       this.characterMaterial.name = 'characters';
 
       const heights = cornerHeights(map);

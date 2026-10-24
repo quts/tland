@@ -97,7 +97,7 @@ export function buildSunShadows(map: TownMap, casters: readonly ShadowCaster[]):
     const hull = silhouette(caster);
     const center: Point = { x: hull.reduce((s, p) => s + p.x, 0) / hull.length,
       z: hull.reduce((s, p) => s + p.z, 0) / hull.length, alpha: 1 };
-    const feather = caster.shape === 'box' ? 0.18 : 0.22;
+    const feather = caster.shape === 'box' ? 0.28 : 0.30;
     const outer = hull.map(p => {
       const length = Math.hypot(p.x - center.x, p.z - center.z);
       return { x: p.x + (p.x - center.x) / length * feather,

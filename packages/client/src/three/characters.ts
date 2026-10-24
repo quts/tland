@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { MAX_PLAYERS, TILE_SIZE, type Direction } from '@tland/shared';
 import type { AvatarParts } from '../gfx/avatar.js';
-import { AVATAR_SCALE, AvatarGeometryCache, faceGeometry, faceTexture } from './avatar3d.js';
+import { AVATAR_TOP, AVATAR_SCALE, AvatarGeometryCache, faceGeometry, faceTexture } from './avatar3d.js';
+import { SHADOW_X, SHADOW_Z } from './lighting.js';
 
 /** Room for everyone the server admits, plus the local player. */
 const CAPACITY = MAX_PLAYERS + 1;
@@ -26,6 +27,10 @@ interface Character {
 const matrix = new THREE.Matrix4();
 const shadowScale = new THREE.Vector3(AVATAR_SCALE, 1, AVATAR_SCALE * 0.8);
 const identity = new THREE.Quaternion();
+const sunScale = new THREE.Vector3(AVATAR_SCALE * 1.05, 1, AVATAR_SCALE * 1.35);
+const sunRotation = new THREE.Quaternion().setFromAxisAngle(
+  new THREE.Vector3(0, 1, 0), Math.atan2(SHADOW_X, SHADOW_Z),
+);
 const lift = new THREE.Vector3();
 
 /**
@@ -61,7 +66,7 @@ export class CharacterLayer {
     this.faces.count = 0;
     // Instances roam the whole island; a fixed bounding sphere would cull them wrongly.
     this.faces.frustumCulled = false;
-    this.shadows = new THREE.InstancedMesh(shadowGeometry, shadowMaterial, CAPACITY);
+    this.shadows = new THREE.InstancedMesh(shadowGeometry, shadowMaterial, CAPACITY * 2);
     this.shadows.name = 'character-shadows';
     this.shadows.count = 0;
     this.shadows.frustumCulled = false;
@@ -137,7 +142,7 @@ export class CharacterLayer {
     this.synced = 0;
     this.characters.forEach(this.syncOne);
     this.faces.count = this.synced;
-    this.shadows.count = this.synced;
+    this.shadows.count = this.synced * 2;
     this.faces.instanceMatrix.needsUpdate = true;
     this.shadows.instanceMatrix.needsUpdate = true;
   }
@@ -151,7 +156,11 @@ export class CharacterLayer {
     body.updateMatrix();
     this.faces.setMatrixAt(this.synced, body.matrix);
     lift.set(character.drawn.x, 0, character.drawn.z);
-    this.shadows.setMatrixAt(this.synced, matrix.compose(lift, identity, shadowScale));
+    this.shadows.setMatrixAt(this.synced * 2, matrix.compose(lift, identity, shadowScale));
+    // Keep the contact blob at the feet and add a sun-aligned oval in the same batch.
+    lift.set(character.drawn.x + AVATAR_TOP * 0.42 * SHADOW_X, 0,
+      character.drawn.z + AVATAR_TOP * 0.42 * SHADOW_Z);
+    this.shadows.setMatrixAt(this.synced * 2 + 1, matrix.compose(lift, sunRotation, sunScale));
     this.synced += 1;
   };
 

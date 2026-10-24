@@ -3,6 +3,7 @@ import { hashCoords, type TownMap } from '@tland/shared';
 import { PALETTE } from '../gfx/palette.js';
 import { BUILDING_CELL, buildingPlots } from '../world/buildingLayout.js';
 import { merge, painted } from './geometry.js';
+import { buildSunShadows, type ShadowCaster } from './sunShadows.js';
 
 /**
  * Instances are grouped into square regions of this many tiles, one
@@ -21,28 +22,44 @@ const PROP_SEED = 0x3d7e;
 const tmpColor = new THREE.Color();
 
 function treeGeometry(): THREE.BufferGeometry {
-  const trunk = new THREE.CylinderGeometry(0.08, 0.12, 0.55, 6).translate(0, 0.275, 0);
-  const crown = new THREE.IcosahedronGeometry(0.44, 1).scale(1, 0.9, 1).translate(0, 0.92, 0);
-  const tuft = new THREE.IcosahedronGeometry(0.27, 0).translate(0.1, 1.25, 0.06);
+  const shade = { from: 0.72, to: 1.06, bottom: 0.55, top: 1.55 };
   return merge([
-    painted(trunk, PALETTE.trunk, { from: 0.7, to: 1, bottom: 0, top: 0.5 }),
-    painted(crown, PALETTE.leafLight, { from: 0.72, to: 1.04, bottom: 0.55, top: 1.3 }),
-    painted(tuft, PALETTE.leafLight, { from: 0.9, to: 1.08, bottom: 1.05, top: 1.5 }),
+    painted(new THREE.CylinderGeometry(0.075, 0.115, 0.68, 7).translate(0, 0.34, 0), PALETTE.trunk,
+      { from: 0.72, to: 1.02, bottom: 0, top: 0.65 }),
+    painted(new THREE.IcosahedronGeometry(0.43, 1).scale(1, 0.9, 1).translate(0, 1.02, 0), 0x88b875, shade),
+    painted(new THREE.IcosahedronGeometry(0.3, 0).translate(-0.2, 0.92, 0.1), 0x7bad69, shade),
+    painted(new THREE.IcosahedronGeometry(0.28, 0).translate(0.22, 1.06, 0.04), 0x96c17f, shade),
+    painted(new THREE.IcosahedronGeometry(0.29, 1).translate(-0.02, 1.32, -0.02), 0x9bc784, shade),
   ]);
 }
 
+/** Original flower positions remain non-blocking; each now reads as a small planted bed. */
+const BLOOMS = [
+  [-0.16, 0.13, 0.1], [0.12, 0.14, 0.15], [-0.03, 0.18, -0.1],
+  [0.2, 0.12, -0.12], [-0.2, 0.11, -0.14],
+] as const;
+
 function flowerGeometry(): THREE.BufferGeometry {
-  // Petal colour comes from the instance; the leaves stay green.
-  const blooms = [
-    [-0.13, 0.12, 0.05],
-    [0.12, 0.1, 0.1],
-    [0.02, 0.15, -0.12],
-  ].map(([x, y, z]) => painted(new THREE.IcosahedronGeometry(0.075, 0).translate(x!, y!, z!), 0xffffff));
-  const leaves = painted(
-    new THREE.CylinderGeometry(0.2, 0.22, 0.05, 7).translate(0, 0.025, 0),
-    PALETTE.grassDeep,
-  );
-  return merge([...blooms, leaves]);
+  return merge(BLOOMS.flatMap(([x, y, z]) =>
+    Array.from({ length: 5 }, (_, i) => {
+      const angle = i * Math.PI * 2 / 5;
+      return painted(new THREE.CircleGeometry(0.047, 7).rotateX(-Math.PI / 2)
+        .translate(x + Math.cos(angle) * 0.052, y, z + Math.sin(angle) * 0.052), 0xffffff);
+    })));
+}
+
+/** Green leaves and yellow hearts are separate from the instance-tinted petals. */
+function flowerLeavesGeometry(): THREE.BufferGeometry {
+  return merge([
+    painted(new THREE.IcosahedronGeometry(0.28, 1).scale(1, 0.25, 1).translate(0, 0.065, 0), 0x72a65e),
+    ...BLOOMS.flatMap(([x, y, z]) => [
+      painted(new THREE.IcosahedronGeometry(0.034, 0).scale(1, 0.6, 1).translate(x, y + 0.018, z), 0xf7d775),
+      painted(new THREE.CircleGeometry(1, 6).scale(0.11, 0.052, 1).rotateX(-Math.PI / 2)
+        .rotateY(x * 8).translate(x, 0.032, z), 0x699b60),
+      painted(new THREE.CircleGeometry(1, 6).scale(0.08, 0.045, 1).rotateX(-Math.PI / 2)
+        .rotateY(z * 7 + 1).translate(x + 0.045, 0.04, z - 0.035), 0x87b56d),
+    ]),
+  ]);
 }
 
 function benchGeometry(): THREE.BufferGeometry {
@@ -140,9 +157,11 @@ function instanced(
   placements: readonly Placement[],
   group: THREE.Group,
 ): void {
+  // Fine foliage batches avoid drawing whole 32-tile groves for a narrow phone view.
+  const region = ['trees', 'flowers', 'flower-leaves'].includes(name) ? 16 : REGION;
   const byRegion = new Map<number, Placement[]>();
   for (const placement of placements) {
-    const key = Math.floor(placement.z / REGION) * 1000 + Math.floor(placement.x / REGION);
+    const key = Math.floor(placement.z / region) * 1000 + Math.floor(placement.x / region);
     let list = byRegion.get(key);
     if (list === undefined) {
       list = [];
@@ -183,7 +202,7 @@ function tint(base: number, x: number, y: number, amount: number): number {
 /** Share of hill tiles that carry a tree. */
 const HILL_TREE_CHANCE = 0.3;
 
-const BUILDING_HEIGHTS = [1.5, 1.9, 2.3, 4.2, 1.3] as const;
+const BUILDING_HEIGHTS = [1.8, 2.15, 2.5, 4.2, 1.6] as const;
 const ROOFS = [PALETTE.roofWarm, PALETTE.roofCool, PALETTE.roofMint] as const;
 const WALLS = [PALETTE.wall, PALETTE.wallAlt] as const;
 
@@ -217,6 +236,7 @@ export function buildProps(
   const rocks: Placement[] = [];
   const fences: Placement[] = [];
   const shadows: Placement[] = [];
+  const casters: ShadowCaster[] = [];
   const petals = [PALETTE.petalRose, PALETTE.petalCream, PALETTE.petalLilac];
   const stride = map.width + 1;
   const groundAt = (x: number, y: number): number =>
@@ -232,9 +252,11 @@ export function buildProps(
           const s = 0.85 + roll(x, y, 1) * 0.3;
           trees.push({ x: cx, y: 0, z: cz, rotation: roll(x, y, 2) * Math.PI * 2, sx: s, sy: s * (0.9 + roll(x, y, 3) * 0.25), sz: s, color: tint(0xffffff, x, y, 0.12) });
           shadows.push({ x: cx, y: 0, z: cz + 0.08, rotation: 0, sx: 1.25 * s, sy: 1, sz: 1.05 * s, color: 0xffffff });
+          casters.push({ x: cx, z: cz, width: 1.05 * s, depth: 0.95 * s, height: 1.08 * s, shape: 'canopy' });
           break;
         }
         case 'flower':
+          shadows.push({ x: cx + 0.04, y: 0, z: cz + 0.04, rotation: 0, sx: 1.15, sy: 1, sz: 1, color: 0xffffff });
           flowers.push({ x: cx, y: 0, z: cz, rotation: roll(x, y, 4) * Math.PI * 2, sx: 1, sy: 1, sz: 1, color: petals[hashCoords(x, y, 0x51a8) % 3] as number });
           break;
         case 'bench':
@@ -286,6 +308,8 @@ export function buildProps(
     // A broad contact shadow anchors the walls, using the existing instanced blob.
     shadows.push({ x: cx + 0.35, y: 0, z: cz + 0.4, rotation: 0,
       sx: (footprint + 1.25) / 0.62, sy: 1, sz: (footprint + 1.1) / 0.62, color: 0xffffff });
+    casters.push({ x: cx, z: cz, width: footprint * 1.12, depth: footprint * 1.12,
+      height: h + 0.35, shape: 'box' });
     // Towers get a low cap; houses get a proper roof.
     roofs.push({ x: cx, y: h, z: cz, rotation: 0, sx: footprint * 1.12, sy: plot.variant === 3 ? 0.5 : 1.15, sz: footprint * 1.12, color: ROOFS[(r >>> 3) % 3] as number });
     fronts.push({ x: cx, y: 0, z: cz, rotation: 0, sx: footprint, sy: Math.min(h, 2), sz: footprint, color: 0xffffff });
@@ -293,6 +317,7 @@ export function buildProps(
 
   instanced('trees', treeGeometry(), material, trees, group);
   instanced('flowers', flowerGeometry(), material, flowers, group);
+  instanced('flower-leaves', flowerLeavesGeometry(), material, flowers.map(p => ({ ...p, color: 0xffffff })), group);
   instanced('benches', benchGeometry(), material, benches, group);
   instanced('rocks', rockGeometry(), material, rocks, group);
   instanced('fences', fenceGeometry(), material, fences, group);
@@ -301,5 +326,6 @@ export function buildProps(
   instanced('fronts', frontGeometry(), material, fronts, group);
   instanced('shadows', shadowGeometry, shadowMaterial, shadows, shadowGroup);
 
+  shadowGroup.add(buildSunShadows(map, casters));
   return { group, shadows: shadowGroup };
 }

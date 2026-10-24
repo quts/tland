@@ -6,8 +6,8 @@ import { PALETTE } from '../gfx/palette.js';
 export function terrainColorTexture(map: TownMap): THREE.DataTexture {
   const data = new Uint8Array(map.width * map.height * 4);
   const color = new THREE.Color();
-  const bases: Record<Terrain, number> = { grass: PALETTE.grass, park: PALETTE.lawn, path: PALETTE.path,
-    sand: PALETTE.sand, water: PALETTE.sandAlt, hill: PALETTE.hill, building: PALETTE.pathEdge, bridge: PALETTE.bridge };
+  const bases: Record<Terrain, number> = { grass: 0xaed18d, park: 0xbcdd9c, path: PALETTE.path,
+    sand: PALETTE.sand, water: PALETTE.sandAlt, hill: 0x91b982, building: PALETTE.pathEdge, bridge: PALETTE.bridge };
   for (let y = 0; y < map.height; y += 1) for (let x = 0; x < map.width; x += 1) {
     const terrain = map.terrainAt(x, y);
     color.setHex(bases[terrain]);

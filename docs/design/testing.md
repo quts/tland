@@ -8,7 +8,10 @@ CI workflow. Nothing calls a real platform or LLM in CI.
   `createdAt` plausible, an unsupported capability throws a clear error, HTTP
   401 and 429 become `AuthExpired` and `RateLimited`. A provider joins
   `SOCIAL_PROVIDERS` only after passing it.
-- **No network for real platforms** — Threads runs against recorded JSON
+- **Mock provider** — deterministic output for the same seed and time bucket;
+  the post changes across buckets; search returns its planted duplicates; each
+  fault injects the right error.
+- **No network for real platforms (later phase)** — Threads runs against recorded JSON
   fixtures in place of `fetch`; PTT against saved HTML snapshots, so a markup
   change breaks the test before it breaks the game.
 - **Proximity diff** — `shared/test/proximity.test.ts` grows cases inside 3

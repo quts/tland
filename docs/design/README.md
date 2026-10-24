@@ -31,8 +31,8 @@ way, so this is a deliberate change of scope:
 | No accounts | Still no sign-up. The server hands out an opaque session token kept in `localStorage`; social accounts attach to it. Playing without one works exactly as today. |
 | State in memory only | Positions and proximity stay in memory. Sessions, social bindings, latest posts, topics, articles, comments and house heat persist through a `Store`. |
 | No database | The first `Store` is a JSON file. SQLite is a later swap behind the same interface. |
-| No secrets | `THREADS_APP_SECRET`, `TOKEN_KEY` and an LLM API key, in `deploy/tland.env`. |
-| (Implicit today) the server makes no outbound calls | The game server calls Threads, PTT, X and an LLM. The browser still never does. |
+| No secrets | None in this phase. The real-platform phase adds `THREADS_APP_SECRET`, `TOKEN_KEY` and an LLM API key, in `deploy/tland.env`. |
+| (Implicit today) the server makes no outbound calls | None in this phase: the mock provider and the truncating summarizer are local. The real-platform phase calls Threads, PTT, X and an LLM, from the server only. The browser never does. |
 
 The IP rule still holds: **no platform logos**. A status card names its source
 in text ("Threads", "PTT", "X"); it does not draw anyone's logo.
@@ -53,45 +53,57 @@ in text ("Threads", "PTT", "X"); it does not draw anyone's logo.
   through the server's provider layer, so swapping or adding a platform touches
   one server directory.
 - **Comments stay in the game.** Nothing is posted back to Threads or X.
+- **Mock first, real platforms later.** This phase builds the provider
+  interface and a `MockProvider` behind it, and nothing else on the social
+  side. Every feature runs end to end on mock data. Real platforms plug in
+  later without touching the game code; see "Later phase" below.
 
 ## Architecture
 
 ```
 browser ──HTTP──> web (nginx) ──/ws──────> game (node + ws)
-                               ──/auth/*──>   Room          (existing: tick, proximity)
-                               ──/healthz─>   wells, houses, heat
-                                              scheduler     (post refresh, agent, heat tick)
+                               ──/healthz─>   Room          (existing: tick, proximity)
+                               ──/auth/*──>   wells, houses, heat
+                               (later)        scheduler     (post refresh, agent, heat tick)
                                               Store         (JSON file -> SQLite)
-                                              social/       providers: fake, threads, ptt, x
+                                              social/       providers: mock (now);
+                                                            threads, ptt, x (later)
                                               topics/       agent, summarizer
                                                    │
-                                                   └──> Threads API, PTT web, X API, LLM API
+                                                   └──> (later) Threads API, PTT web, X API, LLM API
 ```
 
 ## Milestones
 
 Each is a run of PRs that can merge on its own, and each leaves something a
-friend can try. The fake provider comes first so nothing waits on a platform's
-API review. Every PR passes the existing CI: lint, typecheck, Vitest and the
-WebKit smoke test.
+friend can try. All four run on the mock provider, so nothing waits on a
+platform's API review or an API key. Every PR passes the existing CI: lint,
+typecheck, Vitest and the WebKit smoke test.
 
 | # | Scope | Done when |
 | --- | --- | --- |
-| M1 | Session token, `Store` + `JsonFileStore`, provider interface + `FakeProvider`, `PostService`, proximity diff, status card in both views | Two phones within 3 tiles see each other's status; it disappears past 4 without blinking; a server restart keeps the session |
-| M2 | Threads provider, `/auth/threads/*`, token encryption, "link account" on the join screen | A new Threads post shows above the head within 10 minutes; a network drop does not clear the card |
-| M3 | `buildingPlots` moved to shared, wells in `build-map.mjs`, wish / enter / leave / comment, greyscale vs colour, signs, house panel (level 1 only) | A wish turns the nearest empty house to colour; a comment reaches another player in the house; wishing the same topic twice opens one house |
-| M4 | `heat.ts`, heat events, five-minute tick, archive, level heights in both views | With an injected clock, 72 hours of silence steps a house down one level at a time, then archives it |
-| M5 | Article agent, `Summarizer`, PTT provider | A baseball topic shows at least five distinct summarized articles with links |
+| M1 | Session token, `Store` + `JsonFileStore`, `SocialProvider` interface + registry + `MockProvider`, "link a mock account" on the join screen, `PostService`, proximity diff, status card in both views | Two phones that linked mock accounts, within 3 tiles, see each other's status; it disappears past 4 without blinking; the card changes when the mock post rotates; a server restart keeps the session and the link |
+| M2 | `buildingPlots` moved to shared, wells in `build-map.mjs`, wish / enter / leave / comment, greyscale vs colour, signs, house panel (level 1 only) | A wish turns the nearest empty house to colour; a comment reaches another player in the house; wishing the same topic twice opens one house |
+| M3 | `heat.ts`, heat events, five-minute tick, archive, level heights in both views | With an injected clock, 72 hours of silence steps a house down one level at a time, then archives it; enough visits climb a house to level 5 |
+| M4 | Article agent on `MockProvider.search()`, dedupe, `Summarizer` interface + `TruncateSummarizer` | A new topic's panel fills with at least five distinct articles within seconds of the wish; duplicates in the mock results do not appear twice |
 
-The X provider is not scheduled until its API plan is settled.
+## Later phase: real platforms
+
+Not scheduled. Each is one provider file plus a pass of the contract test, and
+none of them changes game code:
+
+- Threads provider, `/auth/:provider/*`, token encryption, OAuth on the join screen.
+- PTT provider (board scraping, HTML snapshot tests).
+- X provider, once its API plan is settled.
+- An LLM-backed `Summarizer`.
 
 ## Open questions
 
-These do not block M1.
+None blocks M1 to M4.
 
-- Is a 12-tile skyscraper too much on a portrait phone? Measure in M4 with
+- Is a 12-tile skyscraper too much on a portrait phone? Measure in M3 with
   `scripts/bots.mjs` and 30 players.
-- Apply for Threads keyword search, or use PTT alone for topic search? Needed by M5.
-- Which LLM for summaries, and what monthly budget? Needed by M5.
-- Production host for OAuth: the existing EC2 + Caddy setup? The redirect URI
-  needs HTTPS on that domain. Needed by M2.
+- For the later phase: apply for Threads keyword search, or use PTT alone for
+  topic search? Which LLM for summaries, and what monthly budget? Is the
+  production host for OAuth the existing EC2 + Caddy setup, given the redirect
+  URI needs HTTPS on that domain?

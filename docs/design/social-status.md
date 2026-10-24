@@ -4,6 +4,9 @@ A player's latest post on a linked platform floats above their head as a small
 card. Only players within earshot see it, using the same hysteresis as chat
 (enter 3 tiles, exit 4).
 
+This phase builds the interface and a `MockProvider` only. Real platforms come
+later and plug in behind the same interface.
+
 Adding or swapping a platform is one file in `packages/server/src/social/providers/`,
 one entry in `SOCIAL_PROVIDERS`, and a pass of the provider contract test. The
 client has no idea which platforms exist; it only ever receives a sanitized
@@ -17,14 +20,13 @@ packages/server/src/social/
   provider.ts                          # SocialProvider interface, errors, Capability
   registry.ts                          # register() + buildProviders()
   postService.ts                       # refresh schedule, cache, backoff
-  providers/fake.ts                    # first, for development and tests
-  providers/threads.ts
-  providers/ptt.ts
-  providers/x.ts                       # stub until the API plan is settled
+  providers/mock.ts                    # this phase: dev, tests and friends' play
 packages/server/src/auth/
   session.ts                           # session token issue / verify
-  oauth.ts                             # /auth/:provider/start and /callback
 ```
+
+Later phase, not built now: `providers/threads.ts`, `providers/ptt.ts`,
+`providers/x.ts`, `auth/oauth.ts`.
 
 ## The provider interface
 
@@ -38,7 +40,7 @@ export type Capability = 'latestPost' | 'topicSearch';
 
 /** Normalized post. Every provider maps its native shape into this. */
 export interface Post {
-  provider: string;        // 'threads' | 'ptt' | 'x' | 'fake'
+  provider: string;        // 'mock' now; 'threads' | 'ptt' | 'x' later
   postId: string;          // provider-native id, used for dedupe
   author: string;
   title?: string;          // PTT has titles; most others do not
@@ -82,7 +84,7 @@ export function register(name: string, factory: Factory): void {
   factories.set(name, factory);
 }
 
-/** SOCIAL_PROVIDERS=fake,threads,ptt picks which ones run. */
+/** SOCIAL_PROVIDERS=mock picks which ones run. */
 export function buildProviders(
   enabled: readonly string[],
   env: NodeJS.ProcessEnv,
@@ -97,21 +99,51 @@ export function buildProviders(
 }
 ```
 
-`config.ts` gains `SOCIAL_PROVIDERS`, `THREADS_APP_ID`, `THREADS_APP_SECRET`,
-`PUBLIC_BASE_URL` (for the OAuth redirect) and `TOKEN_KEY`, read the same way
-as the existing settings.
+`config.ts` gains `SOCIAL_PROVIDERS` (default `mock`), read the same way as the
+existing settings. The later phase adds `THREADS_APP_ID`, `THREADS_APP_SECRET`,
+`PUBLIC_BASE_URL` (for the OAuth redirect) and `TOKEN_KEY`.
+
+## The mock provider
+
+`MockProvider` is the only provider in this phase, so it has to be good enough
+to play with, not just to test with.
+
+- `name` is `'mock'`, `capabilities` holds both `latestPost` and `topicSearch`,
+  `usesOAuth` is false.
+- **Linking**: the join screen offers "連結模擬帳號". The binding's `accountRef`
+  is a handle the player types, defaulting to their nickname. No network, no
+  redirect.
+- **Latest post**: picked deterministically from a built-in corpus of about 50
+  short, original Traditional Chinese posts, seeded by `accountRef` and a time
+  bucket of `MOCK_ROTATE_MS` (default 10 minutes). Two players see different
+  posts, and a player's post changes on its own, so refreshing can be watched.
+  `createdAt` is the start of the bucket; `url` points at
+  `https://example.invalid/mock/<postId>`.
+- **Search**: returns 15 posts for any query, deterministic from the query,
+  each mentioning it in the title and text, newest first. Three of them are
+  deliberate duplicates (same `postId`, or same URL with different tracking
+  query parameters, or a near-identical title) so the agent's dedupe has
+  something to do.
+- **Failure injection, for tests only**: the constructor takes an optional
+  `faults` hook that can make the next call throw `RateLimited`, throw
+  `AuthExpired`, hang until aborted, or return `null`. It is a constructor
+  argument, not an environment variable, so it cannot be switched on in a
+  running game.
+- **Latency**: an optional `delayMs` (default 0, 300 in development) so loading
+  states get exercised.
+- The corpus contains no real people, brands or news; it is invented filler.
 
 ## Platforms
 
 | Provider | Linking | Own latest post | Keyword search | Check before building |
 | --- | --- | --- | --- | --- |
-| Fake | A checkbox on the join screen | Fixed fake data | Fixed fake data | Nothing; built in M1 |
+| Mock | "連結模擬帳號" on the join screen | Rotating built-in corpus | Generated from the query | Nothing; built in M1 |
 | Threads | OAuth | Official API, own posts | May need permission review | Token lifetime and refresh; the redirect must be HTTPS |
 | PTT | PTT id plus 1 to 3 boards | Scrape the web board, filter by author | Scrape the web board search | Over-18 cookie, HTML changes, request rate |
 | X | OAuth | Official API | Official API | Current paid tier and quota |
 
-PTT has no "this user's latest post anywhere" query, which is why linking asks
-for boards.
+Only Mock is built in this phase. PTT has no "this user's latest post anywhere"
+query, which is why linking it will ask for boards.
 
 ## Identity and OAuth
 
@@ -119,14 +151,16 @@ for boards.
   server as a hash. The client keeps it in `localStorage` and sends it with
   `join` on reconnect. No token means a new player, who plays exactly as today
   without a status card.
-- The join screen (`ui/joinScreen.ts`) gets a "link account" section. OAuth is
+- The join screen (`ui/joinScreen.ts`) gets a "link account" section. In this
+  phase it offers only the mock account.
+- *Later phase:* OAuth is
   a full-page redirect: `/auth/threads/start?session=…` → Threads →
   `/auth/threads/callback` → store the token → back to the game.
-- `server.ts` routes `/auth/*` beside `/healthz`. `docker/nginx.conf.template`
+- *Later phase:* `server.ts` routes `/auth/*` beside `/healthz`. `docker/nginx.conf.template`
   and the Caddy config in [DEPLOY-EC2.md](../../DEPLOY-EC2.md) forward
   `/auth/` as well. In the split deployment the redirect URI points at the game
   server's domain.
-- Tokens are encrypted with AES-GCM from `node:crypto`, keyed by `TOKEN_KEY`.
+- *Later phase:* tokens are encrypted with AES-GCM from `node:crypto`, keyed by `TOKEN_KEY`.
 
 ## Refreshing posts
 

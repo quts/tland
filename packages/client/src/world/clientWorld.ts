@@ -291,29 +291,41 @@ export class ClientWorld {
   }
 
   private followPath(seconds: number): boolean {
-    const target = this.path[this.pathIndex];
-    if (target === undefined) {
-      this.clearPath();
-      return false;
-    }
+    let budget = WALK_SPEED_PX * seconds;
+    let moved = false;
+    const epsilon = 1e-6;
 
-    const center = tileCenter(target.x, target.y);
-    const dx = center.x - this.self.x;
-    const dy = center.y - this.self.y;
-    const remaining = Math.hypot(dx, dy);
+    while (budget > epsilon && this.pathIndex < this.path.length) {
+      const target = this.path[this.pathIndex] as Point;
+      const center = tileCenter(target.x, target.y);
+      const dx = center.x - this.self.x;
+      const dy = center.y - this.self.y;
+      const remaining = Math.hypot(dx, dy);
+      if (remaining <= epsilon) {
+        this.self.x = center.x;
+        this.self.y = center.y;
+        this.pathIndex += 1;
+        continue;
+      }
 
-    if (remaining < 1.5) {
+      // Never step past a waypoint. Spend leftover distance on the next leg
+      // instead of reversing direction or pausing for a frame at each center.
+      const distance = Math.min(budget, remaining);
+      if (!this.step(dx / remaining, dy / remaining, distance / WALK_SPEED_PX)) {
+        this.clearPath();
+        return moved;
+      }
+      moved = true;
+      budget -= distance;
+
+      // Collision sliding may cover less than the requested distance.
+      if (Math.hypot(center.x - this.self.x, center.y - this.self.y) > epsilon) break;
       this.self.x = center.x;
       this.self.y = center.y;
       this.pathIndex += 1;
-      if (this.pathIndex >= this.path.length) this.clearPath();
-      return true;
     }
 
-    const moved = this.step(dx / remaining, dy / remaining, seconds);
-    // Something appeared in the way, or the route is stale: stop rather than
-    // grinding against a wall forever.
-    if (!moved) this.clearPath();
+    if (this.path.length > 0 && this.pathIndex >= this.path.length) this.clearPath();
     return moved;
   }
 

@@ -36,9 +36,9 @@ of them go in `welcome`.
 
 `ServerErrorCode` gains `wish_limit`, `town_full` and `not_in_house`.
 
-## HTTP
+## HTTP (later phase)
 
-`/auth/:provider/start` and `/auth/:provider/callback` join `/healthz` on the
+Not built in M1 to M4. `/auth/:provider/start` and `/auth/:provider/callback` join `/healthz` on the
 game server's HTTP handler. nginx and Caddy forward `/auth/`. Both return
 redirects only; neither renders a page.
 
@@ -85,8 +85,9 @@ export interface Store {
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `DATA_DIR` | `./data` | Where `JsonFileStore` writes |
-| `SOCIAL_PROVIDERS` | `fake` | Comma-separated providers to enable |
-| `PUBLIC_BASE_URL` | unset | Public origin of the game server, for OAuth redirects |
-| `THREADS_APP_ID` / `THREADS_APP_SECRET` | unset | Threads OAuth app |
-| `TOKEN_KEY` | unset | 32-byte key, base64, for encrypting stored tokens. Required once any OAuth provider is enabled |
+| `SOCIAL_PROVIDERS` | `mock` | Comma-separated providers to enable |
+| `MOCK_ROTATE_MS` | `600000` | How often a mock account's latest post changes |
 | `SUMMARIZER` | `truncate` | Which summarizer the article agent uses |
+
+The later phase adds `PUBLIC_BASE_URL`, `THREADS_APP_ID`, `THREADS_APP_SECRET`
+and `TOKEN_KEY` (32 bytes, base64, required once any OAuth provider is enabled).

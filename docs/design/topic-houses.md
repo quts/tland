@@ -138,6 +138,7 @@ export function stepHeat(h: Heat, now: number): Heat {
 1. Every active topic runs every three hours, and once when its wish succeeds.
    At most two topics run at a time.
 2. Call `search()` on each provider the topic picked that has `topicSearch`.
+   In this phase that is `MockProvider`.
 3. Drop duplicates: the same `(provider, postId)`, the same normalized URL, or
    titles at least 0.9 similar.
 4. Hand the newest 10 to the `Summarizer` for a two or three sentence summary in
@@ -147,4 +148,5 @@ export function stepHeat(h: Heat, now: number): Heat {
 
 `Summarizer` is an interface too: `summarize(post, signal): Promise<string>`.
 Development uses `TruncateSummarizer`, the first 100 characters, so no API key
-is needed. Which LLM backs production is an environment setting.
+is needed. An LLM-backed summarizer is part of the later phase; which one is an
+environment setting.

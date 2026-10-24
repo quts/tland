@@ -28,7 +28,7 @@ const HEAD_SQUASH = 0.94;
  * Avatars are modelled about a tile tall and drawn larger: chunky enough to
  * read at phone zoom, the way the 2D sprites stand taller than their tile.
  */
-export const AVATAR_SCALE = 1.4;
+export const AVATAR_SCALE = 1.65;
 /** Roughly where the top of a hat ends, drawn size, for name tags and bubbles. */
 export const AVATAR_TOP = 1.08 * AVATAR_SCALE;
 
@@ -78,7 +78,7 @@ function hatParts(hat: Hat, hairColor: number): THREE.BufferGeometry[] {
       return [
         ...hair(hairColor, true).slice(1),
         painted(
-          new THREE.SphereGeometry(HEAD_RADIUS * 1.09, 18, 8, 0, Math.PI * 2, 0, Math.PI * 0.46)
+          new THREE.SphereGeometry(HEAD_RADIUS * 1.09, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.46)
             .translate(0, HEAD_Y + 0.01, 0),
           HAT_COLOR.cap,
           { from: 0.85, to: 1.04, bottom: HEAD_Y, top: top + 0.03 },
@@ -105,7 +105,7 @@ function hatParts(hat: Hat, hairColor: number): THREE.BufferGeometry[] {
       return [
         ...hair(hairColor, true).slice(1),
         painted(
-          new THREE.SphereGeometry(HEAD_RADIUS * 1.1, 18, 9, 0, Math.PI * 2, 0, Math.PI * 0.5)
+          new THREE.SphereGeometry(HEAD_RADIUS * 1.1, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.5)
             .scale(1, 1.12, 1)
             .translate(0, HEAD_Y + 0.02, 0),
           HAT_COLOR.beanie,
@@ -145,7 +145,7 @@ function accessoryParts(accessory: Accessory, shirt: number): THREE.BufferGeomet
       return [];
     case 'scarf':
       return [
-        painted(new THREE.TorusGeometry(0.15, 0.055, 8, 18).rotateX(Math.PI / 2).translate(0, 0.47, 0.01), PALETTE.roofWarm, {
+        painted(new THREE.TorusGeometry(0.15, 0.055, 10, 24).rotateX(Math.PI / 2).translate(0, 0.47, 0.01), PALETTE.roofWarm, {
           from: 0.85, to: 1, bottom: 0.42, top: 0.52,
         }),
         painted(new THREE.BoxGeometry(0.08, 0.16, 0.05).rotateZ(0.15).translate(0.08, 0.38, 0.15), PALETTE.roofWarm, {
@@ -155,7 +155,7 @@ function accessoryParts(accessory: Accessory, shirt: number): THREE.BufferGeomet
     case 'glasses': {
       // Centred on the eyes painted on the face patch.
       const lens = (x: number): THREE.BufferGeometry =>
-        painted(new THREE.TorusGeometry(0.05, 0.011, 6, 16).translate(x, HEAD_Y + 0.02, HEAD_RADIUS + 0.004), PALETTE.ink);
+        painted(new THREE.TorusGeometry(0.05, 0.011, 8, 20).translate(x, HEAD_Y + 0.02, HEAD_RADIUS + 0.004), PALETTE.ink);
       return [
         lens(-0.058),
         lens(0.058),
@@ -190,14 +190,14 @@ export function buildAvatarGeometry(parts: AvatarParts): THREE.BufferGeometry {
   const pieces = [
     // Feet, a little apart.
     painted(new THREE.SphereGeometry(0.075, 16, 10).scale(1, 0.6, 1.3).translate(-0.085, 0.04, 0.02), PALETTE.inkSoft),
-    painted(new THREE.SphereGeometry(0.075, 10, 6).scale(1, 0.6, 1.3).translate(0.085, 0.04, 0.02), PALETTE.inkSoft),
+    painted(new THREE.SphereGeometry(0.075, 16, 10).scale(1, 0.6, 1.3).translate(0.085, 0.04, 0.02), PALETTE.inkSoft),
     // Body.
     painted(new THREE.CapsuleGeometry(0.17, 0.14, 5, 16).translate(0, 0.3, 0), shirt, bodyShade),
     // Arms and hands.
     painted(new THREE.CapsuleGeometry(0.052, 0.12, 5, 12).rotateZ(0.28).translate(-0.205, 0.31, 0), shirt, bodyShade),
-    painted(new THREE.CapsuleGeometry(0.052, 0.12, 3, 8).rotateZ(-0.28).translate(0.205, 0.31, 0), shirt, bodyShade),
+    painted(new THREE.CapsuleGeometry(0.052, 0.12, 5, 12).rotateZ(-0.28).translate(0.205, 0.31, 0), shirt, bodyShade),
     painted(new THREE.SphereGeometry(0.055, 14, 10).translate(-0.235, 0.2, 0.01), skin),
-    painted(new THREE.SphereGeometry(0.055, 8, 6).translate(0.235, 0.2, 0.01), skin),
+    painted(new THREE.SphereGeometry(0.055, 14, 10).translate(0.235, 0.2, 0.01), skin),
     // Head.
     painted(
       new THREE.SphereGeometry(HEAD_RADIUS, 24, 18).scale(1, HEAD_SQUASH, 1).translate(0, HEAD_Y, 0),

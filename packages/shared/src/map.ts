@@ -9,8 +9,8 @@ import {
 } from './terrain.js';
 
 /**
- * A named district, as the single point it radiates from. Coordinates are in
- * tiles. The ground each one owns is worked out by `assignZones`.
+ * A named district and its display anchor, in tile coordinates. Merged
+ * districts retain several internal coverage seeds behind this public anchor.
  */
 export interface Zone {
   readonly name: string;
@@ -174,25 +174,33 @@ function openStrandedRegions(grid: Grid, spawnX: number, spawnY: number): void {
   }
 }
 
+interface ZoneSeed {
+  readonly x: number;
+  readonly y: number;
+  readonly zoneIndex: number;
+  readonly priority: number;
+}
+
 /**
  * Give every walkable tile the district it is nearest to *on foot*.
  *
  * A multi-source flood fill from the seeds, spreading only over ground you
  * could actually walk, so a river or a ridge becomes a border without anyone
- * having to draw one. Three properties come for free, each of which the
- * earlier rectangles got wrong: no tile can belong to two districts, no
+ * having to draw one. Original seed priority retains the old boundaries
+ * when several sites share a merged name. Three properties come for free,
+ * each of which the earlier rectangles got wrong: no tile can belong to two districts, no
  * walkable tile is left nameless, and a district can never be hidden
  * underneath another.
  */
-function assignZones(grid: Grid, zones: readonly Zone[]): Int16Array {
+function assignZones(grid: Grid, seeds: readonly ZoneSeed[]): Int16Array {
   const owner = new Int16Array(grid.width * grid.height).fill(-1);
   const queue: number[] = [];
 
-  zones.forEach((zone, index) => {
-    if (!isOpen(grid, zone.x, zone.y)) return;
-    const start = indexOf(grid, zone.x, zone.y);
+  seeds.forEach((seed) => {
+    if (!isOpen(grid, seed.x, seed.y)) return;
+    const start = indexOf(grid, seed.x, seed.y);
     if (owner[start] !== -1) return; // two seeds on one tile; first wins
-    owner[start] = index;
+    owner[start] = seed.zoneIndex;
     queue.push(start);
   });
 
@@ -237,7 +245,15 @@ export function getTownMap(): TownMap {
     x: zone.x * cell,
     y: zone.y * cell,
   }));
-  const zoneOwner = assignZones(grid, zones);
+  const seeds: ZoneSeed[] = townData.zones.flatMap((zone, zoneIndex) =>
+    zone.seeds.map(seed => ({
+      x: seed.x * cell,
+      y: seed.y * cell,
+      zoneIndex,
+      priority: seed.priority,
+    })),
+  ).sort((a, b) => a.priority - b.priority);
+  const zoneOwner = assignZones(grid, seeds);
 
   // Streets and plazas, gathered once. Grass is excluded deliberately: a
   // player who materialises in the middle of a meadow has nothing around

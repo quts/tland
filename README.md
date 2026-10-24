@@ -369,3 +369,5 @@ Copy `.env.example` to `.env` to change ports or limits. No secrets are needed.
 - [DEPLOY-EC2.md](DEPLOY-EC2.md) — putting the game server on EC2, with TLS.
 - [TESTING.md](TESTING.md) — manual iOS test checklist.
 - [ASSET_LICENSES.md](ASSET_LICENSES.md) — every font and asset, and its license.
+- [docs/design/](docs/design/README.md) — planned: social status above heads,
+  wishing wells, and topic houses that grow with interest.

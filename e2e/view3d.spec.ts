@@ -23,7 +23,7 @@ test.describe('3D view', () => {
 
   test('joins, stays within budget, and walks to a tapped tile', async ({ page }, testInfo) => {
     const errors = collectErrors(page);
-    await joinTown(page, '/?view=3d&debug=1', '立體小美');
+    await joinTown(page, '/?debug=1', '立體小美');
 
     expect(await page.evaluate(() => window.__town?.view())).toBe('3d');
     await expect(page.locator('#game canvas')).toBeVisible();
@@ -111,10 +111,20 @@ test.describe('3D view', () => {
     expect(errors).toEqual([]);
   });
 
-  test('without the flag, the page is the 2D game', async ({ page }) => {
+  test('opens in 3D by default, and remembers choosing 2D', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#join')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__town?.view())).toBe('3d');
+
+    await page.goto('/?view=2d', { waitUntil: 'domcontentloaded' });
     await expect.poll(() => page.evaluate(() => window.__town?.view())).toBe('2d');
+
+    // Back to the plain address: still 2D, because that was the last choice.
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect.poll(() => page.evaluate(() => window.__town?.view())).toBe('2d');
+
+    await page.goto('/?view=3d', { waitUntil: 'domcontentloaded' });
+    await expect.poll(() => page.evaluate(() => window.__town?.view())).toBe('3d');
   });
 });
 

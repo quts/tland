@@ -46,7 +46,8 @@ async function joinTown(page: Page, nickname: string): Promise<void> {
   // `domcontentloaded`, not `load`: the page is interactive long before the
   // two-megabyte font and the Phaser bundle have finished arriving, and
   // waiting for them makes the suite time out under device emulation.
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  // The 2D view; 3D is the default and has its own spec.
+  await page.goto('/?view=2d', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('#join')).toBeVisible();
   const button = page.locator('#join-button');

@@ -10,7 +10,7 @@ import { installDebugBridge } from './debugBridge.js';
 import { ClientWorld } from './world/clientWorld.js';
 import { Renderer2D } from './render/renderer2d.js';
 import type { Renderer, RendererContext } from './render/renderer.js';
-import { debugEnabled, selectView, withView } from './view.js';
+import { browserMemory, debugEnabled, selectView, withView } from './view.js';
 import { loadUiFont, suppressBrowserGestures, trackVisualViewport } from './viewport.js';
 
 /**
@@ -28,6 +28,21 @@ function required<T extends HTMLElement>(id: string): T {
 }
 
 /**
+ * Whether this browser can create a WebGL 2 context at all — three.js needs
+ * one. Checked before fetching the 3D chunk, so a device that cannot draw it
+ * goes straight to 2D without downloading it first.
+ */
+function webgl2Available(): boolean {
+  try {
+    const context = document.createElement('canvas').getContext('webgl2');
+    context?.getExtension('WEBGL_lose_context')?.loseContext();
+    return context !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The 3D view, if this device can show it.
  *
  * three.js and everything built on it arrive as a separate chunk, fetched
@@ -36,6 +51,7 @@ function required<T extends HTMLElement>(id: string): T {
  * caller can carry on in 2D.
  */
 async function createRenderer3D(context: RendererContext): Promise<Renderer | null> {
+  if (!webgl2Available()) return null;
   try {
     const { Renderer3D } = await import('./three/renderer3d.js');
     return new Renderer3D(context);
@@ -113,7 +129,7 @@ async function main(): Promise<void> {
   };
 
   let renderer: Renderer | null = null;
-  if (selectView(location.search) === '3d') {
+  if (selectView(location.search, browserMemory) === '3d') {
     renderer = await createRenderer3D(context);
     if (renderer === null) {
       hud.showNotice('這台裝置沒辦法顯示 3D 畫面，先用 2D 畫面帶你進小鎮。');

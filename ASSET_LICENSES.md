@@ -9,6 +9,12 @@ listed below. There are no downloaded sprites, icons, logos, sounds, or music.
 relevant, `generateTexture()`. No raster or vector art files are bundled, and
 no third-party art is used, traced, or adapted.
 
+The optional 3D view (`?view=3d`) follows the same rule: every mesh is built
+from three.js primitive geometry (boxes, cylinders, spheres, icosahedra) or
+from the map grid, coloured with per-vertex colours from the project palette.
+The only textures are drawn at runtime on a canvas. No models, image
+textures, or environment maps are downloaded or bundled.
+
 ## The map outline
 
 `packages/shared/src/map/coastline.txt` is a land/sea mask, one character per
@@ -59,4 +65,6 @@ None. The project ships no audio files.
 
 Runtime and build dependencies are declared in `package.json` and installed
 from npm; their licenses are their own. The notable runtime dependencies are
-Phaser (MIT) on the client and `ws` (MIT) on the server.
+Phaser (MIT) and three.js (MIT, loaded only for the 3D view) on the client,
+and `ws` (MIT) on the server. `@types/three` (MIT) is a build-time dependency
+only.

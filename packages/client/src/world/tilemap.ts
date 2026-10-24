@@ -1,5 +1,6 @@
 import type Phaser from 'phaser';
 import { TILE_SIZE, getTownMap, hashCoords, type TownMap } from '@tland/shared';
+import { BUILDING_CELL, buildingPlots } from './buildingLayout.js';
 import {
   TILE,
   TILESET_KEY,
@@ -16,25 +17,6 @@ import {
 } from '../gfx/buildings.js';
 
 const VARIATION_SEED = 0x51a7;
-const BUILDING_SEED = 0x2f91;
-
-/**
- * How often each building variant appears, out of 100.
- *
- * Towers are landmarks, so they stay rare; a street of them would look like a
- * bug rather than a skyline.
- */
-const BUILDING_WEIGHTS = [30, 28, 16, 7, 19] as const;
-
-function pickBuildingVariant(roll: number): number {
-  let remaining = roll % 100;
-  for (let variant = 0; variant < BUILDING_WEIGHTS.length; variant += 1) {
-    remaining -= BUILDING_WEIGHTS[variant] as number;
-    if (remaining < 0) return variant;
-  }
-  return 0;
-}
-
 const EMPTY = -1;
 
 /** Pick a terrain tile, varying it per position so large areas are not flat. */
@@ -182,29 +164,20 @@ export function buildWorld(scene: Phaser.Scene, depths: {
 }
 
 /**
- * One sprite per authored building cell.
- *
- * Buildings are authored on the coarse grid, so a 4x4 block of building tiles
- * whose top-left corner falls on a cell boundary marks exactly one building.
- * Their depth follows their base, so a player behind one is drawn behind it.
+ * One sprite per authored building cell. Their depth follows their base, so a
+ * player behind one is drawn behind it.
  */
 function placeBuildings(scene: Phaser.Scene, map: TownMap, depthBase: number): void {
-  const cell = 4;
-  for (let cy = 0; cy < map.height; cy += cell) {
-    for (let cx = 0; cx < map.width; cx += cell) {
-      if (map.terrainAt(cx, cy) !== 'building') continue;
-
-      const variant = pickBuildingVariant(hashCoords(cx, cy, BUILDING_SEED));
-      const baseY = (cy + cell) * TILE_SIZE;
-      const sprite = scene.add.image(
-        cx * TILE_SIZE,
-        baseY - buildingHeight(variant),
-        buildingTextureKey(variant),
-      );
-      sprite.setOrigin(0, 0);
-      // Drawn at texture resolution, displayed at world resolution.
-      sprite.setScale(1 / GFX_SCALE);
-      sprite.setDepth(depthBase + baseY);
-    }
+  for (const plot of buildingPlots(map)) {
+    const baseY = (plot.y + BUILDING_CELL) * TILE_SIZE;
+    const sprite = scene.add.image(
+      plot.x * TILE_SIZE,
+      baseY - buildingHeight(plot.variant),
+      buildingTextureKey(plot.variant),
+    );
+    sprite.setOrigin(0, 0);
+    // Drawn at texture resolution, displayed at world resolution.
+    sprite.setScale(1 / GFX_SCALE);
+    sprite.setDepth(depthBase + baseY);
   }
 }

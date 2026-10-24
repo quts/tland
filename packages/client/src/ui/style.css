@@ -605,3 +605,80 @@ body {
 .minimap[hidden] {
   display: none;
 }
+
+/* ---------------------------------------------------------------- */
+/* 3D view: prompts and the ?debug=1 readout                         */
+/* ---------------------------------------------------------------- */
+
+.view-prompt {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 30;
+  transform: translate(-50%, -50%);
+  width: min(86vw, 360px);
+  padding: 18px 18px 16px;
+  border: var(--outline) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--cream);
+  box-shadow: 0 4px 0 var(--cream-edge);
+  text-align: center;
+}
+
+.view-prompt-text {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.view-prompt-text:last-child {
+  margin-bottom: 0;
+}
+
+.view-prompt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.view-prompt-secondary {
+  min-height: 44px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+
+.debug-hud {
+  position: absolute;
+  left: calc(var(--safe-left) + 10px);
+  top: calc(var(--safe-top) + 56px);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.debug-hud-text {
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 10px;
+  background: rgba(75, 64, 51, 0.78);
+  color: var(--cream);
+  font: 12px/1.35 ui-monospace, Menlo, monospace;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.debug-hud-button {
+  padding: 5px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}

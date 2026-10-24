@@ -203,7 +203,8 @@ function tint(base: number, x: number, y: number, amount: number): number {
 const HILL_TREE_CHANCE = 0.3;
 
 const BUILDING_HEIGHTS = [1.8, 2.15, 2.5, 4.2, 1.6] as const;
-const ROOFS = [PALETTE.roofWarm, PALETTE.roofCool, PALETTE.roofMint] as const;
+/** Richer painted roofs retain colour under the warm key and front bounce. */
+const ROOFS = [0xd98275, 0x6fa7c8, 0x5eaa8b] as const;
 const WALLS = [PALETTE.wall, PALETTE.wallAlt] as const;
 
 export interface BuiltProps {

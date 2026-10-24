@@ -324,8 +324,8 @@ export class Renderer3D implements Renderer {
     avatar.rotation.y = -0.4;
     stage.add(avatar);
     const camera = new THREE.PerspectiveCamera(22, PREVIEW_WIDTH / PREVIEW_HEIGHT, 0.1, 20);
-    camera.position.set(0, 0.95, 3.2);
-    camera.lookAt(0, 0.56, 0);
+    camera.position.set(0, 1.05, 3.7);
+    camera.lookAt(0, 0.63, 0);
 
     const previousClear = this.renderer.getClearAlpha();
     this.renderer.setClearAlpha(0);

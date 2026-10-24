@@ -78,6 +78,9 @@ function fenceGeometry(): THREE.BufferGeometry {
 /** A unit block standing on the ground; instances stretch it to a building. */
 function wallGeometry(): THREE.BufferGeometry {
   return merge([
+    painted(new THREE.BoxGeometry(1.035, 0.07, 1.035).translate(0, 0.035, 0), 0xffffff, {
+      from: 0.72, to: 0.82, bottom: 0, top: 0.07,
+    }),
     painted(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), 0xffffff, {
       from: 0.78, to: 1, bottom: 0, top: 0.6,
     }),
@@ -87,15 +90,24 @@ function wallGeometry(): THREE.BufferGeometry {
 /** A square pyramid, aligned to the walls, sitting on y = 0. */
 function roofGeometry(): THREE.BufferGeometry {
   const roof = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1).rotateY(Math.PI / 4).translate(0, 0.5, 0);
-  return merge([painted(roof, 0xffffff, { from: 0.86, to: 1.04, bottom: 0, top: 1 })]);
+  return merge([
+    painted(new THREE.BoxGeometry(1, 0.045, 1).translate(0, 0.005, 0), 0xffffff,
+      { from: 0.72, to: 0.86, bottom: -0.02, top: 0.03 }),
+    painted(roof, 0xffffff, { from: 0.86, to: 1.04, bottom: 0, top: 1 }),
+  ]);
 }
 
 /** A door and two windows on the south face, which is the one the camera sees. */
 function frontGeometry(): THREE.BufferGeometry {
   return merge([
-    painted(new THREE.BoxGeometry(0.16, 0.26, 0.04).translate(0, 0.13, 0.5), PALETTE.door),
-    painted(new THREE.BoxGeometry(0.16, 0.14, 0.04).translate(-0.3, 0.5, 0.5), PALETTE.roofCool),
-    painted(new THREE.BoxGeometry(0.16, 0.14, 0.04).translate(0.3, 0.5, 0.5), PALETTE.roofCool),
+    painted(new THREE.BoxGeometry(0.19, 0.29, 0.045).translate(0, 0.145, 0.505), PALETTE.benchShade),
+    painted(new THREE.BoxGeometry(0.15, 0.25, 0.025).translate(0, 0.125, 0.535), PALETTE.door),
+    painted(new THREE.BoxGeometry(0.23, 0.025, 0.1).translate(0, 0.013, 0.54), PALETTE.wallAlt),
+    ...[-0.3, 0.3].flatMap((x) => [
+      painted(new THREE.BoxGeometry(0.2, 0.18, 0.045).translate(x, 0.5, 0.505), PALETTE.wallAlt),
+      painted(new THREE.BoxGeometry(0.15, 0.12, 0.025).translate(x, 0.5, 0.535), PALETTE.roofCool),
+      painted(new THREE.BoxGeometry(0.22, 0.025, 0.07).translate(x, 0.41, 0.53), PALETTE.wall),
+    ]),
   ]);
 }
 
@@ -271,6 +283,9 @@ export function buildProps(
     const h = BUILDING_HEIGHTS[plot.variant] ?? 1.6;
     const r = hashCoords(plot.x, plot.y, 0x2f92);
     walls.push({ x: cx, y: 0, z: cz, rotation: 0, sx: footprint, sy: h, sz: footprint, color: WALLS[r % 2] as number });
+    // A broad contact shadow anchors the walls, using the existing instanced blob.
+    shadows.push({ x: cx + 0.35, y: 0, z: cz + 0.4, rotation: 0,
+      sx: (footprint + 1.25) / 0.62, sy: 1, sz: (footprint + 1.1) / 0.62, color: 0xffffff });
     // Towers get a low cap; houses get a proper roof.
     roofs.push({ x: cx, y: h, z: cz, rotation: 0, sx: footprint * 1.12, sy: plot.variant === 3 ? 0.5 : 1.15, sz: footprint * 1.12, color: ROOFS[(r >>> 3) % 3] as number });
     fronts.push({ x: cx, y: 0, z: cz, rotation: 0, sx: footprint, sy: Math.min(h, 2), sz: footprint, color: 0xffffff });

@@ -56,7 +56,8 @@ All edits, dependency commands, builds, tests and browser processes ran in Apple
 
 - Lint, Typecheck and Build passed; the existing bundle-size warning remains.
 - 189 unit/integration tests passed.
-- The first full WebKit run passed 63/64 cases. One iPad tap-movement smoke case timed out with the software-rendering low-FPS prompt visible; three consecutive isolated reruns passed. The failure was preserved and no wait, movement or server rule was relaxed. All fixed 24/30fps simulation-step jitter cases passed with zero reversals and zero server corrections.\n- Other coverage includes real join/movement/joystick paths, local protocol clients, speech bubbles, 30-player display and both 2D/3D modes.
+- The first full WebKit run passed 63/64 cases. One iPad tap-movement smoke case timed out with the software-rendering low-FPS prompt visible; three consecutive isolated reruns passed. The failure was preserved and no wait, movement or server rule was relaxed. All fixed 24/30fps simulation-step jitter cases passed with zero reversals and zero server corrections.
+- Other coverage includes real join/movement/joystick paths, local protocol clients, speech bubbles, 30-player display and both 2D/3D modes.
 - Six additional fixed-scene viewport captures passed, verifying full/reduced phone heights and desktop, with rendering budgets and projected name/hat alignment.
 
 Street rendering remains 45 calls on the reduced-height phone and 65 calls on desktop. Triangles change from 87,322 to 87,509 on the phone and from 133,488 to 133,675 on desktop because of the wider shadow feather. Fragment shading costs more than diffuse-only shading; unchanged draw calls do not establish unchanged GPU time.

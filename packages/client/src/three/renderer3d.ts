@@ -14,6 +14,7 @@ import {
   CAMERA_DISTANCE,
   CAMERA_FAR,
   CAMERA_NEAR,
+  CAMERA_TAG_HEADROOM,
   cameraBasis,
   cameraOffset,
   cssToNdc,
@@ -466,7 +467,7 @@ export class Renderer3D implements Renderer {
   private placeTag(id: string): void {
     const at = this.characters.positionOf(id);
     if (at === undefined) return;
-    this.overlay.place(id, at.x, AVATAR_TOP, at.z, this.view, this.width, this.height);
+    this.overlay.place(id, at.x, AVATAR_TOP + CAMERA_TAG_HEADROOM, at.z, this.view, this.width, this.height);
   }
 
   private animateMarker(now: number): void {

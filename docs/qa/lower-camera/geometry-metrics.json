@@ -1,0 +1,122 @@
+[
+  {
+    "width": 390,
+    "height": 664,
+    "pitch": 45,
+    "widthTiles": 12.921686746987952,
+    "heightImagePlaneTiles": 22,
+    "groundDepthTiles": 31.112698372208094,
+    "geometrySilhouetteHeightCssPx": 58.90615690418344,
+    "wallHeightFactor": 21.341768304903074
+  },
+  {
+    "width": 390,
+    "height": 664,
+    "pitch": 38,
+    "widthTiles": 9.5,
+    "heightImagePlaneTiles": 16.174358974358974,
+    "groundDepthTiles": 26.271513847449103,
+    "geometrySilhouetteHeightCssPx": 84.80763252527913,
+    "wallHeightFactor": 32.34991514806543
+  },
+  {
+    "width": 390,
+    "height": 664,
+    "pitch": 32,
+    "widthTiles": 9.5,
+    "heightImagePlaneTiles": 16.174358974358974,
+    "groundDepthTiles": 30.522307955275657,
+    "geometrySilhouetteHeightCssPx": 87.87912583924684,
+    "wallHeightFactor": 34.81460605273749
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "pitch": 45,
+    "widthTiles": 10.165876777251185,
+    "heightImagePlaneTiles": 22,
+    "groundDepthTiles": 31.112698372208094,
+    "geometrySilhouetteHeightCssPx": 74.87469341435364,
+    "wallHeightFactor": 27.127187423702097
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "pitch": 38,
+    "widthTiles": 9.24170616113744,
+    "heightImagePlaneTiles": 20,
+    "groundDepthTiles": 32.48538490965488,
+    "geometrySilhouetteHeightCssPx": 87.17789712662668,
+    "wallHeightFactor": 33.25405380220367
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "pitch": 32,
+    "widthTiles": 9.24170616113744,
+    "heightImagePlaneTiles": 20,
+    "groundDepthTiles": 37.74159829599717,
+    "geometrySilhouetteHeightCssPx": 90.33523474090785,
+    "wallHeightFactor": 35.787629657801176
+  },
+  {
+    "width": 750,
+    "height": 342,
+    "pitch": 45,
+    "widthTiles": 28.846153846153847,
+    "heightImagePlaneTiles": 13.153846153846153,
+    "groundDepthTiles": 18.602347628138403,
+    "geometrySilhouetteHeightCssPx": 50.744460465652004,
+    "wallHeightFactor": 18.38477631085024
+  },
+  {
+    "width": 750,
+    "height": 342,
+    "pitch": 38,
+    "widthTiles": 25.961538461538463,
+    "heightImagePlaneTiles": 11.838461538461539,
+    "groundDepthTiles": 19.228848990753413,
+    "geometrySilhouetteHeightCssPx": 59.67944511038161,
+    "wallHeightFactor": 22.76475510419419
+  },
+  {
+    "width": 750,
+    "height": 342,
+    "pitch": 32,
+    "widthTiles": 25.961538461538463,
+    "heightImagePlaneTiles": 11.838461538461539,
+    "groundDepthTiles": 22.3401229913614,
+    "geometrySilhouetteHeightCssPx": 61.840866331321855,
+    "wallHeightFactor": 24.499167222296748
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "pitch": 45,
+    "widthTiles": 30,
+    "heightImagePlaneTiles": 18.75,
+    "groundDepthTiles": 26.516504294495533,
+    "geometrySilhouetteHeightCssPx": 93.68208085966523,
+    "wallHeightFactor": 33.941125496954285
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "pitch": 38,
+    "widthTiles": 27,
+    "heightImagePlaneTiles": 16.875,
+    "groundDepthTiles": 27.40954351752131,
+    "geometrySilhouetteHeightCssPx": 110.17743712685835,
+    "wallHeightFactor": 42.02724019235851
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "pitch": 32,
+    "widthTiles": 27,
+    "heightImagePlaneTiles": 16.875,
+    "groundDepthTiles": 31.84447356224761,
+    "geometrySilhouetteHeightCssPx": 114.16775322705573,
+    "wallHeightFactor": 45.22923179500939
+  }
+]

@@ -16,12 +16,14 @@
  */
 
 /**
- * How far the camera looks down from the horizontal: the classic 3/4 view.
- * Ground depth is drawn at sin(pitch) and heights at cos(pitch), so at 45°
- * a wall and the same length of street read at the same size — roofs, walls
- * and the ground all stay legible together.
+ * How far the camera looks down from horizontal. At 32 degrees the hat
+ * reveals more of the face and walls read taller, while streets retain
+ * enough depth to choose a route. Ground depth scales with sin(pitch),
+ * and vertical surfaces with cos(pitch); zoom is controlled separately.
  */
-export const CAMERA_PITCH_DEG = 45;
+export const CAMERA_PITCH_DEG = 32;
+/** Clear the projected rear brim, which rises above a purely vertical head anchor. */
+export const CAMERA_TAG_HEADROOM = 0.08;
 
 /**
  * Rotation about the vertical axis. Zero puts north at the top of the screen,
@@ -66,9 +68,11 @@ export interface OrthoFrame {
   halfHeight: number;
 }
 
-/** Portrait phones should prioritize useful character scale over distant map coverage. */
-export const PORTRAIT_TILES_HIGH = 22;
+/** Cap tall portrait coverage without shrinking characters when Safari bars appear. */
+export const PORTRAIT_TILES_HIGH = 20;
 const PORTRAIT_ASPECT_MAX = 0.8;
+const PORTRAIT_TILES_ACROSS = 9.5;
+const WIDE_FRAME_SCALE = 0.9;
 
 /** The orthographic frame that shows a fixed number of tiles across. */
 export function orthoFrame(tiles: number, aspect: number, out: OrthoFrame): OrthoFrame {
@@ -78,17 +82,19 @@ export function orthoFrame(tiles: number, aspect: number, out: OrthoFrame): Orth
 }
 
 /**
- * Choose a viewport frame: portrait screens keep a useful vertical zoom,
- * while landscape screens preserve the established width-based framing.
+ * Choose the orthographic image-plane span, independent of camera distance.
+ * Portrait uses width to hold character scale steady as Safari bars change
+ * available height, with a vertical cap for tall screens. Wide viewports
+ * show 10% fewer tiles across for a modest increase in character/house size.
  */
 export function viewportFrame(width: number, height: number, out: OrthoFrame): OrthoFrame {
   const aspect = width / Math.max(height, 1e-6);
   if (aspect < PORTRAIT_ASPECT_MAX) {
-    out.halfHeight = PORTRAIT_TILES_HIGH / 2;
+    out.halfHeight = Math.min(PORTRAIT_TILES_HIGH, height * PORTRAIT_TILES_ACROSS / Math.max(width, 1)) / 2;
     out.halfWidth = out.halfHeight * aspect;
     return out;
   }
-  return orthoFrame(tilesAcross(width), aspect, out);
+  return orthoFrame(tilesAcross(width) * WIDE_FRAME_SCALE, aspect, out);
 }
 
 /** Where the camera sits relative to the point it looks at. */

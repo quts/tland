@@ -46,10 +46,34 @@ describe('3D camera rig', () => {
     expect(portrait.halfWidth * 2).toBeLessThan(tilesAcross(390));
   });
 
-  it('preserves the established width-based frame on landscape screens', () => {
+  it('frames wide screens a little closer', () => {
     const landscape = viewportFrame(844, 390, { halfWidth: 0, halfHeight: 0 });
-    expect(landscape.halfWidth * 2).toBe(tilesAcross(844));
+    expect(landscape.halfWidth * 2).toBe(tilesAcross(844) * 0.9);
     expect(landscape.halfHeight / landscape.halfWidth).toBeCloseTo(390 / 844, 9);
+  });
+
+  it('holds portrait character scale when browser bars reduce available height', () => {
+    const scale = (height: number): number => height / (viewportFrame(390, height, { halfWidth: 0, halfHeight: 0 }).halfHeight * 2);
+    expect(scale(844) / scale(664)).toBeLessThan(1.03);
+    for (const height of [568, 664, 744, 844]) {
+      const frame = viewportFrame(390, height, { halfWidth: 0, halfHeight: 0 });
+      expect(frame.halfWidth * 2).toBeGreaterThan(9);
+      expect(frame.halfHeight * 2 / Math.sin(CAMERA_PITCH_DEG * Math.PI / 180)).toBeGreaterThan(22);
+    }
+  });
+
+  it('keeps ground and elevated terrain inside clipping planes at each viewport edge', () => {
+    for (const [width, height] of [[390, 568], [390, 844], [750, 342], [1440, 900]]) {
+      const view = viewOf(width!, height!);
+      for (const x of [-1, 1]) for (const y of [-1, 1]) for (const elevation of [0, 4]) {
+        const hit = { x: 0, y: 0, z: 0 };
+        expect(screenToGround(x, y, view, elevation, hit)).toBe(true);
+        const f = view.basis.forward;
+        const depth = (hit.x - view.position.x) * f.x + (hit.y - view.position.y) * f.y + (hit.z - view.position.z) * f.z;
+        expect(depth).toBeGreaterThan(CAMERA_NEAR);
+        expect(depth).toBeLessThan(CAMERA_FAR);
+      }
+    }
   });
 
   it('sits south of and above the player, looking north', () => {

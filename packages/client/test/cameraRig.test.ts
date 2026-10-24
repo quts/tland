@@ -10,7 +10,6 @@ import {
   cssToNdc,
   joystickToWorld,
   ndcToCss,
-  orthoFrame,
   PORTRAIT_TILES_HIGH,
   viewportFrame,
   screenToGround,

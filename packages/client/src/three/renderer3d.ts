@@ -21,7 +21,6 @@ import {
   ndcToCss,
   viewportFrame,
   screenToTerrain,
-  tilesAcross,
   worldToScreen,
   type CameraBasis,
   type Vec2,

@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { hashCoords, type TownMap } from '@tland/shared';
 import { PALETTE } from '../gfx/palette.js';
 import { BUILDING_CELL, buildingPlots } from '../world/buildingLayout.js';
+import { merge, painted } from './geometry.js';
 
 /**
  * Instances are grouped into square regions of this many tiles, one
@@ -19,41 +19,6 @@ const PROP_SEED = 0x3d7e;
 /* ------------------------------------------------------------------ */
 
 const tmpColor = new THREE.Color();
-
-/**
- * Give a primitive a flat vertex colour, darkened towards its base.
- *
- * That darkening is the whole ambient-occlusion budget for props: the bottom
- * of a trunk, a wall or a rock sits in its own contact shadow.
- */
-function painted(
-  geometry: THREE.BufferGeometry,
-  hex: number,
-  shade: { from: number; to: number; bottom: number; top: number } = { from: 1, to: 1, bottom: 0, top: 1 },
-): THREE.BufferGeometry {
-  const flat = geometry.index === null ? geometry : geometry.toNonIndexed();
-  flat.deleteAttribute('uv');
-  const position = flat.getAttribute('position');
-  const colors = new Float32Array(position.count * 3);
-  tmpColor.setHex(hex);
-  for (let i = 0; i < position.count; i += 1) {
-    const t = THREE.MathUtils.clamp((position.getY(i) - shade.bottom) / (shade.top - shade.bottom), 0, 1);
-    const s = shade.from + (shade.to - shade.from) * t;
-    colors[i * 3] = tmpColor.r * s;
-    colors[i * 3 + 1] = tmpColor.g * s;
-    colors[i * 3 + 2] = tmpColor.b * s;
-  }
-  flat.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  return flat;
-}
-
-function merge(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
-  const merged = mergeGeometries(parts, false);
-  if (merged === null) throw new Error('could not merge prop geometry');
-  for (const part of parts) part.dispose();
-  merged.computeBoundingSphere();
-  return merged;
-}
 
 function treeGeometry(): THREE.BufferGeometry {
   const trunk = new THREE.CylinderGeometry(0.08, 0.12, 0.55, 6).translate(0, 0.275, 0);

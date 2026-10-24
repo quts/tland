@@ -83,25 +83,33 @@ export function cornerHeights(map: TownMap): Float32Array {
 
 const scratch = new THREE.Color();
 
+/**
+ * A tile's colour: its terrain's base, nudged a few percent lighter or darker.
+ *
+ * The 2D tileset alternates two shades, which reads as texture there; in 3D,
+ * lit and with baked shading on top, the same alternation reads as a
+ * chessboard. A small brightness wobble keeps large areas alive without it.
+ */
 function terrainColor(map: TownMap, terrain: Terrain, x: number, y: number, out: THREE.Color): THREE.Color {
   const roll = hashCoords(x, y, VARIATION_SEED) % 100;
+  const wobble = 0.975 + (roll / 100) * 0.05;
   switch (terrain) {
     case 'grass':
-      return out.setHex(roll < 14 ? PALETTE.grassAlt : PALETTE.grass);
+      return out.setHex(PALETTE.grass).multiplyScalar(wobble);
     case 'sand':
-      return out.setHex(roll < 35 ? PALETTE.sandAlt : PALETTE.sand);
+      return out.setHex(PALETTE.sand).multiplyScalar(wobble);
     case 'water':
       // Only the banks show above the surface; let them read as wet sand.
       return out.setHex(PALETTE.sandAlt).multiplyScalar(0.92);
     case 'hill':
-      return out.setHex(roll < 8 ? PALETTE.hillRock : roll < 50 ? PALETTE.hillHigh : PALETTE.hill);
+      return out.setHex(roll < 6 ? PALETTE.hillRock : PALETTE.hill).multiplyScalar(wobble);
     case 'path':
-      return out.setHex(roll < 40 ? PALETTE.pathAlt : PALETTE.path);
+      return out.setHex(PALETTE.path).multiplyScalar(wobble);
     case 'bridge':
       return out.setHex(map.terrainAt(x - 1, y) === 'bridge' || map.terrainAt(x + 1, y) === 'bridge'
         ? PALETTE.bridge : PALETTE.bridgePlank);
     case 'park':
-      return out.setHex(roll < 35 ? PALETTE.lawnAlt : PALETTE.lawn);
+      return out.setHex(PALETTE.lawn).multiplyScalar(wobble);
     case 'building':
       return out.setHex(PALETTE.pathEdge);
   }

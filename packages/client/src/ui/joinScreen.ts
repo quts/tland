@@ -4,12 +4,11 @@ import {
   DEFAULT_AVATAR,
   HATS,
   SHIRT_COLORS,
-  TEXTURE_FRAME_HEIGHT,
-  TEXTURE_FRAME_WIDTH,
   type Accessory,
   type AvatarParts,
   type Hat,
 } from '../gfx/avatar.js';
+import type { AvatarImage } from '../render/renderer.js';
 
 const HAT_LABELS: Record<Hat, string> = {
   none: '不戴',
@@ -34,16 +33,17 @@ function required<T extends HTMLElement>(id: string): T {
 }
 
 export interface JoinScreenOptions {
-  /** Render the avatar; returns the source image for the given parts. */
-  renderAvatar(parts: AvatarParts): CanvasImageSource | null;
+  /** Render the avatar, front-facing, as the current view will show it. */
+  renderAvatar(parts: AvatarParts): AvatarImage | null;
   onSubmit(nickname: string, avatar: AvatarParts): void;
 }
 
 /**
  * The join screen: pick a name and build an avatar.
  *
- * The avatar preview is the game's own generated texture scaled up on a 2D
- * canvas, so what you build here is exactly what walks around afterwards.
+ * The avatar preview is drawn by whichever view is running — the 2D sprite
+ * sheet or a 3D render — so what you build here is exactly what walks around
+ * afterwards.
  */
 export class JoinScreen {
   private readonly root = required('join');
@@ -122,23 +122,22 @@ export class JoinScreen {
     if (ctx === null) return;
     ctx.clearRect(0, 0, this.preview.width, this.preview.height);
 
-    const source = this.options.renderAvatar(this.parts);
-    if (source === null) return;
+    const image = this.options.renderAvatar(this.parts);
+    if (image === null) return;
 
     const scale = Math.min(
-      this.preview.width / TEXTURE_FRAME_WIDTH,
-      this.preview.height / TEXTURE_FRAME_HEIGHT,
+      this.preview.width / image.width,
+      this.preview.height / image.height,
     );
-    const width = TEXTURE_FRAME_WIDTH * scale;
-    const height = TEXTURE_FRAME_HEIGHT * scale;
+    const width = image.width * scale;
+    const height = image.height * scale;
     ctx.imageSmoothingEnabled = true;
-    // Frame 0 is the front-facing pose.
     ctx.drawImage(
-      source,
+      image.source,
       0,
       0,
-      TEXTURE_FRAME_WIDTH,
-      TEXTURE_FRAME_HEIGHT,
+      image.width,
+      image.height,
       (this.preview.width - width) / 2,
       (this.preview.height - height) / 2,
       width,

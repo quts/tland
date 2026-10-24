@@ -1,22 +1,17 @@
-import Phaser from 'phaser';
-import { CHAT_MAX_LENGTH, sanitizeText, type Emote } from '@tland/shared';
-import { WorldScene } from './scenes/WorldScene.js';
+import { CHAT_MAX_LENGTH, getTownMap, sanitizeText, type Emote } from '@tland/shared';
 import { Connection } from './net/connection.js';
 import { Hud } from './ui/hud.js';
 import { JoinScreen } from './ui/joinScreen.js';
 import { ChatDock } from './ui/chat.js';
 import { Minimap } from './ui/minimap.js';
 import { Joystick } from './controls/joystick.js';
-import { ResolutionController } from './scale.js';
-import { avatarTextureKey, buildAvatarTexture, type AvatarParts } from './gfx/avatar.js';
+import type { AvatarParts } from './gfx/avatar.js';
 import { installDebugBridge } from './debugBridge.js';
+import { ClientWorld } from './world/clientWorld.js';
+import { Renderer2D } from './render/renderer2d.js';
+import type { Renderer, RendererContext } from './render/renderer.js';
 import { debugEnabled, selectView, withView } from './view.js';
-import {
-  loadUiFont,
-  resolutionCap,
-  suppressBrowserGestures,
-  trackVisualViewport,
-} from './viewport.js';
+import { loadUiFont, suppressBrowserGestures, trackVisualViewport } from './viewport.js';
 
 /**
  * How often the client reports its position.
@@ -33,32 +28,21 @@ function required<T extends HTMLElement>(id: string): T {
 }
 
 /**
- * Start the 3D view, if this device can show it.
+ * The 3D view, if this device can show it.
  *
  * three.js and everything built on it arrive as a separate chunk, fetched
- * only here, so the 2D page never downloads them. Returns false — and leaves
- * the page untouched — when the chunk cannot load or WebGL is missing, so
- * the caller can carry on into 2D.
+ * only here, so the 2D page never downloads them. Returns null — having left
+ * the page untouched — when the chunk cannot load or WebGL is missing, so the
+ * caller can carry on in 2D.
  */
-async function startThreeView(parent: HTMLElement, hud: Hud, joystick: Joystick): Promise<boolean> {
+async function createRenderer3D(context: RendererContext): Promise<Renderer | null> {
   try {
-    const { startSpike } = await import('./three/spike.js');
-    startSpike({
-      parent,
-      overlay: required('app'),
-      joystick,
-      hud,
-      debug: debugEnabled(location.search),
-      switchTo2D: () => location.assign(withView(location.href, '2d')),
-    });
+    const { Renderer3D } = await import('./three/renderer3d.js');
+    return new Renderer3D(context);
   } catch (error) {
     console.warn('3D view unavailable, using 2D', error);
-    return false;
+    return null;
   }
-  // M0 is a local-only spike: no server, so no connection status to show.
-  required('status-pill').hidden = true;
-  hud.showJoystick();
-  return true;
 }
 
 async function main(): Promise<void> {
@@ -71,19 +55,11 @@ async function main(): Promise<void> {
 
   const hud = new Hud();
   const joystick = new Joystick(required('joystick'));
-
-  if (selectView(location.search) === '3d') {
-    if (await startThreeView(parent, hud, joystick)) return;
-    hud.showNotice('這台裝置沒辦法顯示 3D 畫面，先用 2D 畫面帶你進小鎮。');
-    window.setTimeout(() => hud.hideNotice(), 6000);
-  }
-
   const minimap = new Minimap(
     required<HTMLCanvasElement>('minimap'),
     required<HTMLButtonElement>('minimap-toggle'),
   );
 
-  let selfId: string | null = null;
   let joined = false;
   /** Kept so a dropped connection can walk straight back in. */
   let identity: { nickname: string; avatar: AvatarParts } | null = null;
@@ -107,10 +83,8 @@ async function main(): Promise<void> {
     },
   );
 
-  const world = new WorldScene({
-    joystick,
-    getResolution: () => resolutionCap(),
-    isTyping: () => chat.isTyping,
+  const world = new ClientWorld({
+    map: getTownMap(),
     onZoneChange: (zone) => hud.showZone(zone),
     onMove: (x, y, dir, moving) => {
       if (!joined) return;
@@ -128,38 +102,28 @@ async function main(): Promise<void> {
     onFrame: (self, others) => minimap.draw(self, others),
   });
 
-  const game = new Phaser.Game({
-    type: Phaser.AUTO,
+  const context: RendererContext = {
     parent,
-    backgroundColor: '#8fcfe3',
-    scale: {
-      // ResolutionController drives the size; NONE keeps Phaser from fighting it.
-      mode: Phaser.Scale.NONE,
-      autoCenter: Phaser.Scale.NO_CENTER,
-      width: Math.max(1, parent.clientWidth),
-      height: Math.max(1, parent.clientHeight),
-    },
-    render: {
-      pixelArt: false,
-      antialias: true,
-      roundPixels: true,
-      powerPreference: 'high-performance',
-    },
-    // No audio is loaded; any future audio starts muted after a gesture.
-    audio: { noAudio: true },
-    banner: false,
-    scene: [world],
-  });
+    overlay: required('app'),
+    world,
+    joystick,
+    isTyping: () => chat.isTyping,
+    debug: debugEnabled(location.search),
+    switchTo2D: () => location.assign(withView(location.href, '2d')),
+  };
 
-  const resolution = new ResolutionController(game, parent);
+  let renderer: Renderer | null = null;
+  if (selectView(location.search) === '3d') {
+    renderer = await createRenderer3D(context);
+    if (renderer === null) {
+      hud.showNotice('這台裝置沒辦法顯示 3D 畫面，先用 2D 畫面帶你進小鎮。');
+      window.setTimeout(() => hud.hideNotice(), 6000);
+    }
+  }
+  const view: Renderer = renderer ?? new Renderer2D(context);
 
   const joinScreen = new JoinScreen({
-    renderAvatar: (parts) => {
-      if (!world.scene.isActive()) return null;
-      buildAvatarTexture(world, parts);
-      const texture = world.textures.get(avatarTextureKey(parts));
-      return texture.getSourceImage() as CanvasImageSource;
-    },
+    renderAvatar: (parts) => view.renderAvatarPreview(parts),
     onSubmit: (nickname, avatar) => {
       identity = { nickname, avatar };
       world.setIdentity(nickname, avatar);
@@ -204,7 +168,6 @@ async function main(): Promise<void> {
         }
 
         case 'welcome': {
-          selfId = message.selfId;
           joined = true;
           world.setSelfId(message.selfId);
           world.clearEveryone();
@@ -236,11 +199,11 @@ async function main(): Promise<void> {
           return;
 
         case 'chat':
-          world.say(message.id, message.text, selfId);
+          world.say(message.id, message.text);
           return;
 
         case 'emote':
-          world.playEmote(message.id, message.kind, selfId);
+          world.playEmote(message.id, message.kind);
           return;
 
         case 'playerCount':
@@ -259,20 +222,23 @@ async function main(): Promise<void> {
     },
   });
 
-  game.events.once(Phaser.Core.Events.READY, () => {
-    resolution.start();
+  void view.ready.then(() => {
     joinScreen.show();
     joinScreen.redrawPreview();
   });
 
   installDebugBridge({
+    view: () => view.kind,
     position: () => world.getPosition(),
     zone: () => world.currentZoneName(),
     connection: () => hud.connectionState,
     playerCount: () => hud.playerCount,
-    others: () => world.remotePlayers().map((remote) => remote.id),
+    others: () => world.remoteList().map((remote) => remote.id),
     bubbles: () => world.bubbleTexts(),
     joined: () => joined,
+    walkable: (x, y) => world.map.isWalkable(x, y),
+    tileToScreen: (x, y) => view.tileToScreen(x, y),
+    stats: () => view.stats(),
   });
 
   hud.setConnectionState('connecting');

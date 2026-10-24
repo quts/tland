@@ -10,6 +10,7 @@ import { Joystick } from './controls/joystick.js';
 import { ResolutionController } from './scale.js';
 import { avatarTextureKey, buildAvatarTexture, type AvatarParts } from './gfx/avatar.js';
 import { installDebugBridge } from './debugBridge.js';
+import { debugEnabled, selectView, withView } from './view.js';
 import {
   loadUiFont,
   resolutionCap,
@@ -31,6 +32,35 @@ function required<T extends HTMLElement>(id: string): T {
   return element as T;
 }
 
+/**
+ * Start the 3D view, if this device can show it.
+ *
+ * three.js and everything built on it arrive as a separate chunk, fetched
+ * only here, so the 2D page never downloads them. Returns false — and leaves
+ * the page untouched — when the chunk cannot load or WebGL is missing, so
+ * the caller can carry on into 2D.
+ */
+async function startThreeView(parent: HTMLElement, hud: Hud, joystick: Joystick): Promise<boolean> {
+  try {
+    const { startSpike } = await import('./three/spike.js');
+    startSpike({
+      parent,
+      overlay: required('app'),
+      joystick,
+      hud,
+      debug: debugEnabled(location.search),
+      switchTo2D: () => location.assign(withView(location.href, '2d')),
+    });
+  } catch (error) {
+    console.warn('3D view unavailable, using 2D', error);
+    return false;
+  }
+  // M0 is a local-only spike: no server, so no connection status to show.
+  required('status-pill').hidden = true;
+  hud.showJoystick();
+  return true;
+}
+
 async function main(): Promise<void> {
   const parent = required('game');
 
@@ -41,6 +71,13 @@ async function main(): Promise<void> {
 
   const hud = new Hud();
   const joystick = new Joystick(required('joystick'));
+
+  if (selectView(location.search) === '3d') {
+    if (await startThreeView(parent, hud, joystick)) return;
+    hud.showNotice('這台裝置沒辦法顯示 3D 畫面，先用 2D 畫面帶你進小鎮。');
+    window.setTimeout(() => hud.hideNotice(), 6000);
+  }
+
   const minimap = new Minimap(
     required<HTMLCanvasElement>('minimap'),
     required<HTMLButtonElement>('minimap-toggle'),

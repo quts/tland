@@ -10,7 +10,8 @@ import {
   cssToNdc,
   joystickToWorld,
   ndcToCss,
-  orthoFrame,
+  PORTRAIT_TILES_HIGH,
+  viewportFrame,
   screenToGround,
   screenToTerrain,
   tilesAcross,
@@ -20,7 +21,7 @@ import {
 
 /** The camera as the 3D view places it: following a player at (40.5, 0, 60.5). */
 function viewOf(width: number, height: number, pitch = CAMERA_PITCH_DEG, yaw = 0): CameraView {
-  const frame = orthoFrame(tilesAcross(width), width / height, { halfWidth: 0, halfHeight: 0 });
+  const frame = viewportFrame(width, height, { halfWidth: 0, halfHeight: 0 });
   const offset = cameraOffset(CAMERA_DISTANCE, { x: 0, y: 0, z: 0 }, pitch, yaw);
   return {
     position: { x: 40.5 + offset.x, y: offset.y, z: 60.5 + offset.z },
@@ -38,10 +39,17 @@ describe('3D camera rig', () => {
     expect(tilesAcross(1920)).toBe(30);
   });
 
-  it('fixes the width and lets a portrait screen see further, never narrower', () => {
-    const portrait = orthoFrame(15, 390 / 844, { halfWidth: 0, halfHeight: 0 });
-    expect(portrait.halfWidth * 2).toBe(15);
-    expect(portrait.halfHeight / portrait.halfWidth).toBeCloseTo(844 / 390, 9);
+  it('keeps a useful vertical zoom on portrait phones', () => {
+    const portrait = viewportFrame(390, 844, { halfWidth: 0, halfHeight: 0 });
+    expect(portrait.halfHeight * 2).toBe(PORTRAIT_TILES_HIGH);
+    expect(portrait.halfWidth * 2).toBeCloseTo(PORTRAIT_TILES_HIGH * 390 / 844, 9);
+    expect(portrait.halfWidth * 2).toBeLessThan(tilesAcross(390));
+  });
+
+  it('preserves the established width-based frame on landscape screens', () => {
+    const landscape = viewportFrame(844, 390, { halfWidth: 0, halfHeight: 0 });
+    expect(landscape.halfWidth * 2).toBe(tilesAcross(844));
+    expect(landscape.halfHeight / landscape.halfWidth).toBeCloseTo(390 / 844, 9);
   });
 
   it('sits south of and above the player, looking north', () => {

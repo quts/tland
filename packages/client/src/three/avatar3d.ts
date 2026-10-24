@@ -28,7 +28,7 @@ const HEAD_SQUASH = 0.94;
  * Avatars are modelled about a tile tall and drawn larger: chunky enough to
  * read at phone zoom, the way the 2D sprites stand taller than their tile.
  */
-export const AVATAR_SCALE = 1.65;
+export const AVATAR_SCALE = 1.85;
 /** Roughly where the top of a hat ends, drawn size, for name tags and bubbles. */
 export const AVATAR_TOP = 1.08 * AVATAR_SCALE;
 

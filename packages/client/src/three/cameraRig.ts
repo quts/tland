@@ -66,14 +66,29 @@ export interface OrthoFrame {
   halfHeight: number;
 }
 
-/**
- * The orthographic frame that shows `tiles` across. Width is what is fixed,
- * as in 2D; a portrait phone sees further north and south, never less wide.
- */
+/** Portrait phones should prioritize useful character scale over distant map coverage. */
+export const PORTRAIT_TILES_HIGH = 22;
+const PORTRAIT_ASPECT_MAX = 0.8;
+
+/** The orthographic frame that shows a fixed number of tiles across. */
 export function orthoFrame(tiles: number, aspect: number, out: OrthoFrame): OrthoFrame {
   out.halfWidth = tiles / 2;
   out.halfHeight = out.halfWidth / Math.max(aspect, 1e-6);
   return out;
+}
+
+/**
+ * Choose a viewport frame: portrait screens keep a useful vertical zoom,
+ * while landscape screens preserve the established width-based framing.
+ */
+export function viewportFrame(width: number, height: number, out: OrthoFrame): OrthoFrame {
+  const aspect = width / Math.max(height, 1e-6);
+  if (aspect < PORTRAIT_ASPECT_MAX) {
+    out.halfHeight = PORTRAIT_TILES_HIGH / 2;
+    out.halfWidth = out.halfHeight * aspect;
+    return out;
+  }
+  return orthoFrame(tilesAcross(width), aspect, out);
 }
 
 /** Where the camera sits relative to the point it looks at. */

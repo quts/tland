@@ -143,6 +143,8 @@ export class WorldOverlay {
     entry.lastX = rx;
     entry.lastY = ry;
     entry.anchor.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
+    // Lower on screen is nearer the camera: draw it over the ones behind.
+    entry.anchor.style.zIndex = String(Math.max(0, ry + EDGE_MARGIN));
   }
 
   dispose(): void {

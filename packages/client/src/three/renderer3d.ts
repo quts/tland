@@ -169,6 +169,8 @@ export class Renderer3D implements Renderer {
 
       const map = world.map;
       this.scene.background = new THREE.Color(PALETTE.water);
+      // A light haze towards the top of the screen, where the view runs far.
+      this.scene.fog = new THREE.Fog(PALETTE.water, 30, 90);
       // Sky and bounce light do most of the work; the sun only gives faces a
       // direction. No shadow maps: contact shadows are baked or blobs.
       this.scene.add(new THREE.HemisphereLight(0xeef8ff, 0xb7cfa4, 2.2));
@@ -529,7 +531,12 @@ export class Renderer3D implements Renderer {
     this.camera.aspect = this.width / this.height;
     this.camera.updateProjectionMatrix();
     this.view.aspect = this.camera.aspect;
-    cameraOffset(cameraDistance(tilesAcross(this.width), this.camera.aspect), this.offset);
+    const distance = cameraDistance(tilesAcross(this.width), this.camera.aspect);
+    cameraOffset(distance, this.offset);
+    if (this.scene.fog instanceof THREE.Fog) {
+      this.scene.fog.near = distance * 1.15;
+      this.scene.fog.far = distance * 3.2;
+    }
     // The orientation never changes; only the position follows the player.
     this.camera.position.set(this.offset.x, this.offset.y, this.offset.z);
     this.camera.lookAt(0, 0, 0);

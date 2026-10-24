@@ -67,6 +67,7 @@ export class Bot {
   private readonly socket: WebSocket;
   private readonly inbox: Message[] = [];
   private readonly waiters: Array<{ type: string; resolve(message: Message): void }> = [];
+  id = '';
   x = 0;
   y = 0;
 
@@ -103,7 +104,11 @@ export class Bot {
         accessory: ['none', 'scarf', 'glasses', 'satchel', 'bowtie'][(look >> 1) % 5],
       },
     });
-    const welcome = (await bot.next('welcome')) as Message & { you: { x: number; y: number } };
+    const welcome = (await bot.next('welcome')) as Message & {
+      selfId: string;
+      you: { x: number; y: number };
+    };
+    bot.id = welcome.selfId;
     bot.x = welcome.you.x;
     bot.y = welcome.you.y;
     return bot;
@@ -148,6 +153,12 @@ export class Bot {
 export interface Stack {
   readonly baseURL: string;
   readonly wsURL: string;
+  /**
+   * Whether the server currently has two players in earshot. Earshot is
+   * refreshed on the server's tick, and chat only reaches whoever is in it,
+   * so a test about hearing waits for this rather than for a fixed time.
+   */
+  canHear(a: string, b: string): boolean;
   close(): Promise<void>;
 }
 
@@ -189,6 +200,7 @@ export async function startStack(gamePort: number, webPort: number): Promise<Sta
   return {
     baseURL,
     wsURL: `ws://127.0.0.1:${gamePort}/ws`,
+    canHear: (a, b) => server.room.canHear(a, b),
     async close() {
       web.kill();
       await server.close();

@@ -80,6 +80,37 @@ test.describe('3D view', () => {
     expect(errors).toEqual([]);
   });
 
+  test('previews the avatar in 3D on the join screen', async ({ page }, testInfo) => {
+    const errors = collectErrors(page);
+    await page.goto('/?view=3d', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#join-button')).toHaveText('進入小鎮', { timeout: 20_000 });
+
+    // A fingerprint of what the preview canvas shows: how much of it is
+    // covered, and roughly where.
+    const fingerprint = () =>
+      page.evaluate(() => {
+        const canvas = document.getElementById('avatar-preview') as HTMLCanvasElement;
+        const data = canvas.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height).data;
+        if (data === undefined) return { covered: 0, weight: 0 };
+        let covered = 0;
+        let weight = 0;
+        for (let i = 3; i < data.length; i += 4) {
+          if ((data[i] as number) > 0) {
+            covered += 1;
+            weight += i;
+          }
+        }
+        return { covered, weight };
+      });
+
+    await expect.poll(async () => (await fingerprint()).covered).toBeGreaterThan(500);
+    const before = await fingerprint();
+    await page.locator('#pick-hat .chip').nth(2).click();
+    await expect.poll(async () => (await fingerprint()).weight).not.toBe(before.weight);
+    await page.locator('#avatar-preview').screenshot({ path: testInfo.outputPath('preview.png') });
+    expect(errors).toEqual([]);
+  });
+
   test('without the flag, the page is the 2D game', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#join')).toBeVisible();
@@ -105,6 +136,8 @@ test.describe('3D view with other players', () => {
     try {
       await joinTown(page, `${stack.baseURL}/?view=3d`, '立體聽眾');
       await expect.poll(() => page.evaluate(() => window.__town?.others().length ?? 0)).toBe(1);
+      const listener = (await bot.next('playerJoined')) as { player: { id: string } };
+      await expect.poll(() => stack.canHear(bot.id, listener.player.id)).toBe(true);
       await expect(page.locator('.name-tag', { hasText: '路過的貓' })).toBeVisible();
 
       bot.say('你好，聽得到嗎');
@@ -131,6 +164,9 @@ test.describe('3D view with other players', () => {
         .poll(() => page.evaluate(() => window.__town?.others().length ?? 0), { timeout: 15_000 })
         .toBe(30);
 
+      // Thirty new avatars mean thirty geometries and a shader to compile;
+      // measure once they are all actually being drawn (a body is a call).
+      await expect.poll(() => drawCalls(page), { timeout: 15_000 }).toBeGreaterThanOrEqual(31);
       const calls = await drawCalls(page);
       expect(calls).toBeLessThan(DRAW_CALL_BUDGET);
       await page.screenshot({ path: testInfo.outputPath('crowd.png') });

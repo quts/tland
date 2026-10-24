@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { MAX_PLAYERS, TILE_SIZE, type Direction } from '@tland/shared';
 import type { AvatarParts } from '../gfx/avatar.js';
-import { AvatarGeometryCache, faceGeometry, faceTexture } from './avatar3d.js';
+import { AVATAR_SCALE, AvatarGeometryCache, faceGeometry, faceTexture } from './avatar3d.js';
 
 /** Room for everyone the server admits, plus the local player. */
 const CAPACITY = MAX_PLAYERS + 1;
@@ -24,7 +24,7 @@ interface Character {
 }
 
 const matrix = new THREE.Matrix4();
-const shadowScale = new THREE.Vector3(1, 1, 0.8);
+const shadowScale = new THREE.Vector3(AVATAR_SCALE, 1, AVATAR_SCALE * 0.8);
 const identity = new THREE.Quaternion();
 const lift = new THREE.Vector3();
 
@@ -86,6 +86,7 @@ export class CharacterLayer {
     };
     body.position.copy(character.drawn);
     body.rotation.y = character.heading;
+    body.scale.setScalar(AVATAR_SCALE);
     this.characters.set(id, character);
     this.group.add(body);
   }
@@ -133,21 +134,26 @@ export class CharacterLayer {
 
   /** Copy each body's transform onto its face and shadow instances. */
   sync(): void {
-    let index = 0;
-    for (const character of this.characters.values()) {
-      if (index >= CAPACITY) break;
-      const body = character.body;
-      body.updateMatrix();
-      this.faces.setMatrixAt(index, body.matrix);
-      lift.set(character.drawn.x, 0, character.drawn.z);
-      this.shadows.setMatrixAt(index, matrix.compose(lift, identity, shadowScale));
-      index += 1;
-    }
-    this.faces.count = index;
-    this.shadows.count = index;
+    this.synced = 0;
+    this.characters.forEach(this.syncOne);
+    this.faces.count = this.synced;
+    this.shadows.count = this.synced;
     this.faces.instanceMatrix.needsUpdate = true;
     this.shadows.instanceMatrix.needsUpdate = true;
   }
+
+  private synced = 0;
+
+  // Bound once, so syncing every frame allocates nothing.
+  private readonly syncOne = (character: Character): void => {
+    if (this.synced >= CAPACITY) return;
+    const body = character.body;
+    body.updateMatrix();
+    this.faces.setMatrixAt(this.synced, body.matrix);
+    lift.set(character.drawn.x, 0, character.drawn.z);
+    this.shadows.setMatrixAt(this.synced, matrix.compose(lift, identity, shadowScale));
+    this.synced += 1;
+  };
 
   /** A standalone mesh for the avatar preview, sharing this layer's resources. */
   previewMesh(avatar: AvatarParts): THREE.Group {

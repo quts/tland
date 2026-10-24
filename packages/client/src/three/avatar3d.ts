@@ -24,8 +24,13 @@ import { merge, painted } from './geometry.js';
 export const HEAD_Y = 0.7;
 export const HEAD_RADIUS = 0.26;
 const HEAD_SQUASH = 0.94;
-/** Roughly where the top of a hat ends, for name tags and bubbles. */
-export const AVATAR_TOP = 1.08;
+/**
+ * Avatars are modelled about a tile tall and drawn larger: chunky enough to
+ * read at phone zoom, the way the 2D sprites stand taller than their tile.
+ */
+export const AVATAR_SCALE = 1.4;
+/** Roughly where the top of a hat ends, drawn size, for name tags and bubbles. */
+export const AVATAR_TOP = 1.08 * AVATAR_SCALE;
 
 /** Hair, picked by skin so a crowd is not all one colour. */
 const HAIR = [0x6b4f3a, 0x8a6142, 0x4a3c34, 0x5a4033, 0x7d5a6e, 0x56637a, 0x6a7a52, 0x9a7444] as const;
@@ -42,7 +47,7 @@ const bodyShade = { from: 0.74, to: 1.02, bottom: 0.05, top: 0.5 };
 function hair(color: number, withBack: boolean): THREE.BufferGeometry[] {
   const parts = [
     painted(
-      new THREE.SphereGeometry(HEAD_RADIUS * 1.06, 18, 8, 0, Math.PI * 2, 0, Math.PI * 0.42)
+      new THREE.SphereGeometry(HEAD_RADIUS * 1.06, 16, 6, 0, Math.PI * 2, 0, Math.PI * 0.42)
         .scale(1, HEAD_SQUASH, 1)
         .translate(0, HEAD_Y, 0),
       color,
@@ -53,7 +58,7 @@ function hair(color: number, withBack: boolean): THREE.BufferGeometry[] {
     // Down the back of the head, behind where the face is.
     parts.push(
       painted(
-        new THREE.SphereGeometry(HEAD_RADIUS * 1.05, 14, 8, Math.PI, Math.PI, Math.PI * 0.3, Math.PI * 0.42)
+        new THREE.SphereGeometry(HEAD_RADIUS * 1.05, 10, 6, Math.PI, Math.PI, Math.PI * 0.3, Math.PI * 0.42)
           .scale(1, HEAD_SQUASH, 1)
           .translate(0, HEAD_Y, 0),
         color,
@@ -187,7 +192,7 @@ export function buildAvatarGeometry(parts: AvatarParts): THREE.BufferGeometry {
     painted(new THREE.SphereGeometry(0.075, 10, 6).scale(1, 0.6, 1.3).translate(-0.085, 0.04, 0.02), PALETTE.inkSoft),
     painted(new THREE.SphereGeometry(0.075, 10, 6).scale(1, 0.6, 1.3).translate(0.085, 0.04, 0.02), PALETTE.inkSoft),
     // Body.
-    painted(new THREE.CapsuleGeometry(0.17, 0.14, 4, 14).translate(0, 0.3, 0), shirt, bodyShade),
+    painted(new THREE.CapsuleGeometry(0.17, 0.14, 3, 12).translate(0, 0.3, 0), shirt, bodyShade),
     // Arms and hands.
     painted(new THREE.CapsuleGeometry(0.052, 0.12, 3, 8).rotateZ(0.28).translate(-0.205, 0.31, 0), shirt, bodyShade),
     painted(new THREE.CapsuleGeometry(0.052, 0.12, 3, 8).rotateZ(-0.28).translate(0.205, 0.31, 0), shirt, bodyShade),
@@ -195,7 +200,7 @@ export function buildAvatarGeometry(parts: AvatarParts): THREE.BufferGeometry {
     painted(new THREE.SphereGeometry(0.055, 8, 6).translate(0.235, 0.2, 0.01), skin),
     // Head.
     painted(
-      new THREE.SphereGeometry(HEAD_RADIUS, 20, 14).scale(1, HEAD_SQUASH, 1).translate(0, HEAD_Y, 0),
+      new THREE.SphereGeometry(HEAD_RADIUS, 16, 12).scale(1, HEAD_SQUASH, 1).translate(0, HEAD_Y, 0),
       skin,
       skinShade,
     ),

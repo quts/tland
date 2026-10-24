@@ -23,6 +23,9 @@ Non-commercial hobby project. Every graphic is generated in code; see
 - Proximity chat. Speech bubbles are visible only within about three tiles,
   with hysteresis so they do not blink as people drift at the edge of earshot.
 - Four emotes, a minimap, and a live player count.
+- An optional **3D view** of the same world — add `?view=3d` to the address.
+  A soft low-poly diorama under a fixed angled camera: same map, same grid,
+  same controls, same people. 2D stays the default.
 
 ## Running it
 
@@ -67,6 +70,9 @@ can reach the Mac directly.
 
 2. On the phone, open `http://<that-address>:8080` — for example
    `http://192.168.50.91:8080`.
+
+   For the 3D view, `http://<that-address>:8080/?view=3d`; add `&debug=1`
+   for the frame-rate readout. TESTING.md has the checklist.
 
 3. Both devices must be on the same network. A "guest" or "client isolation"
    Wi-Fi mode blocks device-to-device traffic and will not work.
@@ -128,6 +134,12 @@ binaries. They are gitignored and are only meant to be used from inside a
 container. All of those containers are Debian-based so they share one
 `node_modules` with the glibc Playwright image; running `npm install` from an
 Alpine container instead would leave native bindings for the wrong libc.
+
+Thirty wandering bots, to see how a view copes with a crowd (see TESTING.md):
+
+```bash
+./scripts/dev.sh sh -c 'npm run build -w @tland/shared && node scripts/bots.mjs --url ws://<mac-lan-ip>:8080/ws --count 30 --near 68,72'
+```
 
 Bind mounts deliver no filesystem events, so `node --watch` and Vite's HMR do
 not see edits made on the host. Restart the container after changing server
@@ -231,14 +243,49 @@ browser ──HTTP──> web (nginx)  ──/ws──> game (node + ws)
   against the map and a speed limit, decides who can hear whom, sanitizes all
   text, and reaps sockets that stop answering. State is in memory; restarting
   empties the world.
-- **`packages/client`** — TypeScript + Vite + Phaser 3. Every texture is
-  produced at boot by `Graphics.generateTexture()`.
+- **`packages/client`** — TypeScript + Vite. The game as the client knows it
+  — the local player, routes, everyone else's interpolated positions, live
+  bubbles, the current district — is `ClientWorld`, which knows nothing about
+  drawing. A renderer draws it: `Renderer2D` (Phaser 3, every texture produced
+  at boot by `Graphics.generateTexture()`) or `Renderer3D` (three.js).
 - **`web`** serves the built client and reverse-proxies `/ws` and `/healthz`
   to `game`, adding the security headers.
 
 **`ws` rather than Colyseus**: the protocol is a handful of message types and
 one room, so a hand-written 20 Hz loop is less machinery than Colyseus's
 schema and room abstractions, and it keeps the server image small.
+
+### The 3D view
+
+`?view=3d` swaps the renderer and nothing else. Movement, collision, A*,
+proximity and the protocol are the 2D game's own code, run by the same
+`ClientWorld`; the 3D view only decides how it looks.
+
+- **Loaded only when asked for.** three.js and the 3D code are a separate
+  chunk (about 150 KB gzipped) fetched by a dynamic import, so the 2D page
+  downloads nothing extra. If the chunk fails to load or WebGL 2 is missing,
+  the page says so and carries on in 2D.
+- **The grid, extruded.** Walkable tiles are flat at height zero, always; only
+  tiles that were already impassable — hills — rise, and carry decorative
+  woods. Ground is merged per 32-tile chunk with ambient occlusion baked into
+  vertex colours. Every repeated prop is an `InstancedMesh`, grouped by region
+  so frustum culling still works. No shadow maps and no post-processing:
+  contact shadows are baked or soft blobs.
+- **Avatars** map the same four choices onto rounded primitives, merged into
+  one geometry per combination. Faces and blob shadows for the whole crowd are
+  one instanced draw each, so thirty players cost about thirty-two draw calls.
+- **Text is DOM.** Name tags, bubbles and emotes are elements laid over the
+  canvas, positioned each frame by projecting the head; text goes in through
+  `textContent`, in the page's own font.
+- **A fixed camera.** Narrow field of view, fixed pitch, north up, following
+  the player at the same zoom rule as 2D. Up on the joystick is up the screen,
+  and a tap is cast onto the ground plane to find its tile — through the same
+  arithmetic the unit tests check against three.js's own camera.
+- **On a phone.** Device pixel ratio capped at 2; the render loop reuses its
+  vectors, matrices and instance buffers rather than allocating them each
+  frame, and only rewrites an overlay's position when it moved; a lost WebGL
+  context pauses and recovers; five seconds under 30 fps *offers* the 2D view
+  rather than switching unasked.
 
 ### The map
 

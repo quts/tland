@@ -76,19 +76,25 @@ test.describe('low-frame-rate tap movement', () => {
         const x = Math.floor(here.x / 32) + 3, y = Math.floor(here.y / 32) + (diagonal ? 3 : 0);
         return { x, y, screen: town.tileToScreen(x, y)!, start: here };
       }, fps === 24);
-      const samplesPromise = page.evaluate(() => new Promise<Array<{ x: number; y: number; ms: number }>>(resolve => {
+      const expected = { x: target.x * 32 + 16, y: target.y * 32 + 16 };
+      // Software-rendered tablet frames can take longer than simulated time.
+      // Keep sampling until arrival is stable, with a bounded wall-clock deadline.
+      const samplesPromise = page.evaluate(expected => new Promise<Array<{ x: number; y: number; ms: number }>>(resolve => {
         const start = performance.now();
         const samples: Array<{ x: number; y: number; ms: number }> = [];
+        let stable = 0;
         const timer = setInterval(() => {
           samples.push({ ...window.__town!.position(), ms: performance.now() - start });
-          if (performance.now() - start >= 4000) { clearInterval(timer); resolve(samples); }
+          const position = samples.at(-1)!;
+          stable = Math.hypot(position.x - expected.x, position.y - expected.y) < 1e-5 ? stable + 1 : 0;
+          const elapsed = performance.now() - start;
+          if ((elapsed >= 4000 && stable >= 10) || elapsed >= 15_000) { clearInterval(timer); resolve(samples); }
         }, 30);
-      }));
+      }), expected);
       const box = (await page.locator('#game canvas').boundingBox())!;
       if (testInfo.project.use.hasTouch) await page.touchscreen.tap(box.x + target.screen.x, box.y + target.screen.y);
       else await page.mouse.click(box.x + target.screen.x, box.y + target.screen.y);
       const samples = await samplesPromise;
-      const expected = { x: target.x * 32 + 16, y: target.y * 32 + 16 };
       let reversals = 0;
       for (let i = 1; i < samples.length; i += 1) {
         const a = samples[i - 1]!, b = samples[i]!;

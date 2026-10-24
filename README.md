@@ -11,11 +11,10 @@ Non-commercial hobby project. Every graphic is generated in code; see
 ## What's in it
 
 - A 136 × 160 tile island: a river basin ringed by mountains, opening to the
-  sea on one side. **39 named districts** cover every walkable tile and
-  announce themselves as you cross into them — the twelve of the city proper
-  (城心, 舊埠, 中樞, 東埠, 南苑, 西埠, 新衡, 北苑, 霧泉, 鏡湖, 東關, 南嶺)
-  plus the surrounding ones, out to the coasts. Four rivers meeting in the
-  basin, bridges at the crossings, mountains north and south, parks, beaches
+  sea on one side. **13 named districts** cover every walkable tile and
+  announce themselves as you cross into them. Neighboring smaller districts
+  merge into larger ones while preserving the former borders. Four rivers
+  meet in the basin, with bridges, mountains north and south, parks, beaches
   and open sea.
 - Touch controls: a virtual joystick, and tap-to-move with A* pathfinding.
   WASD and the arrow keys work on a desktop.

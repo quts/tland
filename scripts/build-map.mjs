@@ -489,6 +489,7 @@ for (const [from, to] of BRIDGES) layBridge(from, to);
  * A seed only has to be somewhere in the right part of the map. If it lands
  * on water or a cliff it is snapped to the nearest walkable tile below.
  */
+// Preserve the old coverage sites so merging never redraws an old district.
 const DISTRICT_SEEDS = [
   // The city proper.
   ['霧泉', 57, 51],
@@ -616,18 +617,103 @@ for (let y = 0; y < HEIGHT; y += 1) {
 
 const rows = grid.map((row) => row.join(''));
 
-const ZONES = [];
+const DISTRICT_MERGES = {
+  "陶丘": [
+    "陶丘"
+  ],
+  "岬門": [
+    "岬門",
+    "白沙"
+  ],
+  "潮岬": [
+    "潮岬"
+  ],
+  "鏡湖": [
+    "東埠",
+    "鏡湖",
+    "東關",
+    "城心",
+    "南苑",
+    "新衡",
+    "南嶺",
+    "谷口",
+    "岩門",
+    "茶嶺",
+    "霧谷",
+    "溪燈"
+  ],
+  "三澗": [
+    "和川",
+    "石垣",
+    "溪源",
+    "三澗"
+  ],
+  "青林": [
+    "長橋",
+    "青林"
+  ],
+  "霧泉": [
+    "霧泉"
+  ],
+  "暖灣": [
+    "暖灣"
+  ],
+  "金脈": [
+    "雨關",
+    "金脈",
+    "東岬"
+  ],
+  "北苑": [
+    "北苑",
+    "舊埠",
+    "中樞"
+  ],
+  "西汀": [
+    "西汀",
+    "高原"
+  ],
+  "河口": [
+    "河口"
+  ],
+  "平原": [
+    "西埠",
+    "流洲",
+    "三川",
+    "五汊",
+    "平原",
+    "新埠"
+  ]
+};
+
+const DISTRICT_SITES = [];
 for (const [name, x, y] of DISTRICT_SEEDS) {
   const seed = snapToLand(x, y);
   if (seed === null) {
     console.warn(`  ! no walkable tile near ${name} (${x}, ${y}); dropping it`);
     continue;
   }
-  ZONES.push({ name, x: seed[0], y: seed[1] });
+  DISTRICT_SITES.push({ name, x: seed[0], y: seed[1] });
 }
 
+const members = Object.values(DISTRICT_MERGES).flat();
+if (Object.keys(DISTRICT_MERGES).length !== 13 ||
+    new Set(members).size !== members.length ||
+    members.length !== DISTRICT_SITES.length ||
+    DISTRICT_SITES.some(site => !members.includes(site.name))) {
+  throw new Error('District merges must cover every former site exactly once in thirteen groups');
+}
+
+/** Retain the larger district's anchor and union the former coverage sites. */
+const ZONES = Object.entries(DISTRICT_MERGES).map(([name, members]) => {
+  const anchor = DISTRICT_SITES.find(site => site.name === name);
+  if (!anchor || !members.includes(name)) throw new Error('Missing retained district: ' + name);
+  const seeds = DISTRICT_SITES.flatMap((site, priority) => members.includes(site.name)
+    ? [{ x: site.x, y: site.y, priority }] : []);
+  return { ...anchor, seeds };
+});
+
 const town = {
-  version: 2,
+  version: 3,
   name: 'Riverside Town',
   note:
     'Terrain at one character per tile. The island silhouette comes from ' +

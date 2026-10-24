@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createHash } from 'node:crypto';
 import { getTownMap } from '../src/map.js';
 import { findPath } from '../src/pathfinding.js';
 import { isBlockingProp, isWalkableTerrain } from '../src/terrain.js';
@@ -39,7 +40,7 @@ describe('town map', () => {
       );
       // Arriving should be able to put you in a lot of different places.
       expect(map.spawnPoints.length).toBeGreaterThan(300);
-      expect(districts.size).toBeGreaterThan(15);
+      expect(districts.size).toBeGreaterThanOrEqual(Math.ceil(map.zones.length * 0.75));
     });
   });
 
@@ -50,21 +51,17 @@ describe('town map', () => {
     expect(map.isWalkable(10, map.height)).toBe(false);
   });
 
-  it('names all twelve districts of the city proper', () => {
-    const named = new Set(map.zones.map((zone) => zone.name));
-    for (const district of [
-      '城心', '舊埠', '中樞', '東埠', '南苑', '西埠',
-      '新衡', '北苑', '霧泉', '鏡湖', '東關', '南嶺',
-    ]) {
-      expect(named).toContain(district);
-    }
+  it('retains exactly the thirteen largest former districts', () => {
+    expect(map.zones.map(zone => zone.name).sort()).toEqual(["陶丘","岬門","潮岬","鏡湖","三澗","青林","霧泉","暖灣","金脈","北苑","西汀","河口","平原"].sort());
   });
 
-  it('also names the larger surrounding districts', () => {
-    const named = new Set(map.zones.map((zone) => zone.name));
-    for (const district of ['河口', '長橋', '溪源', '霧谷', '三川', '陶丘']) {
-      expect(named).toContain(district);
+  it('unions complete former districts without redrawing their borders', () => {
+    // Expected ownership comes from the pre-merge map, relabelled by the approved groups.
+    const labels: string[] = [];
+    for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
+      labels.push((map.zoneAt(x, y) ?? '-') + '\n');
     }
+    expect(createHash('sha256').update(labels.join('')).digest('hex')).toBe('0f8cb14b3dadee08bca525dd56d916dc1f673f5d53eaec537563fc03cf73c972');
   });
 
   it('gives every zone a distinct name', () => {
@@ -103,13 +100,28 @@ describe('town map', () => {
     });
 
     it('gives every district enough ground to be noticed', () => {
-      // A district smaller than this is crossed before its banner is read,
-      // which is how 三川 came to exist on the map but never be seen.
-      const MINIMUM_TILES = 25;
+      // Merged districts should not regress to tiny strips of named ground.
+      const MINIMUM_TILES = 100;
       const tooSmall = map.zones
         .map((zone) => [zone.name, owned.get(zone.name) ?? 0] as const)
         .filter(([, tiles]) => tiles < MINIMUM_TILES);
       expect(tooSmall).toEqual([]);
+    });
+
+    it('keeps every merged district connected on foot', () => {
+      for (const zone of map.zones) {
+        const seen = new Set<number>([zone.y * map.width + zone.x]);
+        const queue = [...seen];
+        for (let i = 0; i < queue.length; i++) {
+          const index = queue[i]!, x = index % map.width, y = Math.floor(index / map.width);
+          for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]] as const) {
+            const next = ny * map.width + nx;
+            if (seen.has(next) || map.zoneAt(nx, ny) !== zone.name) continue;
+            seen.add(next); queue.push(next);
+          }
+        }
+        expect(seen.size, zone.name).toBe(owned.get(zone.name));
+      }
     });
 
     it('cannot hide one district underneath another', () => {

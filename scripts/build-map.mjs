@@ -484,63 +484,63 @@ for (const [from, to] of BRIDGES) layBridge(from, to);
  * become the borders by themselves. Rectangles were the earlier model and
  * they went wrong in three ways at once: they overlapped, so one name
  * silently hid another; they left three fifths of the island nameless; and
- * one of them (三重) was covered so completely that it could never be seen.
+ * one of them (三川) was covered so completely that it could never be seen.
  *
  * A seed only has to be somewhere in the right part of the map. If it lands
  * on water or a cliff it is snapped to the nearest walkable tile below.
  */
 const DISTRICT_SEEDS = [
   // The city proper.
-  ['北投', 57, 51],
-  ['士林', 64, 59],
-  ['大同', 61, 71],
-  ['中山', 70, 67],
-  ['松山', 81, 67],
-  ['內湖', 88, 60],
-  ['南港', 95, 73],
-  ['中正', 68, 78],
-  ['萬華', 59, 83],
-  ['大安', 79, 77],
-  ['信義', 88, 77],
-  ['文山', 77, 90],
+  ['霧泉', 57, 51],
+  ['北苑', 64, 59],
+  ['舊埠', 61, 71],
+  ['中樞', 70, 67],
+  ['東埠', 81, 67],
+  ['鏡湖', 88, 60],
+  ['東關', 95, 73],
+  ['城心', 68, 78],
+  ['西埠', 59, 83],
+  ['南苑', 79, 77],
+  ['新衡', 88, 77],
+  ['南嶺', 77, 90],
 
   // North coast, west to east.
-  ['石門', 52, 12],
-  ['三芝', 47, 27],
-  ['金山', 74, 23],
-  ['萬里', 86, 33],
+  ['岬門', 52, 12],
+  ['白沙', 47, 27],
+  ['暖灣', 74, 23],
+  ['潮岬', 86, 33],
 
   // The river mouth and the west.
-  ['淡水', 41, 44],
-  ['八里', 34, 52],
-  ['林口', 19, 48],
+  ['河口', 41, 44],
+  ['西汀', 34, 52],
+  ['高原', 19, 48],
 
   // The west bank of the basin. These sit across the river from the city
   // proper, so they are placed on the far bank rather than beside it.
-  ['蘆洲', 50, 66],
-  ['三重', 52, 72],
-  ['五股', 44, 68],
-  ['泰山', 38, 73],
-  ['新莊', 46, 78],
-  ['板橋', 54, 84],
-  ['中和', 63, 89],
-  ['土城', 54, 93],
-  ['樹林', 44, 88],
-  ['鶯歌', 30, 93],
+  ['流洲', 50, 66],
+  ['三川', 52, 72],
+  ['五汊', 44, 68],
+  ['平原', 38, 73],
+  ['新埠', 46, 78],
+  ['長橋', 54, 84],
+  ['和川', 63, 89],
+  ['石垣', 54, 93],
+  ['青林', 44, 88],
+  ['陶丘', 30, 93],
 
   // South, up the valley and into the range.
-  ['新店', 74, 100],
-  ['深坑', 84, 87],
-  ['石碇', 92, 95],
-  ['坪林', 97, 107],
-  ['烏來', 69, 124],
-  ['三峽', 44, 110],
+  ['溪源', 74, 100],
+  ['谷口', 84, 87],
+  ['岩門', 92, 95],
+  ['茶嶺', 97, 107],
+  ['霧谷', 69, 124],
+  ['三澗', 44, 110],
 
   // East and north-east.
-  ['汐止', 101, 62],
-  ['平溪', 104, 80],
-  ['瑞芳', 116, 64],
-  ['貢寮', 128, 70],
+  ['雨關', 101, 62],
+  ['溪燈', 104, 80],
+  ['金脈', 116, 64],
+  ['東岬', 128, 70],
 ];
 
 /** Nearest walkable tile to a seed, so no district is stranded offshore. */

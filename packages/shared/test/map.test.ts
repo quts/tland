@@ -53,8 +53,8 @@ describe('town map', () => {
   it('names all twelve districts of the city proper', () => {
     const named = new Set(map.zones.map((zone) => zone.name));
     for (const district of [
-      '中正', '大同', '中山', '松山', '大安', '萬華',
-      '信義', '士林', '北投', '內湖', '南港', '文山',
+      '城心', '舊埠', '中樞', '東埠', '南苑', '西埠',
+      '新衡', '北苑', '霧泉', '鏡湖', '東關', '南嶺',
     ]) {
       expect(named).toContain(district);
     }
@@ -62,7 +62,7 @@ describe('town map', () => {
 
   it('also names the larger surrounding districts', () => {
     const named = new Set(map.zones.map((zone) => zone.name));
-    for (const district of ['淡水', '板橋', '新店', '烏來', '三重', '鶯歌']) {
+    for (const district of ['河口', '長橋', '溪源', '霧谷', '三川', '陶丘']) {
       expect(named).toContain(district);
     }
   });
@@ -104,7 +104,7 @@ describe('town map', () => {
 
     it('gives every district enough ground to be noticed', () => {
       // A district smaller than this is crossed before its banner is read,
-      // which is how 三重 came to exist on the map but never be seen.
+      // which is how 三川 came to exist on the map but never be seen.
       const MINIMUM_TILES = 25;
       const tooSmall = map.zones
         .map((zone) => [zone.name, owned.get(zone.name) ?? 0] as const)

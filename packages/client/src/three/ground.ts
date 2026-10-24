@@ -210,3 +210,133 @@ export function buildGround(map: TownMap, heights: Float32Array, material: THREE
   return group;
 }
 
+
+/**
+ * Terrain height anywhere on the map, in tiles, interpolated between the
+ * corner heights. Used to find which tile a tap lands on when the ground
+ * under it is raised.
+ */
+export function heightSampler(map: TownMap, heights: Float32Array): (x: number, z: number) => number {
+  const stride = map.width + 1;
+  return (x: number, z: number): number => {
+    if (x < 0 || z < 0 || x >= map.width || z >= map.height) return WATER_FLOOR;
+    const cx = Math.floor(x);
+    const cz = Math.floor(z);
+    const fx = x - cx;
+    const fz = z - cz;
+    const h00 = heights[cz * stride + cx] as number;
+    const h10 = heights[cz * stride + cx + 1] as number;
+    const h01 = heights[(cz + 1) * stride + cx] as number;
+    const h11 = heights[(cz + 1) * stride + cx + 1] as number;
+    return (h00 * (1 - fx) + h10 * fx) * (1 - fz) + (h01 * (1 - fx) + h11 * fx) * fz;
+  };
+}
+
+/** The highest point of the terrain, so a tap ray knows where to start. */
+export function maxHeight(heights: Float32Array): number {
+  let highest = 0;
+  for (const value of heights) if (value > highest) highest = value;
+  return highest;
+}
+
+/** How many tiles out from the bank the water fades to its open colour. */
+const SHORE_TILES = 2;
+
+/**
+ * Shallows: the water near every bank, shaded from pale at the edge to the
+ * open-water colour a few tiles out, laid just over the flat water plane.
+ *
+ * Without it the rivers and the sea are one flat blue sheet meeting the
+ * sand at a hard line, which reads as a sticker on the map rather than
+ * water lying in a bed. The fade is per corner, so it follows the banks
+ * smoothly across tile edges; beyond it the plane below shows through in
+ * exactly the colour the fade ends on.
+ */
+export function buildShallows(map: TownMap, material: THREE.Material): THREE.Group {
+  const { width, height } = map;
+  // Distance from each water tile to the nearest land, in tiles.
+  const distance = new Int16Array(width * height).fill(-1);
+  const queue: number[] = [];
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (map.terrainAt(x, y) !== 'water') {
+        distance[y * width + x] = 0;
+        queue.push(y * width + x);
+      }
+    }
+  }
+  for (let head = 0; head < queue.length; head += 1) {
+    const index = queue[head] as number;
+    const d = distance[index] as number;
+    if (d >= SHORE_TILES + 1) continue;
+    const x = index % width;
+    const y = (index - x) / width;
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]] as const) {
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+      const n = ny * width + nx;
+      if (distance[n] !== -1) continue;
+      distance[n] = d + 1;
+      queue.push(n);
+    }
+  }
+
+  /** 0 at a bank, rising to SHORE_TILES in open water. */
+  const cornerDepth = (cx: number, cy: number): number => {
+    let nearest = SHORE_TILES;
+    for (let dy = -1; dy <= 0; dy += 1) {
+      for (let dx = -1; dx <= 0; dx += 1) {
+        const x = cx + dx;
+        const y = cy + dy;
+        if (x < 0 || y < 0 || x >= width || y >= height) continue;
+        const d = distance[y * width + x] as number;
+        if (d === 0) return 0;
+        if (d > 0 && d < nearest) nearest = d;
+      }
+    }
+    return nearest;
+  };
+
+  const open = new THREE.Color(PALETTE.water);
+  // Only part of the way to foam: rivers here are a few tiles wide, and a
+  // full fade would turn them white from bank to bank.
+  const shallow = new THREE.Color(PALETTE.water).lerp(new THREE.Color(PALETTE.waterFoam), 0.5);
+  const mixed = new THREE.Color();
+  const level = WATER_LEVEL + 0.004;
+  const group = new THREE.Group();
+  group.name = 'shallows';
+
+  for (let chunkY = 0; chunkY < height; chunkY += CHUNK) {
+    for (let chunkX = 0; chunkX < width; chunkX += CHUNK) {
+      const positions: number[] = [];
+      const colors: number[] = [];
+      const indices: number[] = [];
+      for (let y = chunkY; y < Math.min(chunkY + CHUNK, height); y += 1) {
+        for (let x = chunkX; x < Math.min(chunkX + CHUNK, width); x += 1) {
+          const d = distance[y * width + x] as number;
+          if (d < 1 || d > SHORE_TILES) continue;
+          const base = positions.length / 3;
+          for (const [cx, cy] of [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]] as const) {
+            positions.push(cx, level, cy);
+            // Ease out, so the paleness hugs the bank instead of spreading.
+            const t = Math.pow(cornerDepth(cx, cy) / SHORE_TILES, 0.6);
+            mixed.copy(shallow).lerp(open, t);
+            colors.push(mixed.r, mixed.g, mixed.b);
+          }
+          indices.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
+        }
+      }
+      if (indices.length === 0) continue;
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+      geometry.computeBoundingSphere();
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.name = `shallows-${chunkX}-${chunkY}`;
+      mesh.matrixAutoUpdate = false;
+      group.add(mesh);
+    }
+  }
+  return group;
+}

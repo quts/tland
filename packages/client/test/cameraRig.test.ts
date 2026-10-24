@@ -1,18 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
-  CAMERA_FOV_DEG,
+  CAMERA_DISTANCE,
+  CAMERA_FAR,
+  CAMERA_NEAR,
+  CAMERA_PITCH_DEG,
   cameraBasis,
-  cameraDistance,
   cameraOffset,
   cssToNdc,
   joystickToWorld,
   ndcToCss,
+  orthoFrame,
   screenToGround,
+  screenToTerrain,
   tilesAcross,
   worldToScreen,
   type CameraView,
 } from '../src/three/cameraRig.js';
+
+/** The camera as the 3D view places it: following a player at (40.5, 0, 60.5). */
+function viewOf(width: number, height: number, pitch = CAMERA_PITCH_DEG, yaw = 0): CameraView {
+  const frame = orthoFrame(tilesAcross(width), width / height, { halfWidth: 0, halfHeight: 0 });
+  const offset = cameraOffset(CAMERA_DISTANCE, { x: 0, y: 0, z: 0 }, pitch, yaw);
+  return {
+    position: { x: 40.5 + offset.x, y: offset.y, z: 60.5 + offset.z },
+    basis: cameraBasis(pitch, yaw),
+    halfWidth: frame.halfWidth,
+    halfHeight: frame.halfHeight,
+    near: CAMERA_NEAR,
+  };
+}
 
 describe('3D camera rig', () => {
   it('shows as many tiles across as the 2D camera does', () => {
@@ -21,12 +38,10 @@ describe('3D camera rig', () => {
     expect(tilesAcross(1920)).toBe(30);
   });
 
-  it('backs off far enough to fit that many tiles at the target', () => {
-    const aspect = 390 / 844;
-    const distance = cameraDistance(15, aspect);
-    const visibleWidth =
-      2 * distance * Math.tan(((CAMERA_FOV_DEG * Math.PI) / 180) / 2) * aspect;
-    expect(visibleWidth).toBeCloseTo(15, 6);
+  it('fixes the width and lets a portrait screen see further, never narrower', () => {
+    const portrait = orthoFrame(15, 390 / 844, { halfWidth: 0, halfHeight: 0 });
+    expect(portrait.halfWidth * 2).toBe(15);
+    expect(portrait.halfHeight / portrait.halfWidth).toBeCloseTo(844 / 390, 9);
   });
 
   it('sits south of and above the player, looking north', () => {
@@ -35,6 +50,21 @@ describe('3D camera rig', () => {
     expect(offset.y).toBeGreaterThan(0);
     expect(offset.z).toBeGreaterThan(0);
     expect(Math.hypot(offset.x, offset.y, offset.z)).toBeCloseTo(10, 9);
+  });
+
+  it('keeps the whole visible ground between the near and far planes', () => {
+    const view = viewOf(390, 844);
+    for (const ndcY of [-1, 1]) {
+      const ground = { x: 0, y: 0, z: 0 };
+      expect(screenToGround(0, ndcY, view, 0, ground)).toBe(true);
+      const f = view.basis.forward;
+      const depth =
+        (ground.x - view.position.x) * f.x +
+        (ground.y - view.position.y) * f.y +
+        (ground.z - view.position.z) * f.z;
+      expect(depth).toBeGreaterThan(CAMERA_NEAR);
+      expect(depth).toBeLessThan(CAMERA_FAR);
+    }
   });
 
   describe('joystick mapping', () => {
@@ -63,19 +93,6 @@ describe('3D camera rig', () => {
   });
 
   describe('screen and ground', () => {
-    /** The camera as the 3D view places it: following a player at (40.5, 0, 60.5). */
-    function viewOf(width: number, height: number, pitch = 50, yaw = 0): CameraView {
-      const aspect = width / height;
-      const offset = cameraOffset(cameraDistance(tilesAcross(width), aspect), { x: 0, y: 0, z: 0 }, pitch, yaw);
-      return {
-        position: { x: 40.5 + offset.x, y: offset.y, z: 60.5 + offset.z },
-        basis: cameraBasis(pitch, yaw),
-        fovDeg: CAMERA_FOV_DEG,
-        aspect,
-        near: 0.5,
-      };
-    }
-
     it('puts the followed player at the centre of the screen', () => {
       const view = viewOf(390, 844);
       const hit = { x: 0, y: 0, z: 0 };
@@ -89,7 +106,7 @@ describe('3D camera rig', () => {
         const view = viewOf(width, height);
         for (const [tx, tz] of [[40, 60], [43, 58], [37, 63], [41, 55]] as const) {
           const ndc = { x: 0, y: 0 };
-          if (!worldToScreen({ x: tx + 0.5, y: 0, z: tz + 0.5 }, view, ndc)) continue;
+          expect(worldToScreen({ x: tx + 0.5, y: 0, z: tz + 0.5 }, view, ndc)).toBe(true);
           const css = ndcToCss(ndc.x, ndc.y, width, height, { x: 0, y: 0 });
           const back = cssToNdc(css.x, css.y, width, height, { x: 0, y: 0 });
           const hit = { x: 0, y: 0, z: 0 };
@@ -112,6 +129,22 @@ describe('3D camera rig', () => {
       }
     });
 
+    it('draws a house the same wherever it is on screen', () => {
+      // The defect this camera fixes: under perspective, a wall near the top
+      // of a portrait screen and one near the bottom came out very different.
+      const view = viewOf(390, 844);
+      const wallOnScreen = (z: number): number => {
+        const foot = { x: 0, y: 0 };
+        const top = { x: 0, y: 0 };
+        worldToScreen({ x: 40.5, y: 0, z }, view, foot);
+        worldToScreen({ x: 40.5, y: 2, z }, view, top);
+        return top.y - foot.y;
+      };
+      const nearTop = wallOnScreen(60.5 - 20);
+      const nearBottom = wallOnScreen(60.5 + 20);
+      expect(nearTop).toBeCloseTo(nearBottom, 9);
+    });
+
     it('puts up-screen further north on the ground', () => {
       const view = viewOf(390, 844);
       const near = { x: 0, y: 0, z: 0 };
@@ -121,18 +154,30 @@ describe('3D camera rig', () => {
       expect(far.z).toBeLessThan(near.z);
     });
 
+    it('refuses points behind the camera', () => {
+      const view = viewOf(390, 844);
+      expect(worldToScreen({ x: 40.5, y: 0, z: 200 }, view, { x: 0, y: 0 })).toBe(false);
+    });
+
     it('matches the three.js camera the 3D view actually draws with', () => {
       const [width, height] = [390, 844];
       const view = viewOf(width, height);
       // Set up exactly as Renderer3D does: orientation from lookAt, then moved.
-      const camera = new THREE.PerspectiveCamera(CAMERA_FOV_DEG, width / height, 0.5, 400);
-      const offset = cameraOffset(cameraDistance(tilesAcross(width), width / height), { x: 0, y: 0, z: 0 });
+      const camera = new THREE.OrthographicCamera(
+        -view.halfWidth,
+        view.halfWidth,
+        view.halfHeight,
+        -view.halfHeight,
+        CAMERA_NEAR,
+        CAMERA_FAR,
+      );
+      const offset = cameraOffset(CAMERA_DISTANCE, { x: 0, y: 0, z: 0 });
       camera.position.set(offset.x, offset.y, offset.z);
       camera.lookAt(0, 0, 0);
       camera.position.set(view.position.x, view.position.y, view.position.z);
       camera.updateMatrixWorld();
 
-      for (const [x, y, z] of [[40.5, 0, 60.5], [44, 0, 57], [37.2, 1.1, 63.4]] as const) {
+      for (const [x, y, z] of [[40.5, 0, 60.5], [44, 0, 57], [37.2, 1.1, 63.4], [46, 3, 45]] as const) {
         const ours = { x: 0, y: 0 };
         expect(worldToScreen({ x, y, z }, view, ours)).toBe(true);
         const theirs = new THREE.Vector3(x, y, z).project(camera);
@@ -140,12 +185,41 @@ describe('3D camera rig', () => {
         expect(ours.y).toBeCloseTo(theirs.y, 6);
       }
     });
+  });
 
-    it('refuses points behind the camera, and the sky', () => {
+  describe('taps on raised ground', () => {
+    // A ridge two tiles high covering z < 58; flat everywhere else.
+    const ridge = (_x: number, z: number): number => (z < 58 ? 2 : 0);
+
+    it('lands on the hillside it was aimed at, not on a tile behind it', () => {
       const view = viewOf(390, 844);
-      expect(worldToScreen({ x: 40.5, y: 0, z: 200 }, view, { x: 0, y: 0 })).toBe(false);
-      // Straight up the screen past the horizon never meets the ground.
-      expect(screenToGround(0, 50, view, 0, { x: 0, y: 0, z: 0 })).toBe(false);
+      // Aim at a point on top of the ridge.
+      const ndc = { x: 0, y: 0 };
+      expect(worldToScreen({ x: 41.5, y: 2, z: 56.5 }, view, ndc)).toBe(true);
+
+      const flat = { x: 0, y: 0, z: 0 };
+      screenToGround(ndc.x, ndc.y, view, 0, flat);
+      // The flat-plane answer goes straight through the hill.
+      expect(Math.floor(flat.z)).toBeLessThan(56);
+
+      const hit = { x: 0, y: 0, z: 0 };
+      expect(screenToTerrain(ndc.x, ndc.y, view, ridge, 2, hit)).toBe(true);
+      expect(Math.floor(hit.x)).toBe(41);
+      expect(Math.floor(hit.z)).toBe(56);
+      expect(hit.y).toBeCloseTo(2, 2);
+    });
+
+    it('agrees with the flat plane where the ground is flat', () => {
+      const view = viewOf(390, 844);
+      const flatGround = (): number => 0;
+      for (const [ndcX, ndcY] of [[0, 0], [0.4, -0.3], [-0.7, 0.6]] as const) {
+        const plane = { x: 0, y: 0, z: 0 };
+        const terrain = { x: 0, y: 0, z: 0 };
+        screenToGround(ndcX, ndcY, view, 0, plane);
+        expect(screenToTerrain(ndcX, ndcY, view, flatGround, 3, terrain)).toBe(true);
+        expect(terrain.x).toBeCloseTo(plane.x, 2);
+        expect(terrain.z).toBeCloseTo(plane.z, 2);
+      }
     });
   });
 });

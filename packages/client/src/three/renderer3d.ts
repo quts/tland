@@ -5,20 +5,22 @@ import type { AvatarParts } from '../gfx/avatar.js';
 import { resolutionCap } from '../viewport.js';
 import type { AvatarImage, Renderer, RendererContext, RendererStats } from '../render/renderer.js';
 import type { RemoteMotion } from '../world/remoteMotion.js';
-import { buildGround, cornerHeights, WATER_LEVEL } from './ground.js';
+import { buildGround, buildShallows, cornerHeights, heightSampler, maxHeight, WATER_LEVEL } from './ground.js';
 import { buildProps } from './props.js';
 import { CharacterLayer } from './characters.js';
 import { AVATAR_TOP } from './avatar3d.js';
 import { WorldOverlay } from './overlay.js';
 import {
-  CAMERA_FOV_DEG,
+  CAMERA_DISTANCE,
+  CAMERA_FAR,
+  CAMERA_NEAR,
   cameraBasis,
-  cameraDistance,
   cameraOffset,
   cssToNdc,
   joystickToWorld,
   ndcToCss,
-  screenToGround,
+  orthoFrame,
+  screenToTerrain,
   tilesAcross,
   worldToScreen,
   type CameraBasis,
@@ -35,7 +37,6 @@ const LOW_FPS_SECONDS = 5;
 const WARMUP_MS = 3000;
 /** How quickly the camera catches up with the player, per second. */
 const FOLLOW_RATE = 8;
-const NEAR = 0.5;
 /** A tap that moves less than this, and ends quickly, is a tap and not a drag. */
 const TAP_SLOP_PX = 12;
 const TAP_MAX_MS = 400;
@@ -101,7 +102,7 @@ export class Renderer3D implements Renderer {
   private readonly context: RendererContext;
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.PerspectiveCamera(CAMERA_FOV_DEG, 1, NEAR, 400);
+  private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, CAMERA_NEAR, CAMERA_FAR);
   private readonly characters: CharacterLayer;
   private readonly overlay: WorldOverlay;
   private readonly prompt: ViewPrompt;
@@ -115,7 +116,10 @@ export class Renderer3D implements Renderer {
   private readonly offset: Vec3 = { x: 0, y: 0, z: 0 };
   private readonly target = new THREE.Vector3();
   private readonly cameraPosition: Vec3 = { x: 0, y: 0, z: 0 };
-  private readonly view: { position: Vec3; basis: CameraBasis; fovDeg: number; aspect: number; near: number };
+  private readonly view: { position: Vec3; basis: CameraBasis; halfWidth: number; halfHeight: number; near: number };
+  /** Terrain height under a point, and its peak, for picking taps on hills. */
+  private heightAt: (x: number, z: number) => number = () => 0;
+  private peak = 0;
   private width = 1;
   private height = 1;
 
@@ -158,9 +162,9 @@ export class Renderer3D implements Renderer {
       this.view = {
         position: this.cameraPosition,
         basis: cameraBasis(),
-        fovDeg: CAMERA_FOV_DEG,
-        aspect: 1,
-        near: NEAR,
+        halfWidth: 1,
+        halfHeight: 1,
+        near: CAMERA_NEAR,
       };
 
       /* -------------------------------------------------------------- */
@@ -170,7 +174,7 @@ export class Renderer3D implements Renderer {
       const map = world.map;
       this.scene.background = new THREE.Color(PALETTE.water);
       // A light haze towards the top of the screen, where the view runs far.
-      this.scene.fog = new THREE.Fog(PALETTE.water, 30, 90);
+      this.scene.fog = new THREE.Fog(PALETTE.water, CAMERA_DISTANCE + 12, CAMERA_DISTANCE + 70);
       // Sky and bounce light do most of the work; the sun only gives faces a
       // direction. No shadow maps: contact shadows are baked or blobs.
       this.scene.add(new THREE.HemisphereLight(0xeef8ff, 0xb7cfa4, 2.2));
@@ -185,7 +189,10 @@ export class Renderer3D implements Renderer {
       this.characterMaterial.name = 'characters';
 
       const heights = cornerHeights(map);
+      this.heightAt = heightSampler(map, heights);
+      this.peak = maxHeight(heights);
       this.scene.add(buildGround(map, heights, this.surface));
+      this.scene.add(buildShallows(map, this.surface));
 
       const water = new THREE.Mesh(
         new THREE.PlaneGeometry(map.width + 400, map.height + 400).rotateX(-Math.PI / 2),
@@ -528,15 +535,14 @@ export class Renderer3D implements Renderer {
     this.height = Math.max(1, Math.round(parent.clientHeight));
     this.renderer.setPixelRatio(resolutionCap());
     this.renderer.setSize(this.width, this.height);
-    this.camera.aspect = this.width / this.height;
+    // Orthographic: the frame, not a distance, decides how much town is in view.
+    orthoFrame(tilesAcross(this.width), this.width / this.height, this.view);
+    this.camera.left = -this.view.halfWidth;
+    this.camera.right = this.view.halfWidth;
+    this.camera.top = this.view.halfHeight;
+    this.camera.bottom = -this.view.halfHeight;
     this.camera.updateProjectionMatrix();
-    this.view.aspect = this.camera.aspect;
-    const distance = cameraDistance(tilesAcross(this.width), this.camera.aspect);
-    cameraOffset(distance, this.offset);
-    if (this.scene.fog instanceof THREE.Fog) {
-      this.scene.fog.near = distance * 1.15;
-      this.scene.fog.far = distance * 3.2;
-    }
+    cameraOffset(CAMERA_DISTANCE, this.offset);
     // The orientation never changes; only the position follows the player.
     this.camera.position.set(this.offset.x, this.offset.y, this.offset.z);
     this.camera.lookAt(0, 0, 0);
@@ -581,12 +587,12 @@ export class Renderer3D implements Renderer {
     if (tile !== null) this.context.world.walkToTile(tile);
   };
 
-  /** The tile under a point on screen, by casting onto the ground plane. */
+  /** The tile under a point on screen, by casting onto the terrain, hills included. */
   private pickTile(clientX: number, clientY: number): Point | null {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const ndc = cssToNdc(clientX - rect.left, clientY - rect.top, rect.width, rect.height, { x: 0, y: 0 });
     const hit: Vec3 = { x: 0, y: 0, z: 0 };
-    if (!screenToGround(ndc.x, ndc.y, this.view, 0, hit)) return null;
+    if (!screenToTerrain(ndc.x, ndc.y, this.view, this.heightAt, this.peak, hit)) return null;
     return { x: Math.floor(hit.x), y: Math.floor(hit.z) };
   }
 

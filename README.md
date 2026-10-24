@@ -281,10 +281,19 @@ proximity and the protocol are the same code in both, run by the same
 - **Text is DOM.** Name tags, bubbles and emotes are elements laid over the
   canvas, positioned each frame by projecting the head; text goes in through
   `textContent`, in the page's own font.
-- **A fixed camera.** Narrow field of view, fixed pitch, north up, following
-  the player at the same zoom rule as 2D. Up on the joystick is up the screen,
-  and a tap is cast onto the ground plane to find its tile — through the same
-  arithmetic the unit tests check against three.js's own camera.
+- **A fixed 3/4 camera.** Orthographic, pitched 45°, north up, following
+  the player at the same zoom rule as 2D (the width is fixed; a portrait phone
+  sees further north and south). Orthographic because a perspective camera
+  tall enough for a portrait screen sees the bottom of it nearly from above
+  and the top nearly from the side, so each house looked drawn by its own
+  rules; now every house, bridge and tree is drawn the same way wherever it
+  is. Up on the joystick is up the screen, and a tap is cast onto the terrain,
+  hills included, to find its tile — through the same arithmetic the unit
+  tests check against three.js's own camera. Every camera setting is in
+  `packages/client/src/three/cameraRig.ts`.
+- **Water with banks.** The shallows fade from pale at each bank to open
+  water a couple of tiles out, so rivers sit in their beds rather than
+  reading as a flat blue sheet.
 - **On a phone.** Device pixel ratio capped at 2; the render loop reuses its
   vectors, matrices and instance buffers rather than allocating them each
   frame, and only rewrites an overlay's position when it moved; a lost WebGL

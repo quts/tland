@@ -1,30 +1,10 @@
 import {
-  ACCESSORIES,
   BODY_COLORS,
   DEFAULT_AVATAR,
-  HATS,
   SHIRT_COLORS,
-  type Accessory,
   type AvatarParts,
-  type Hat,
 } from '../gfx/avatar.js';
 import type { AvatarImage } from '../render/renderer.js';
-
-const HAT_LABELS: Record<Hat, string> = {
-  none: '不戴',
-  cap: '鴨舌帽',
-  sunhat: '草帽',
-  beanie: '毛帽',
-  bloom: '花環',
-};
-
-const ACCESSORY_LABELS: Record<Accessory, string> = {
-  none: '沒有',
-  scarf: '圍巾',
-  glasses: '眼鏡',
-  satchel: '側背包',
-  bowtie: '領結',
-};
 
 function required<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -61,14 +41,8 @@ export class JoinScreen {
     this.buildSwatches('pick-body', BODY_COLORS, '膚色', this.parts.body, (index) => {
       this.parts = { ...this.parts, body: index };
     });
-    this.buildSwatches('pick-shirt', SHIRT_COLORS, '衣服', this.parts.shirt, (index) => {
+    this.buildSwatches('pick-shirt', SHIRT_COLORS, '配色', this.parts.shirt, (index) => {
       this.parts = { ...this.parts, shirt: index };
-    });
-    this.buildChips('pick-hat', HATS, HAT_LABELS, this.parts.hat, (value) => {
-      this.parts = { ...this.parts, hat: value };
-    });
-    this.buildChips('pick-accessory', ACCESSORIES, ACCESSORY_LABELS, this.parts.accessory, (value) => {
-      this.parts = { ...this.parts, accessory: value };
     });
 
     this.nickname.addEventListener('input', () => {
@@ -166,32 +140,6 @@ export class JoinScreen {
         }
         button.setAttribute('aria-pressed', 'true');
         onPick(index);
-        this.redrawPreview();
-      });
-      container.append(button);
-    });
-  }
-
-  private buildChips<T extends string>(
-    containerId: string,
-    values: readonly T[],
-    labels: Record<T, string>,
-    selected: T,
-    onPick: (value: T) => void,
-  ): void {
-    const container = required(containerId);
-    values.forEach((value) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'chip';
-      button.textContent = labels[value];
-      button.setAttribute('aria-pressed', String(value === selected));
-      button.addEventListener('click', () => {
-        for (const sibling of container.children) {
-          sibling.setAttribute('aria-pressed', 'false');
-        }
-        button.setAttribute('aria-pressed', 'true');
-        onPick(value);
         this.redrawPreview();
       });
       container.append(button);

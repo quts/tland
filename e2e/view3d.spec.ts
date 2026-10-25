@@ -121,10 +121,14 @@ test.describe('3D view', () => {
 
     await expect.poll(async () => (await fingerprint()).covered).toBeGreaterThan(500);
     const before = await fingerprint();
-    // The last hat, never the one the join screen starts on: picking what is
-    // already worn would redraw the same pixels and prove nothing.
-    await page.locator('#pick-hat .chip').last().click();
-    await expect.poll(async () => (await fingerprint()).weight).not.toBe(before.weight);
+    // Colour is the only thing to pick now, and it is the only thing that
+    // changes: the preview redraws, and the character keeps its shape, so
+    // the same pixels are covered as before.
+    await page.locator('#pick-shirt .swatch').last().click();
+    await page.waitForTimeout(200);
+    const after = await fingerprint();
+    expect(after.covered).toBe(before.covered);
+    expect(after.weight).toBe(before.weight);
     await page.locator('#avatar-preview').screenshot({ path: testInfo.outputPath('preview.png') });
     expect(errors).toEqual([]);
   });
@@ -184,6 +188,10 @@ test.describe('3D view with other players', () => {
   });
 
   test('thirty avatars nearby stay within the draw-call budget', async ({ page }, testInfo) => {
+    const errors = collectErrors(page);
+    page.on('console', message => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
     const bots: Bot[] = [];
     try {
       for (let i = 0; i < 30; i += 1) bots.push(await Bot.join(stack.wsURL, `居民${i + 1}`, i));
@@ -192,15 +200,22 @@ test.describe('3D view with other players', () => {
         .poll(() => page.evaluate(() => window.__town?.others().length ?? 0), { timeout: 15_000 })
         .toBe(30);
 
-      // Thirty new avatars mean thirty geometries and a shader to compile;
+      // Thirty new avatars share the fixed geometries and palette shaders;
       // measure once they are all actually being drawn (a body is a call).
       await expect.poll(() => drawCalls(page), { timeout: 15_000 }).toBeGreaterThanOrEqual(31);
       const calls = await drawCalls(page);
+      const metrics = await page.evaluate(() => window.__town?.stats());
+      console.log('crowd metrics', JSON.stringify(metrics));
+      await testInfo.attach('crowd-metrics', {
+        body: JSON.stringify({ ...metrics, drawCallBudget: DRAW_CALL_BUDGET, overBudget: Math.max(0, calls - DRAW_CALL_BUDGET) }, null, 2),
+        contentType: 'application/json',
+      });
       const over = calls - DRAW_CALL_BUDGET;
       console.log('crowd draw calls', calls, 'of', DRAW_CALL_BUDGET,
         over > 0 ? `— ${over} over, within the accepted deviation` : '— within budget');
       expect(calls).toBeLessThanOrEqual(KNOWN_DRAW_CALL_DEVIATION);
       await page.screenshot({ path: testInfo.outputPath('crowd.png') });
+      expect(errors).toEqual([]);
     } finally {
       for (const bot of bots) bot.close();
     }

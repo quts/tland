@@ -143,7 +143,7 @@ async function main(): Promise<void> {
     onSubmit: (nickname, avatar) => {
       identity = { nickname, avatar };
       world.setIdentity(nickname, avatar);
-      connection.send({ t: 'join', nick: nickname, avatar });
+      connection.send({ t: 'join', nick: nickname, avatar: avatar });
     },
   });
 

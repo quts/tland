@@ -1,0 +1,42 @@
+[
+  {
+    "device": "iphone",
+    "remotePlayers": 30,
+    "localPlayers": 1,
+    "drawCalls": 126,
+    "drawCallTarget": 150,
+    "overDrawCallTarget": 0,
+    "triangles": 514917,
+    "softwareRendererFps": 9.363295880149813
+  },
+  {
+    "device": "iphone-landscape",
+    "remotePlayers": 30,
+    "localPlayers": 1,
+    "drawCalls": 144,
+    "drawCallTarget": 150,
+    "overDrawCallTarget": 0,
+    "triangles": 541177,
+    "softwareRendererFps": 8.620689655172415
+  },
+  {
+    "device": "ipad",
+    "remotePlayers": 30,
+    "localPlayers": 1,
+    "drawCalls": 120,
+    "drawCallTarget": 150,
+    "overDrawCallTarget": 0,
+    "triangles": 496068,
+    "softwareRendererFps": 4.392386530014641
+  },
+  {
+    "device": "ipad-landscape",
+    "remotePlayers": 30,
+    "localPlayers": 1,
+    "drawCalls": 158,
+    "drawCallTarget": 150,
+    "overDrawCallTarget": 8,
+    "triangles": 586575,
+    "softwareRendererFps": 5.905511811023622
+  }
+]

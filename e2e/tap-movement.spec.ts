@@ -62,7 +62,6 @@ test.describe('low-frame-rate tap movement', () => {
       await page.goto(stack.baseURL + '/?view=' + view);
       await expect(page.locator('#join-button')).toHaveText('進入小鎮', { timeout: 20_000 });
       await page.locator('#nickname').fill('路線測試');
-      await page.locator('#pick-hat .chip').nth(2).click();
       await page.locator('#join-button').click();
       await page.waitForFunction(() => window.__town?.joined() === true);
       if (view === '2d') {

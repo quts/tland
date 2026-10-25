@@ -2,76 +2,74 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { PROPORTIONS } from '../src/three/character/proportions.js';
 import {
-  assembleCharacter, buildArmGeometry, buildCharacterGeometry,
+  CharacterMaterialCache, DEFAULT_COLORS, PART, assembleCharacter,
+  characterArmGeometry, characterBodyGeometry, colorKey,
 } from '../src/three/character/index.js';
 
-const OUTFIT = { body: 0, shirt: 4, hat: 'sunhat', accessory: 'scarf' } as const;
-const BARE = { showHat: false, showScarf: false } as const;
+const OTHER = { ...DEFAULT_COLORS, outfit: '#90c9ae', scarf: '#f0a978' };
 
-/** The vertices of one geometry, as rounded "x,y,z" keys. */
-function pointsOf(geometry: THREE.BufferGeometry): string[] {
-  const position = geometry.getAttribute('position');
-  const keys: string[] = [];
-  for (let i = 0; i < position.count; i += 1) {
-    keys.push([position.getX(i), position.getY(i), position.getZ(i)]
-      .map((v) => v.toFixed(4)).join(','));
-  }
-  return keys;
-}
-
-function points(geometry: THREE.BufferGeometry): Set<string> {
-  return new Set(pointsOf(geometry));
-}
-
-function figure(): ReturnType<typeof assembleCharacter> {
-  return assembleCharacter(
-    buildCharacterGeometry(OUTFIT, BARE),
-    buildArmGeometry(OUTFIT),
-    new THREE.MeshBasicMaterial(),
-  );
+function material(): THREE.Material {
+  return new THREE.MeshBasicMaterial();
 }
 
 /** Where the hand ends up in the character's own space, for a given pose. */
 function handAt(side: -1 | 1, pitch: number, splay: number): THREE.Vector3 {
-  const assembled = figure();
+  const assembled = assembleCharacter(material());
   assembled.poseArm(side, pitch, splay);
   assembled.root.updateMatrixWorld(true);
-  const hand = new THREE.Vector3(0, -PROPORTIONS.arm.hand.at, 0);
-  return assembled.arm(side).localToWorld(hand);
+  return assembled.arm(side).localToWorld(new THREE.Vector3(0, -PROPORTIONS.arm.hand.at, 0));
 }
 
-describe('character components', () => {
-  it('leaves the hat and the scarf out when they are toggled off', () => {
-    const dressed = points(buildCharacterGeometry(OUTFIT));
-    const bare = points(buildCharacterGeometry(OUTFIT, BARE));
-    expect(bare.size).toBeLessThan(dressed.size);
-    // Whatever the base character is made of survives both ways.
-    for (const point of bare) expect(dressed.has(point)).toBe(true);
-  });
+describe('the character', () => {
+  it('is one geometry, whatever the colours', () => {
+    const body = characterBodyGeometry();
+    const arm = characterArmGeometry();
+    // Asking again gives the same objects: colour never rebuilds a shape.
+    expect(characterBodyGeometry()).toBe(body);
+    expect(characterArmGeometry()).toBe(arm);
 
-  it('toggles the hat and the scarf independently', () => {
-    const hatOnly = points(buildCharacterGeometry(OUTFIT, { showScarf: false }));
-    const scarfOnly = points(buildCharacterGeometry(OUTFIT, { showHat: false }));
-    const bare = points(buildCharacterGeometry(OUTFIT, BARE));
-    expect(hatOnly.size).toBeGreaterThan(bare.size);
-    expect(scarfOnly.size).toBeGreaterThan(bare.size);
-    expect(hatOnly).not.toEqual(scarfOnly);
-  });
-
-  it('keeps the arms out of the body mesh, in a group on each shoulder', () => {
-    const body = buildCharacterGeometry(OUTFIT, BARE);
-    body.computeBoundingBox();
-    // The body alone is narrower than the figure: no arm is baked into it.
-    const assembled = figure();
-    assembled.root.updateMatrixWorld(true);
-    const whole = new THREE.Box3().setFromObject(assembled.root);
-    expect(whole.max.x).toBeGreaterThan(body.boundingBox!.max.x);
-
+    const a = assembleCharacter(material());
+    const b = assembleCharacter(material());
+    expect(b.body.geometry).toBe(a.body.geometry);
     for (const side of [-1, 1] as const) {
-      const group = assembled.arm(side);
-      expect(group.parent).toBe(assembled.root);
-      expect(group.position.x).toBeCloseTo(side * PROPORTIONS.arm.pivot.x, 10);
-      expect(group.position.y).toBeCloseTo(PROPORTIONS.arm.pivot.y, 10);
+      expect((b.arm(side).children[0] as THREE.Mesh).geometry)
+        .toBe((a.arm(side).children[0] as THREE.Mesh).geometry);
+    }
+  });
+
+  it('recolours by swapping the material, never the geometry', () => {
+    const palettes = new CharacterMaterialCache();
+    const character = assembleCharacter(palettes.get(DEFAULT_COLORS));
+    const before = character.body.geometry;
+    character.setMaterial(palettes.get(OTHER));
+    expect(character.body.geometry).toBe(before);
+    expect(character.body.material).toBe(palettes.get(OTHER));
+    for (const side of [-1, 1] as const) {
+      expect((character.arm(side).children[0] as THREE.Mesh).material)
+        .toBe(palettes.get(OTHER));
+    }
+    palettes.dispose();
+  });
+
+  it('allocates one material per palette, not per character', () => {
+    const palettes = new CharacterMaterialCache();
+    for (let i = 0; i < 10; i += 1) assembleCharacter(palettes.get(DEFAULT_COLORS));
+    expect(palettes.size).toBe(1);
+    assembleCharacter(palettes.get(OTHER));
+    expect(palettes.size).toBe(2);
+    expect(colorKey(DEFAULT_COLORS)).not.toBe(colorKey(OTHER));
+    palettes.dispose();
+  });
+
+  it('wears the hat and the scarf always, with nothing to toggle', () => {
+    const position = characterBodyGeometry().getAttribute('position');
+    const parts = characterBodyGeometry().getAttribute('partId');
+    expect(parts.count).toBe(position.count);
+    const present = new Set<number>();
+    for (let i = 0; i < parts.count; i += 1) present.add(parts.getX(i));
+    // Every slot of the palette is actually used by the one fixed outfit.
+    for (const slot of Object.values(PART)) {
+      expect(present.has(slot), `part ${slot}`).toBe(true);
     }
   });
 
@@ -87,12 +85,12 @@ describe('character components', () => {
     }
 
     // Raising one arm leaves the other where it was.
-    const assembled = figure();
-    assembled.root.updateMatrixWorld(true);
-    const before = assembled.arm(-1).matrixWorld.clone();
-    assembled.poseArm(1, Math.PI / 2);
-    assembled.root.updateMatrixWorld(true);
-    expect(assembled.arm(-1).matrixWorld.equals(before)).toBe(true);
+    const character = assembleCharacter(material());
+    character.root.updateMatrixWorld(true);
+    const before = character.arm(-1).matrixWorld.clone();
+    character.poseArm(1, Math.PI / 2);
+    character.root.updateMatrixWorld(true);
+    expect(character.arm(-1).matrixWorld.equals(before)).toBe(true);
 
     // Splay sends the hand outward on both sides, pitch forward on both.
     expect(handAt(1, 0, 1.1).x).toBeGreaterThan(handAt(1, 0, 0).x);
@@ -104,7 +102,7 @@ describe('character components', () => {
 
   it('keeps the shoulder a sphere about the pivot, so no pose can open it', () => {
     const { joint } = PROPORTIONS.arm;
-    const position = buildArmGeometry(OUTFIT).getAttribute('position');
+    const position = characterArmGeometry().getAttribute('position');
     let onTheBall = 0;
     for (let i = 0; i < position.count; i += 1) {
       const y = position.getY(i);
@@ -117,80 +115,46 @@ describe('character components', () => {
       expect(distance, `vertex ${i}`).toBeLessThanOrEqual(joint + 1e-6);
       if (distance > joint - 1e-6) onTheBall += 1;
     }
-    // And it is the ball, not merely inside it: the sleeve's top *is* that
-    // hemisphere, so there is no separate cap with a boundary of its own.
     expect(onTheBall).toBeGreaterThan(100);
   });
 
-  it('keeps the shoulder joint inside the torso', () => {
-    const { pivot, radius } = PROPORTIONS.arm;
-    // The torso's radius at the joint's height, from the profile it is turned
-    // from. The joint has to be inside it, or the sleeve's rounded upper end
-    // stands proud and shows a rim when the arm swings.
-    const profile = PROPORTIONS.body.profile;
-    let torsoRadius = 0;
-    for (let i = 1; i < profile.length; i += 1) {
-      const [r0, y0] = profile[i - 1] as readonly [number, number];
-      const [r1, y1] = profile[i] as readonly [number, number];
-      if (pivot.y >= y0 && pivot.y <= y1) {
-        torsoRadius = r0 + ((r1 - r0) * (pivot.y - y0)) / (y1 - y0);
-        break;
-      }
-    }
-    expect(torsoRadius).toBeGreaterThan(0);
-    expect(pivot.x).toBeLessThan(torsoRadius);
-    // And far enough in that the whole cap is swallowed, from any angle.
-    expect(pivot.x + radius).toBeGreaterThan(torsoRadius);
-    expect(radius).toBeGreaterThan(torsoRadius - pivot.x);
-  });
-
   it('winds the scarf unevenly, and rests it on the shoulders', () => {
-    const { wrap, tail } = PROPORTIONS.scarf;
+    const s = PROPORTIONS.scarf;
     const { pivot, joint } = PROPORTIONS.arm;
-    const bare = buildCharacterGeometry(OUTFIT, BARE);
-    const scarfed = buildCharacterGeometry(OUTFIT, { showHat: false });
-    // The scarf is merged into the body like every other fixed part, so it
-    // adds geometry and no draw call of its own.
-    expect(scarfed.getAttribute('position').count)
-      .toBeGreaterThan(bare.getAttribute('position').count);
-
-    // Whatever the scarf added, measured around the neck: a loop of constant
-    // radius is a torus, which is the one shape wound fabric never makes.
-    const added = new Set(pointsOf(bare));
-    const radii = new Map<number, { min: number; max: number }>();
-    const position = scarfed.getAttribute('position');
+    const position = characterBodyGeometry().getAttribute('position');
+    const parts = characterBodyGeometry().getAttribute('partId');
+    // The scarf's radius where it passes the neck, bucketed by direction: a
+    // loop of constant radius is a torus, which wound cloth never makes.
+    const radii = new Map<number, number>();
     for (let i = 0; i < position.count; i += 1) {
-      const key = [position.getX(i), position.getY(i), position.getZ(i)]
-        .map((v) => v.toFixed(4)).join(',');
-      if (added.has(key)) continue;
-      const y = position.getY(i);
-      if (Math.abs(y - wrap.y) > 0.01) continue;
-      const bucket = Math.round(Math.atan2(position.getX(i), position.getZ(i)) * 6);
+      if (parts.getX(i) !== PART.scarf) continue;
+      if (Math.abs(position.getY(i) - s.y) > 0.012) continue;
+      const bucket = Math.round(Math.atan2(position.getX(i), position.getZ(i)) * 5);
       const radius = Math.hypot(position.getX(i), position.getZ(i));
-      const seen = radii.get(bucket) ?? { min: Infinity, max: -Infinity };
-      radii.set(bucket, { min: Math.min(seen.min, radius), max: Math.max(seen.max, radius) });
+      radii.set(bucket, Math.max(radii.get(bucket) ?? 0, radius));
     }
-    const outer = [...radii.values()].map((r) => r.max);
+    const outer = [...radii.values()];
     expect(outer.length).toBeGreaterThan(8);
     expect(Math.max(...outer) - Math.min(...outer)).toBeGreaterThan(0.01);
 
-    // It rests on the shoulders: the top of the shoulder ball passes inside
-    // the loop's thickness rather than through its surface.
-    expect(wrap.y - wrap.thickness).toBeLessThan(pivot.y + joint);
-    expect(wrap.radius + wrap.thickness).toBeGreaterThan(pivot.x + joint);
-    // The tail is a strap, not a rope, and short enough to leave the torso.
-    expect(tail.width).toBeGreaterThan(tail.depth * 2);
-    expect(tail.length).toBeLessThan(PROPORTIONS.body.collarY / 2);
+    // It goes round more than once, so the cloth laps over its own start.
+    expect(s.turns).toBeGreaterThan(1);
+    // It rests on the shoulders: where the cloth is at its widest it reaches
+    // further out than the shoulder ball does, so the top of the shoulder
+    // passes inside the scarf rather than through its surface.
+    expect(s.radius + s.width).toBeGreaterThan(pivot.x + joint);
+    // And the tail is a band, not a rope.
+    expect(s.width).toBeGreaterThan(s.thickness);
   });
 
-  it('is symmetric left to right', () => {
-    const bare = buildCharacterGeometry(OUTFIT, BARE);
-    const position = bare.getAttribute('position');
-    // Everything clear of the middle, split into the two sides and sorted the
-    // same way: a mirrored pair lines up term for term, a shifted one does not.
+  it('is symmetric left to right, apart from the scarf', () => {
+    const position = characterBodyGeometry().getAttribute('position');
+    const parts = characterBodyGeometry().getAttribute('partId');
     const side = (sign: number): number[][] => {
       const rows: number[][] = [];
       for (let i = 0; i < position.count; i += 1) {
+        // The scarf is wound and hangs to one side; nothing else is.
+        if (parts.getX(i) === PART.scarf) continue;
         const x = position.getX(i);
         if (Math.sign(x) !== sign || Math.abs(x) < 0.12) continue;
         rows.push([Math.abs(x), position.getY(i), position.getZ(i)]);

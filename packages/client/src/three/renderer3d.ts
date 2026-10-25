@@ -212,7 +212,7 @@ export class Renderer3D implements Renderer {
       const props = buildProps(map, heights, this.surface, shadowGeometry, shadowMaterial);
       this.scene.add(props.group, props.shadows);
 
-      this.characters = new CharacterLayer(this.characterMaterial, shadowGeometry, shadowMaterial);
+      this.characters = new CharacterLayer(shadowGeometry, shadowMaterial);
       this.scene.add(this.characters.group);
 
       this.marker = new THREE.Mesh(

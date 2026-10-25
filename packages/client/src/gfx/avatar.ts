@@ -1,3 +1,4 @@
+import { CHARACTER_PALETTES, type CharacterColors } from './characterColors.js';
 import type Phaser from 'phaser';
 import { PALETTE } from './palette.js';
 import { GFX_SCALE } from './scale.js';
@@ -24,9 +25,7 @@ export const BODY_COLORS = [
   0xfbe0c6, 0xe8cdb0, 0xc99a74, 0x9a6a4c, 0xf0d6e6, 0xb9d8ef, 0xc7e8c0, 0xf6dd9a,
 ] as const;
 
-export const SHIRT_COLORS = [
-  0xf3b8bf, 0x8fb8d9, 0x90c9ae, 0xfbe8a6, 0xc9b6e4, 0xf0a978, 0xa9c6f0, 0xe9e2d4,
-] as const;
+export const SHIRT_COLORS = CHARACTER_PALETTES.map(({ colors }) => Number.parseInt(colors.outfit.slice(1), 16));
 
 /** Hair, picked by skin so a crowd is not all one colour. */
 export const HAIR_COLORS = [
@@ -40,45 +39,48 @@ export const STRAW = 0xf2d58a;
 export const EYE = 0x2f2420;
 export const MOUTH = 0x5b4237;
 
-export const HATS = ['none', 'cap', 'sunhat', 'beanie', 'bloom'] as const;
-export type Hat = (typeof HATS)[number];
-
-export const ACCESSORIES = ['none', 'scarf', 'glasses', 'satchel', 'bowtie'] as const;
-export type Accessory = (typeof ACCESSORIES)[number];
-
+/**
+ * What a player picks.
+ *
+ * Colour, and only colour. The straw hat and the scarf are part of the
+ * character's design rather than things it wears, so there is nothing to
+ * equip or swap: every character is the same shape.
+ */
 export interface AvatarParts {
   /** Index into BODY_COLORS. */
   body: number;
   /** Index into SHIRT_COLORS. */
   shirt: number;
-  hat: Hat;
-  accessory: Accessory;
 }
 
-export const DEFAULT_AVATAR: AvatarParts = {
-  body: 0,
-  shirt: 4,
-  hat: 'sunhat',
-  accessory: 'scarf',
-};
+export const DEFAULT_AVATAR: AvatarParts = { body: 0, shirt: 4 };
 
 /** Clamp anything that arrived over the wire into a drawable avatar. */
 export function sanitizeAvatar(value: unknown): AvatarParts {
   const source = (value ?? {}) as Partial<Record<keyof AvatarParts, unknown>>;
   const body = Number(source.body);
   const shirt = Number(source.shirt);
-  const hat = source.hat as Hat;
-  const accessory = source.accessory as Accessory;
   return {
     body: Number.isInteger(body) ? Math.abs(body) % BODY_COLORS.length : 0,
     shirt: Number.isInteger(shirt) ? Math.abs(shirt) % SHIRT_COLORS.length : 0,
-    hat: HATS.includes(hat) ? hat : 'none',
-    accessory: ACCESSORIES.includes(accessory) ? accessory : 'none',
   };
 }
 
 export function avatarTextureKey(parts: AvatarParts): string {
-  return `avatar-${parts.body}-${parts.shirt}-${parts.hat}-${parts.accessory}`;
+  return `avatar-${parts.body}-${parts.shirt}`;
+}
+
+function hex(color: number): string {
+  return '#' + color.toString(16).padStart(6, '0');
+}
+
+/** The colours one avatar is drawn with, in both views. */
+export function characterColorsFor(parts: AvatarParts): CharacterColors {
+  return {
+    ...(CHARACTER_PALETTES[parts.shirt] ?? CHARACTER_PALETTES[0])!.colors,
+    skin: hex(BODY_COLORS[parts.body] ?? BODY_COLORS[0]),
+    hair: hex(HAIR_COLORS[parts.body] ?? HAIR_COLORS[0]),
+  };
 }
 
 const CX = FRAME_WIDTH / 2;
@@ -115,115 +117,41 @@ function outlinedRoundedRect(
 function drawHat(
   g: Phaser.GameObjects.Graphics,
   ox: number,
-  hat: Hat,
   facing: number,
   headY: number,
+  colors: CharacterColors,
 ): void {
+  const straw = Number.parseInt(colors.hat.slice(1), 16);
+  const ribbon = Number.parseInt(colors.hatRibbon.slice(1), 16);
   const cx = ox + CX;
-  // Where the hat sits on the skull.
   const brow = headY - 4;
-
-  switch (hat) {
-    case 'none':
-      return;
-    case 'cap':
-      outlinedRoundedRect(g, cx - 9.5, brow - 7, 19, 9, 4.5, PALETTE.roofCool);
-      if (facing !== FACING.up) {
-        g.fillStyle(OUTLINE, 1);
-        g.fillRoundedRect(cx - 3, brow + 1, 15, 5, 2.5);
-        g.fillStyle(PALETTE.roofCool, 1);
-        g.fillRoundedRect(cx - 2, brow + 2, 13, 3, 1.5);
-      }
-      return;
-    case 'sunhat':
-      // A straw boater: flat crown, coral band, wide flat brim. It rides high
-      // on the skull, the way the 3D one does, so the fringe stays visible.
-      outlinedRoundedRect(g, cx - 9, brow - 11.5, 18, 10, 3.5, STRAW);
-      g.fillStyle(SCARF, 1);
-      g.fillRect(cx - 9, brow - 9, 18, 3);
-      g.fillStyle(OUTLINE, 1);
-      g.fillEllipse(cx, brow - 2.5, 36, 11);
-      g.fillStyle(STRAW, 1);
-      g.fillEllipse(cx, brow - 2.5, 32, 7.5);
-      return;
-    case 'beanie':
-      outlinedRoundedRect(g, cx - 9.5, brow - 7, 19, 11, 6, PALETTE.petalLilac);
-      outlinedCircle(g, cx, brow - 9, 2.6, PALETTE.wall);
-      return;
-    case 'bloom':
-      for (const [dx, color] of [
-        [-6.5, PALETTE.petalRose],
-        [0, PALETTE.petalCream],
-        [6.5, PALETTE.petalLilac],
-      ] as const) {
-        g.fillStyle(color, 1);
-        for (let i = 0; i < 5; i += 1) {
-          const angle = (i / 5) * Math.PI * 2;
-          g.fillCircle(
-            cx + dx + Math.cos(angle) * 2.6,
-            brow - 3 + Math.sin(angle) * 2.6,
-            2.1,
-          );
-        }
-        g.fillStyle(PALETTE.petalCore, 1);
-        g.fillCircle(cx + dx, brow - 3, 1.8);
-      }
-      return;
-  }
+  void facing;
+  // A straw boater: flat crown, coral band, wide flat brim. It rides high on
+  // the skull, the way the 3D one does, so the fringe stays visible.
+  outlinedRoundedRect(g, cx - 9, brow - 9.5, 18, 9, 3.5, straw);
+  g.fillStyle(ribbon, 1);
+  g.fillRect(cx - 9, brow - 7.5, 18, 2);
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(cx, brow - 3, 36, 9);
+  g.fillStyle(straw, 1);
+  g.fillEllipse(cx, brow - 3, 32, 6);
 }
 
-function drawAccessory(
+function drawScarf(
   g: Phaser.GameObjects.Graphics,
   ox: number,
-  accessory: Accessory,
   facing: number,
   bodyY: number,
-  headY: number,
+  colors: CharacterColors,
 ): void {
+  const scarf = Number.parseInt(colors.scarf.slice(1), 16);
   const cx = ox + CX;
-  switch (accessory) {
-    case 'none':
-      return;
-    case 'scarf':
-      outlinedRoundedRect(g, cx - 10, bodyY - 2.5, 20, 6, 3, SCARF);
-      if (facing === FACING.down) {
-        g.fillStyle(OUTLINE, 1);
-        g.fillRoundedRect(cx - 7.5, bodyY + 2, 6, 10, 3);
-        g.fillStyle(SCARF, 1);
-        g.fillRoundedRect(cx - 6.5, bodyY + 3, 4, 8, 2);
-      }
-      return;
-    case 'glasses':
-      if (facing === FACING.up) return;
-      g.lineStyle(1.6, OUTLINE, 1);
-      if (facing === FACING.down) {
-        g.strokeCircle(cx - 3.6, headY + 3, 3.2);
-        g.strokeCircle(cx + 3.6, headY + 3, 3.2);
-        g.beginPath();
-        g.moveTo(cx - 0.4, headY + 3);
-        g.lineTo(cx + 0.4, headY + 3);
-        g.strokePath();
-      } else {
-        g.strokeCircle(cx + 3.8, headY + 3, 3.2);
-      }
-      return;
-    case 'satchel':
-      outlinedRoundedRect(g, cx + 5, bodyY + 6, 8, 9, 3, PALETTE.bridge);
-      g.lineStyle(1.8, OUTLINE, 1);
-      g.beginPath();
-      g.moveTo(cx + 9, bodyY + 6);
-      g.lineTo(cx - 2, bodyY);
-      g.strokePath();
-      return;
-    case 'bowtie':
-      if (facing === FACING.up) return;
-      g.fillStyle(OUTLINE, 1);
-      g.fillTriangle(cx - 8, bodyY - 1, cx - 1, bodyY + 2.5, cx - 8, bodyY + 6);
-      g.fillTriangle(cx + 8, bodyY - 1, cx + 1, bodyY + 2.5, cx + 8, bodyY + 6);
-      g.fillStyle(PALETTE.roofWarm, 1);
-      g.fillTriangle(cx - 6, bodyY + 0.5, cx - 2, bodyY + 2.5, cx - 6, bodyY + 4.5);
-      g.fillTriangle(cx + 6, bodyY + 0.5, cx + 2, bodyY + 2.5, cx + 6, bodyY + 4.5);
-      return;
+  outlinedRoundedRect(g, cx - 10, bodyY - 2.5, 20, 6, 3, scarf);
+  if (facing === FACING.down) {
+    g.fillStyle(OUTLINE, 1);
+    g.fillRoundedRect(cx - 7.5, bodyY + 2, 6, 10, 3);
+    g.fillStyle(scarf, 1);
+    g.fillRoundedRect(cx - 6.5, bodyY + 3, 4, 8, 2);
   }
 }
 
@@ -240,6 +168,7 @@ function drawFrame(
   parts: AvatarParts,
   facing: number,
 ): void {
+  const colors = characterColorsFor(parts);
   const skin = BODY_COLORS[parts.body] ?? (BODY_COLORS[0] as number);
   const shirt = SHIRT_COLORS[parts.shirt] ?? (SHIRT_COLORS[0] as number);
   const cx = ox + CX;
@@ -252,7 +181,7 @@ function drawFrame(
   g.fillStyle(OUTLINE, 1);
   g.fillRoundedRect(cx - 8.5, FEET_Y - 5.5, 8, 7.5, 3.5);
   g.fillRoundedRect(cx + 0.5, FEET_Y - 5.5, 8, 7.5, 3.5);
-  g.fillStyle(BOOT, 1);
+  g.fillStyle(Number.parseInt(colors.shoes.slice(1), 16), 1);
   g.fillRoundedRect(cx - 7.5, FEET_Y - 4.5, 6, 5.5, 2.5);
   g.fillRoundedRect(cx + 1.5, FEET_Y - 4.5, 6, 5.5, 2.5);
 
@@ -266,7 +195,7 @@ function drawFrame(
   // Torso: one round ball, the head sitting straight on it.
   outlinedRoundedRect(g, cx - 10, BODY_TOP, 20, 17, 9, shirt);
 
-  drawAccessory(g, ox, parts.accessory, facing, BODY_TOP, HEAD_Y);
+  drawScarf(g, ox, facing, BODY_TOP, colors);
 
   // Head.
   outlinedCircle(g, cx, HEAD_Y, HEAD_RADIUS, skin);
@@ -316,7 +245,7 @@ function drawFrame(
     }
   }
 
-  drawHat(g, ox, parts.hat, facing, HEAD_Y);
+  drawHat(g, ox, facing, HEAD_Y, colors);
 }
 
 /**

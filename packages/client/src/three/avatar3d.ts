@@ -1,23 +1,21 @@
 import * as THREE from 'three';
-import { EYE, MOUTH, avatarTextureKey, type AvatarParts } from '../gfx/avatar.js';
+import { EYE, MOUTH } from '../gfx/avatar.js';
 import { PROPORTIONS } from './character/proportions.js';
-import {
-  buildArmGeometry, buildCharacterGeometry, type CharacterOptions,
-} from './character/index.js';
 
 /**
  * 3D avatars.
  *
  * The character itself lives in `./character`: one central `PROPORTIONS`
  * config, and a component each for the base character, the scarf and the
- * hats. This module is the view's side of it — the merged geometry cache,
+ * fixed hat. This module is the view's side of it — the merged geometry cache,
  * and the one texture the whole crowd shares, its face.
  */
 
 export { PROPORTIONS, HEAD_TOP, alongArm } from './character/proportions.js';
 export {
-  assembleCharacter, buildArmGeometry, buildCharacterGeometry,
-  type AssembledCharacter, type CharacterOptions,
+  CharacterMaterialCache, DEFAULT_COLORS, PART, assembleCharacter,
+  characterArmGeometry, characterBodyGeometry, characterMaterial, colorKey,
+  disposeCharacterGeometry, type AssembledCharacter, type CharacterColors,
 } from './character/index.js';
 
 /** Head centre and radius; the face patch is placed from these. */
@@ -30,14 +28,6 @@ export const HEAD_RADIUS = PROPORTIONS.head.radius;
 export const AVATAR_SCALE = PROPORTIONS.scale;
 /** Roughly where the top of a hat ends, drawn size, for name tags and bubbles. */
 export const AVATAR_TOP = PROPORTIONS.top;
-
-/** One avatar, merged. Faces +z. */
-export function buildAvatarGeometry(
-  parts: AvatarParts,
-  options: CharacterOptions = {},
-): THREE.BufferGeometry {
-  return buildCharacterGeometry(parts, options);
-}
 
 function hex(color: number): string {
   return '#' + color.toString(16).padStart(6, '0');
@@ -97,42 +87,4 @@ export function faceGeometry(): THREE.BufferGeometry {
   )
     .scale(1, PROPORTIONS.head.squash, 1)
     .translate(0, HEAD_Y, 0);
-}
-
-/**
- * Geometry per avatar combination, built once and shared by everyone
- * wearing the same thing. Bodies and arms are cached apart, because the arms
- * are their own meshes and only depend on the skin and the shirt.
- */
-export class AvatarGeometryCache {
-  private readonly bodies = new Map<string, THREE.BufferGeometry>();
-  private readonly arms = new Map<string, THREE.BufferGeometry>();
-
-  get(parts: AvatarParts): THREE.BufferGeometry {
-    return cached(this.bodies, avatarTextureKey(parts), () => buildCharacterGeometry(parts));
-  }
-
-  getArm(parts: AvatarParts): THREE.BufferGeometry {
-    return cached(this.arms, `${parts.body}-${parts.shirt}`, () => buildArmGeometry(parts));
-  }
-
-  dispose(): void {
-    for (const store of [this.bodies, this.arms]) {
-      for (const geometry of store.values()) geometry.dispose();
-      store.clear();
-    }
-  }
-}
-
-function cached(
-  store: Map<string, THREE.BufferGeometry>,
-  key: string,
-  build: () => THREE.BufferGeometry,
-): THREE.BufferGeometry {
-  let geometry = store.get(key);
-  if (geometry === undefined) {
-    geometry = build();
-    store.set(key, geometry);
-  }
-  return geometry;
 }

@@ -30,7 +30,7 @@ const tileOf = (world: ClientWorld) => ({
 });
 
 function remote(id: string, x: number, y: number): PlayerState {
-  return { id, nick: id, avatar: { body: 1, shirt: 2, hat: 'cap', accessory: 'none' }, x, y, dir: 'down', moving: false };
+  return { id, nick: id, avatar: { body: 1, shirt: 2 }, x, y, dir: 'down', moving: false };
 }
 
 describe('ClientWorld', () => {

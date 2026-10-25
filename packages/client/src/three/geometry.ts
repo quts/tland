@@ -38,6 +38,40 @@ export function painted(
   return flat;
 }
 
+/**
+ * Give a primitive a *part number* and a brightness, instead of a colour.
+ *
+ * The character is built this way so one geometry can serve every character:
+ * the vertex colour carries only the same base-darkening `painted` bakes in,
+ * as grey, and `partId` says which slot of the palette to tint it with. The
+ * colour itself arrives from the material, so changing it never touches the
+ * geometry.
+ */
+export function tinted(
+  geometry: THREE.BufferGeometry,
+  partId: number,
+  shade: Shade = { from: 1, to: 1, bottom: 0, top: 1 },
+): THREE.BufferGeometry {
+  const flat = geometry.index === null ? geometry : geometry.toNonIndexed();
+  flat.deleteAttribute('uv');
+  const position = flat.getAttribute('position');
+  const greys = new Float32Array(position.count * 3);
+  const parts = new Float32Array(position.count);
+  for (let i = 0; i < position.count; i += 1) {
+    const t = THREE.MathUtils.clamp(
+      (position.getY(i) - shade.bottom) / (shade.top - shade.bottom), 0, 1,
+    );
+    const s = shade.from + (shade.to - shade.from) * t;
+    greys[i * 3] = s;
+    greys[i * 3 + 1] = s;
+    greys[i * 3 + 2] = s;
+    parts[i] = partId;
+  }
+  flat.setAttribute('color', new THREE.BufferAttribute(greys, 3));
+  flat.setAttribute('partId', new THREE.BufferAttribute(parts, 1));
+  return flat;
+}
+
 export function merge(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const merged = mergeGeometries(parts, false);
   if (merged === null) throw new Error('could not merge geometry');

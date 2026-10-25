@@ -27,20 +27,20 @@ describe('parseClientMessage', () => {
       JSON.stringify({
         t: 'join',
         nick: '阿美',
-        avatar: { body: 1, shirt: 2, hat: 'sunhat', accessory: 'scarf' },
+        avatar: { body: 1, shirt: 2 },
       }),
     );
     expect(parsed).toEqual({
       t: 'join',
       nick: '阿美',
-      avatar: { body: 1, shirt: 2, hat: 'sunhat', accessory: 'scarf' },
+      avatar: { body: 1, shirt: 2 },
     });
   });
 
   it('supplies a default avatar when one is missing or malformed', () => {
     const parsed = parseClientMessage('{"t":"join","nick":"a","avatar":"nope"}');
     expect(parsed).toMatchObject({
-      avatar: { body: 0, shirt: 0, hat: 'none', accessory: 'none' },
+      avatar: { body: 0, shirt: 0 },
     });
   });
 
@@ -54,17 +54,13 @@ describe('parseClientMessage', () => {
     expect(avatar.shirt).toBeGreaterThanOrEqual(0);
   });
 
-  it('caps absurdly long hat and accessory names', () => {
-    const parsed = parseClientMessage(
-      JSON.stringify({
-        t: 'join',
-        nick: 'a',
-        avatar: { hat: 'x'.repeat(500), accessory: 'y'.repeat(500) },
-      }),
-    );
-    const avatar = (parsed as { avatar: { hat: string; accessory: string } }).avatar;
-    expect(avatar.hat.length).toBeLessThanOrEqual(16);
-    expect(avatar.accessory.length).toBeLessThanOrEqual(16);
+  it('discards legacy accessory selections from incoming avatars', () => {
+    const parsed = parseClientMessage(JSON.stringify({
+      t: 'join', nick: 'a',
+      avatar: { body: 1, shirt: 2, hat: 'none', accessory: 'none', showHat: false, showScarf: false },
+    }));
+    expect(parsed).toMatchObject({ avatar: { body: 1, shirt: 2 } });
+    expect(Object.keys((parsed as { avatar: object }).avatar).sort()).toEqual(['body', 'shirt']);
   });
 
   it('accepts a move', () => {

@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { MAX_PLAYERS, TILE_SIZE, type Direction } from '@tland/shared';
 import type { AvatarParts } from '../gfx/avatar.js';
 import {
-  AVATAR_TOP, AVATAR_SCALE, AvatarGeometryCache, assembleCharacter, faceGeometry, faceTexture,
-  type AssembledCharacter,
+  AVATAR_TOP, AVATAR_SCALE, CharacterMaterialCache, assembleCharacter,
+  faceGeometry, faceTexture, type AssembledCharacter,
 } from './avatar3d.js';
+import { characterColorsFor } from '../gfx/avatar.js';
 import { SHADOW_X, SHADOW_Z } from './lighting.js';
 
 /** Room for everyone the server admits, plus the local player. */
@@ -47,12 +48,11 @@ const lift = new THREE.Vector3();
 export class CharacterLayer {
   readonly group = new THREE.Group();
   private readonly characters = new Map<string, Character>();
-  private readonly cache = new AvatarGeometryCache();
+  private readonly palettes = new CharacterMaterialCache();
   private readonly faces: THREE.InstancedMesh;
   private readonly shadows: THREE.InstancedMesh;
 
   constructor(
-    private readonly material: THREE.Material,
     shadowGeometry: THREE.BufferGeometry,
     shadowMaterial: THREE.Material,
   ) {
@@ -84,9 +84,7 @@ export class CharacterLayer {
 
   add(id: string, avatar: AvatarParts, x: number, y: number, direction: Direction): void {
     this.remove(id);
-    const figure = assembleCharacter(
-      this.cache.get(avatar), this.cache.getArm(avatar), this.material,
-    );
+    const figure = assembleCharacter(this.palettes.get(characterColorsFor(avatar)));
     figure.root.name = `avatar-${id}`;
     const character: Character = {
       figure,
@@ -106,11 +104,8 @@ export class CharacterLayer {
   setAvatar(id: string, avatar: AvatarParts): void {
     const character = this.characters.get(id);
     if (character === undefined) return;
-    character.figure.body.geometry = this.cache.get(avatar);
-    const arm = this.cache.getArm(avatar);
-    for (const side of [-1, 1] as const) {
-      (character.figure.arm(side).children[0] as THREE.Mesh).geometry = arm;
-    }
+    // Colour only: the geometry is shared and is never rebuilt.
+    character.figure.setMaterial(this.palettes.get(characterColorsFor(avatar)));
   }
 
   remove(id: string): void {
@@ -184,15 +179,13 @@ export class CharacterLayer {
 
   /** A standalone figure for the avatar preview, sharing this layer's resources. */
   previewMesh(avatar: AvatarParts): THREE.Group {
-    const figure = assembleCharacter(
-      this.cache.get(avatar), this.cache.getArm(avatar), this.material,
-    );
+    const figure = assembleCharacter(this.palettes.get(characterColorsFor(avatar)));
     figure.root.add(new THREE.Mesh(this.faces.geometry, this.faces.material));
     return figure.root;
   }
 
   dispose(): void {
-    this.cache.dispose();
+    this.palettes.dispose();
     this.faces.geometry.dispose();
     const faceMaterial = this.faces.material as THREE.MeshLambertMaterial;
     faceMaterial.map?.dispose();

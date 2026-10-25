@@ -1,19 +1,13 @@
 import * as THREE from 'three';
-import { painted, type Shade } from '../geometry.js';
-import { HEAD_TOP, PROPORTIONS as P, alongArm } from './proportions.js';
+import { tinted, type Shade } from '../geometry.js';
+import { PART } from './colors.js';
+import { HEAD_TOP, PROPORTIONS as P } from './proportions.js';
 
 /**
  * The character with nothing on: head, hair, ears, torso, shoulders, sleeves,
  * hands and shoes. Hats and scarves are separate components and never change
  * anything in here.
  */
-
-export interface BaseColors {
-  readonly skin: number;
-  readonly shirt: number;
-  readonly hair: number;
-  readonly shoe: number;
-}
 
 const skinShade: Shade = {
   from: 0.9, to: 1.04,
@@ -89,18 +83,17 @@ function hairShell(radius: number, hem: number): THREE.BufferGeometry {
 }
 
 /**
- * The bowl cut: a domed crown and a shell hanging from it, lifted as one so
- * the two never part. `withBack` is false for hats that take the back off.
+ * The fixed bowl cut: a domed crown and shell, lifted together.
  */
-export function hairParts(color: number, withBack = true): THREE.BufferGeometry[] {
+function hairParts(): THREE.BufferGeometry[] {
   const shade: Shade = { from: 0.7, to: 1.04, bottom: P.head.y - 0.26, top: HEAD_TOP };
   const r = P.head.radius * P.hair.thickness;
   const parts = [
-    painted(
+    tinted(
       new THREE.SphereGeometry(r, 36, 14, 0, Math.PI * 2, 0, P.hair.brow + 0.05)
-        .scale(1, P.head.squash, 1).translate(0, P.head.y, 0), color, shade,
+        .scale(1, P.head.squash, 1).translate(0, P.head.y, 0), PART.hair, shade,
     ),
-    painted(hairShell(r, withBack ? P.hair.nape : Math.PI * 0.52), color, shade),
+    tinted(hairShell(r, P.hair.nape), PART.hair, shade),
   ];
   // Dome the whole cut about the head's centre: scaling the crown alone
   // would crack it away from the shell.
@@ -118,7 +111,7 @@ export function hairParts(color: number, withBack = true): THREE.BufferGeometry[
  * joint and turns that group, which is what makes the joint the pivot and
  * leaves each arm free to move on its own.
  */
-export function armParts(colors: BaseColors): THREE.BufferGeometry[] {
+export function armParts(): THREE.BufferGeometry[] {
   const a = P.arm;
   // The ramp starts at the brightness the torso has at the joint's height, so
   // the arm does not step in tone where it meets the body. The arm's colours
@@ -133,13 +126,13 @@ export function armParts(colors: BaseColors): THREE.BufferGeometry[] {
     // profile is the joint's own hemisphere, so there is no cap boundary to
     // see and nothing to come apart when the arm swings. Turned finely, so
     // where it crosses the torso the crease is a smooth curve, not faceted.
-    painted(new THREE.LatheGeometry(
+    tinted(new THREE.LatheGeometry(
       a.sleeve.map(([r, down]) => new THREE.Vector2(r, -down)), 40,
-    ), colors.shirt, shade),
+    ), PART.outfit, shade),
     // The hand plugs the cuff: an ellipsoid stretched along the arm, its
     // widest ring just inside the hem, so no wrist shows through it.
-    painted(new THREE.SphereGeometry(a.hand.radius, 22, 18)
-      .scale(1, a.hand.stretch, 0.95).translate(0, -a.hand.at, 0), colors.skin, shade),
+    tinted(new THREE.SphereGeometry(a.hand.radius, 22, 18)
+      .scale(1, a.hand.stretch, 0.95).translate(0, -a.hand.at, 0), PART.skin, shade),
   ];
 }
 
@@ -147,27 +140,24 @@ export function armParts(colors: BaseColors): THREE.BufferGeometry[] {
  * The body: everything except the arms — shoes, torso, head, ears, hair.
  * The arms are separate meshes, so they can be posed.
  */
-export function baseCharacterParts(
-  colors: BaseColors,
-  options: { readonly hair?: boolean } = {},
-): THREE.BufferGeometry[] {
+export function baseCharacterParts(): THREE.BufferGeometry[] {
   const [sx, sy, sz] = P.shoe.scale;
   const [ex, ey, ez] = P.ear.scale;
   return [
     // Shoes, clearly two of them, just clearing the hem of the body.
-    ...[-1, 1].map((side) => painted(new THREE.SphereGeometry(P.shoe.radius, 16, 12)
-      .scale(sx, sy, sz).translate(side * P.shoe.x, P.shoe.y, 0.015), colors.shoe)),
+    ...[-1, 1].map((side) => tinted(new THREE.SphereGeometry(P.shoe.radius, 16, 12)
+      .scale(sx, sy, sz).translate(side * P.shoe.x, P.shoe.y, 0.015), PART.shoes)),
     // Torso: turned from a profile rather than scaled from a sphere, so it
     // is still broad where the arms attach. One surface, so no seam to shade.
-    painted(new THREE.LatheGeometry(
+    tinted(new THREE.LatheGeometry(
       P.body.profile.map(([r, y]) => new THREE.Vector2(r, y)), 32,
-    ).scale(1, 1, P.body.depth), colors.shirt, bodyShade),
+    ).scale(1, 1, P.body.depth), PART.outfit, bodyShade),
     // Head.
-    painted(new THREE.SphereGeometry(P.head.radius, 30, 22)
-      .scale(1, P.head.squash, 1).translate(0, P.head.y, 0), colors.skin, skinShade),
-    ...[-1, 1].map((side) => painted(new THREE.SphereGeometry(P.ear.radius, 14, 10)
+    tinted(new THREE.SphereGeometry(P.head.radius, 30, 22)
+      .scale(1, P.head.squash, 1).translate(0, P.head.y, 0), PART.skin, skinShade),
+    ...[-1, 1].map((side) => tinted(new THREE.SphereGeometry(P.ear.radius, 14, 10)
       .scale(ex, ey, ez).translate(side * P.ear.x, P.head.y + P.ear.y, -0.01),
-    colors.skin, skinShade)),
-    ...(options.hair === false ? [] : hairParts(colors.hair)),
+    PART.skin, skinShade)),
+    ...hairParts(),
   ];
 }

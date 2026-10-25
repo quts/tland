@@ -112,42 +112,59 @@ export const PROPORTIONS = {
    * down the front. Both are measured from the head, since what the loop has
    * to wrap is the bottom of the head, not the top of the torso.
    */
+  /**
+   * The straw hat. The crown and the brim are each a turned profile of
+   * [radius, height] pairs, measured from where the hat sits on the hair.
+   */
+  hat: {
+    crown: [
+      [0, 0], [0.206, 0], [0.216, 0.008], [0.219, 0.022], [0.218, 0.082],
+      [0.214, 0.098], [0.2, 0.111], [0.166, 0.118], [0, 0.118],
+    ] as ReadonlyArray<readonly [number, number]>,
+    crownTop: 0.118,
+    brim: [
+      [0.19, -0.012], [0.3, -0.02], [0.372, -0.022], [0.404, -0.015],
+      [0.412, -0.003], [0.404, 0.009], [0.372, 0.015], [0.3, 0.013],
+      [0.19, 0.004], [0.19, -0.012],
+    ] as ReadonlyArray<readonly [number, number]>,
+    ribbonRadius: 0.2265,
+    ribbonHeight: 0.044,
+    ribbonY: 0.042,
+    /** Tipped back, and set down onto the hair. */
+    tip: -0.12,
+    lift: -0.072,
+    back: -0.022,
+  },
+
   scarf: {
-    wrap: {
-      /** Height of the loop's centre line. */
-      y: 0.58,
-      /** Radius of that centre line, about where the head's surface is. */
-      radius: 0.21,
-      /**
-       * Half-thickness of the fabric. Thick enough that the top of the
-       * shoulder passes inside the loop rather than through it — the loop
-       * rests on the shoulders, and the base geometry is not reshaped to
-       * make room.
-       */
-      thickness: 0.075,
-      /**
-       * How much the loop wanders, as a fraction of its radius and
-       * thickness. A loop of constant radius reads as a rigid donut; these
-       * make it sit unevenly, the way wound fabric does.
-       */
-      waver: 0.1,
-      /** How far the centre line rises and falls around the neck. */
-      roll: 0.016,
-    },
-    tail: {
-      /** Off-centre, as the reference has it, and in front of the chest. */
-      x: -0.075,
-      /** Where the top of the tail sits; it starts inside the loop. */
-      topY: 0.59,
-      length: 0.21,
-      /** Half-width and half-depth: a soft strap, not a rope. */
-      width: 0.077,
-      depth: 0.028,
-      /** Radius of the rounded bottom end, before it is scaled to the strap. */
-      round: 0.05,
-      /** Tipped forward, so the lower end clears the belly. */
-      lean: 0.12,
-    },
+    /** Height of the band's centre line where it goes round the neck. */
+    y: 0.575,
+    /** Radius of that centre line, about where the head's surface is. */
+    radius: 0.205,
+    /**
+     * Half-width and half-thickness of the cloth: a band, not a tube. Thick
+     * enough that the top of the shoulder passes inside it rather than
+     * through it — the scarf rests on the shoulders, and the base geometry
+     * is not reshaped to make room.
+     */
+    width: 0.088,
+    thickness: 0.077,
+    /** How much the wrap wanders, as a fraction of its radius. */
+    waver: 0.085,
+    /** How far the centre line rises and falls around the neck. */
+    roll: 0.018,
+    /** Where the wrap starts, in radians; the tail ends up front-left. */
+    start: -1.04,
+    /** Turns round the neck. Over one, so the cloth laps over its own start. */
+    turns: 1.1,
+    /** How much of the sweep is the wrap; the rest is the tail. */
+    lap: 0.74,
+    /** How far the far end of the lap rides over the start. */
+    lapLift: 0.032,
+    tailLength: 0.235,
+    /** How wide and how flat the cloth goes as it falls into the tail. */
+    tailSpread: 0.05,
+    tailFlatten: 0.4,
   },
 
   /** Short, rounded, and clearly two of them. */

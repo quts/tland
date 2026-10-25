@@ -21,12 +21,24 @@ export type Facing = keyof typeof FACING;
 
 /** Skin-neutral, friendly body colours. */
 export const BODY_COLORS = [
-  0xf4b9a0, 0xe8cdb0, 0xc99a74, 0x9a6a4c, 0xf0d6e6, 0xb9d8ef, 0xc7e8c0, 0xf6dd9a,
+  0xfbe0c6, 0xe8cdb0, 0xc99a74, 0x9a6a4c, 0xf0d6e6, 0xb9d8ef, 0xc7e8c0, 0xf6dd9a,
 ] as const;
 
 export const SHIRT_COLORS = [
   0xf3b8bf, 0x8fb8d9, 0x90c9ae, 0xfbe8a6, 0xc9b6e4, 0xf0a978, 0xa9c6f0, 0xe9e2d4,
 ] as const;
+
+/** Hair, picked by skin so a crowd is not all one colour. */
+export const HAIR_COLORS = [
+  0x5c4232, 0x8a6142, 0x4a3c34, 0x5a4033, 0x7d5a6e, 0x56637a, 0x6a7a52, 0x9a7444,
+] as const;
+
+/** Fixed character colours, shared by both views so they dress the same. */
+export const SCARF = 0xe0796b;
+export const BOOT = 0x4b3a2f;
+export const STRAW = 0xf2d58a;
+export const EYE = 0x2f2420;
+export const MOUTH = 0x5b4237;
 
 export const HATS = ['none', 'cap', 'sunhat', 'beanie', 'bloom'] as const;
 export type Hat = (typeof HATS)[number];
@@ -45,9 +57,9 @@ export interface AvatarParts {
 
 export const DEFAULT_AVATAR: AvatarParts = {
   body: 0,
-  shirt: 0,
-  hat: 'none',
-  accessory: 'none',
+  shirt: 4,
+  hat: 'sunhat',
+  accessory: 'scarf',
 };
 
 /** Clamp anything that arrived over the wire into a drawable avatar. */
@@ -124,11 +136,15 @@ function drawHat(
       }
       return;
     case 'sunhat':
+      // A straw boater: flat crown, coral band, wide flat brim. It rides high
+      // on the skull, the way the 3D one does, so the fringe stays visible.
+      outlinedRoundedRect(g, cx - 9, brow - 11.5, 18, 10, 3.5, STRAW);
+      g.fillStyle(SCARF, 1);
+      g.fillRect(cx - 9, brow - 9, 18, 3);
       g.fillStyle(OUTLINE, 1);
-      g.fillEllipse(cx, brow + 1, 32, 11);
-      g.fillStyle(PALETTE.petalCream, 1);
-      g.fillEllipse(cx, brow + 1, 28, 7.5);
-      outlinedRoundedRect(g, cx - 8, brow - 8, 16, 10, 5, PALETTE.petalCream);
+      g.fillEllipse(cx, brow - 2.5, 36, 11);
+      g.fillStyle(STRAW, 1);
+      g.fillEllipse(cx, brow - 2.5, 32, 7.5);
       return;
     case 'beanie':
       outlinedRoundedRect(g, cx - 9.5, brow - 7, 19, 11, 6, PALETTE.petalLilac);
@@ -169,12 +185,12 @@ function drawAccessory(
     case 'none':
       return;
     case 'scarf':
-      outlinedRoundedRect(g, cx - 9.5, bodyY - 2.5, 19, 6, 3, PALETTE.roofWarm);
+      outlinedRoundedRect(g, cx - 10, bodyY - 2.5, 20, 6, 3, SCARF);
       if (facing === FACING.down) {
         g.fillStyle(OUTLINE, 1);
-        g.fillRoundedRect(cx + 1.5, bodyY + 2, 6, 10, 3);
-        g.fillStyle(PALETTE.roofWarm, 1);
-        g.fillRoundedRect(cx + 2.5, bodyY + 3, 4, 8, 2);
+        g.fillRoundedRect(cx - 7.5, bodyY + 2, 6, 10, 3);
+        g.fillStyle(SCARF, 1);
+        g.fillRoundedRect(cx - 6.5, bodyY + 3, 4, 8, 2);
       }
       return;
     case 'glasses':
@@ -214,9 +230,9 @@ function drawAccessory(
 /* Vertical layout, measured down from the top of the frame. */
 const FEET_Y = FRAME_HEIGHT - 4;
 const BODY_BOTTOM = FEET_Y - 4;
-const BODY_TOP = BODY_BOTTOM - 17;
-const HEAD_Y = BODY_TOP - 8;
-const HEAD_RADIUS = 9.5;
+const BODY_TOP = BODY_BOTTOM - 16;
+const HEAD_Y = BODY_TOP - 7;
+const HEAD_RADIUS = 10.5;
 
 function drawFrame(
   g: Phaser.GameObjects.Graphics,
@@ -232,58 +248,72 @@ function drawFrame(
   g.fillStyle(PALETTE.shadow, 0.16);
   g.fillEllipse(cx, FEET_Y + 1, 21, 7);
 
-  // Shoes.
+  // Boots.
   g.fillStyle(OUTLINE, 1);
-  g.fillRoundedRect(cx - 8, FEET_Y - 5, 7.5, 7, 3);
-  g.fillRoundedRect(cx + 0.5, FEET_Y - 5, 7.5, 7, 3);
+  g.fillRoundedRect(cx - 8.5, FEET_Y - 5.5, 8, 7.5, 3.5);
+  g.fillRoundedRect(cx + 0.5, FEET_Y - 5.5, 8, 7.5, 3.5);
+  g.fillStyle(BOOT, 1);
+  g.fillRoundedRect(cx - 7.5, FEET_Y - 4.5, 6, 5.5, 2.5);
+  g.fillRoundedRect(cx + 1.5, FEET_Y - 4.5, 6, 5.5, 2.5);
 
-  // Arms, behind the torso so the sleeves tuck in neatly.
+  // Arms: a sleeve hanging from the collar with a bare hand at its end,
+  // drawn behind the torso so the shoulder sinks into the body.
   for (const side of [-1, 1] as const) {
-    outlinedRoundedRect(
-      g,
-      cx + side * 11 - 2.5,
-      BODY_TOP + 3,
-      5,
-      11,
-      2.5,
-      shirt,
-    );
-    // Hand.
-    outlinedCircle(g, cx + side * 11, BODY_TOP + 15, 2.6, skin);
+    outlinedRoundedRect(g, cx + side * 10 - 3, BODY_TOP + 2.5, 6, 10, 3, shirt);
+    outlinedCircle(g, cx + side * 11.5, BODY_TOP + 12, 3.1, skin);
   }
 
-  // Torso.
-  outlinedRoundedRect(g, cx - 9.5, BODY_TOP, 19, 17, 7, shirt);
+  // Torso: one round ball, the head sitting straight on it.
+  outlinedRoundedRect(g, cx - 10, BODY_TOP, 20, 17, 9, shirt);
 
   drawAccessory(g, ox, parts.accessory, facing, BODY_TOP, HEAD_Y);
 
   // Head.
   outlinedCircle(g, cx, HEAD_Y, HEAD_RADIUS, skin);
 
-  // Hair: a cap of colour that reads from every angle.
-  g.fillStyle(PALETTE.inkSoft, 1);
-  if (facing === FACING.up) {
-    g.fillCircle(cx, HEAD_Y, HEAD_RADIUS - 0.5);
-  } else {
+  // Hair: a bowl cut — a full cap, with the face painted back in below the
+  // fringe. From behind there is no face to cut out, so the cap stands alone.
+  const hair = HAIR_COLORS[parts.body] ?? (HAIR_COLORS[0] as number);
+  const r = HEAD_RADIUS - 0.5;
+  g.fillStyle(hair, 1);
+  g.fillCircle(cx, HEAD_Y, r);
+  if (facing !== FACING.up) {
+    // The fringe line, just above the eyes.
+    const drop = -0.5;
+    const half = Math.sqrt(r * r - drop * drop);
+    g.fillStyle(skin, 1);
     g.beginPath();
-    g.arc(cx, HEAD_Y, HEAD_RADIUS - 0.5, Math.PI, Math.PI * 2);
+    g.moveTo(cx - half, HEAD_Y - drop);
+    g.lineTo(cx + half, HEAD_Y - drop);
+    g.arc(cx, HEAD_Y, r, Math.atan2(-drop, half), Math.atan2(-drop, -half), false);
     g.closePath();
     g.fillPath();
   }
+  g.fillStyle(hair, 1);
+  if (facing === FACING.side) {
+    // The back of the cut, hanging past the ear.
+    g.fillCircle(cx - 5.5, HEAD_Y + 2, 4.4);
+  } else if (facing === FACING.down) {
+    // The sides of the bowl, framing the face past the ears.
+    g.fillCircle(cx - 7, HEAD_Y + 2, 3);
+    g.fillCircle(cx + 7, HEAD_Y + 2, 3);
+  }
 
-  // Face.
-  if (facing === FACING.down) {
-    g.fillStyle(OUTLINE, 1);
-    g.fillCircle(cx - 3.6, HEAD_Y + 3, 1.7);
-    g.fillCircle(cx + 3.6, HEAD_Y + 3, 1.7);
-    g.fillStyle(PALETTE.petalRose, 0.7);
-    g.fillCircle(cx - 6.8, HEAD_Y + 5.5, 2.1);
-    g.fillCircle(cx + 6.8, HEAD_Y + 5.5, 2.1);
-  } else if (facing === FACING.side) {
-    g.fillStyle(OUTLINE, 1);
-    g.fillCircle(cx + 3.8, HEAD_Y + 3, 1.7);
-    g.fillStyle(PALETTE.petalRose, 0.7);
-    g.fillCircle(cx + 6.8, HEAD_Y + 5.5, 2.1);
+  // Face: big dark eyes with a catchlight, and a small smile.
+  if (facing !== FACING.up) {
+    const eyes = facing === FACING.down ? ([-1, 1] as const) : ([1] as const);
+    for (const side of eyes) {
+      g.fillStyle(EYE, 1);
+      g.fillCircle(cx + side * 4.6, HEAD_Y + 4, 2.2);
+      g.fillStyle(PALETTE.wall, 1);
+      g.fillCircle(cx + side * 4.6 - 0.8, HEAD_Y + 3.2, 0.85);
+    }
+    if (facing === FACING.down) {
+      g.lineStyle(1.2, MOUTH, 1);
+      g.beginPath();
+      g.arc(cx, HEAD_Y + 6.2, 2.1, Math.PI * 0.14, Math.PI * 0.86);
+      g.strokePath();
+    }
   }
 
   drawHat(g, ox, parts.hat, facing, HEAD_Y);

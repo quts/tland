@@ -68,7 +68,7 @@ export const DIJKSTRA_GAME: BlockGame = {
     { id: 'all-inf', label: '對所有節點 v，dist[v] = ∞', color: 'purple' },
     { id: 'relax', label: '更新 dist[v] = dist[u] + w(u, v)', color: 'green' },
     { id: 'neighbors', label: '對 u 的每個未訪問鄰居 v', color: 'blue' },
-    { id: 'repeat', label: '重複，直到沒有可達的未訪問節點', color: 'orange' },
+    { id: 'repeat', label: '重複以下動作，直到所有可達節點均已訪問', color: 'orange' },
     { id: 'select-min', label: '從未訪問節點選出 dist 最小的節點 u', color: 'blue' },
   ],
   correctOrder: ['all-inf', 'source-zero', 'repeat', 'select-min', 'neighbors', 'if-shorter', 'relax', 'visit-u'],

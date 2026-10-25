@@ -1,4 +1,5 @@
 import type { BuildingPlot } from '../world/buildingLayout.js';
+import { BarBlockGame } from './barBlockGame.js';
 import { BAR_INTERIORS } from '../world/barInteriors.js';
 
 export class BarInterior {
@@ -7,20 +8,30 @@ export class BarInterior {
   private readonly scene = document.getElementById('bar-scene') as HTMLButtonElement;
   private readonly picture = document.getElementById('bar-picture') as HTMLImageElement;
   private readonly exit = document.getElementById('bar-exit') as HTMLButtonElement;
-  private readonly ok = document.getElementById('bar-ok') as HTMLButtonElement;
+  private readonly yes = document.getElementById('bar-yes') as HTMLButtonElement;
+  private readonly game = new BarBlockGame(() => {
+    if (this.room.open && !this.game.isOpen) this.scene.focus({ preventScroll: true });
+  });
+  private house = '';
+  private image = '';
 
   constructor(private readonly handlers: { onOpen(): void; onClose(): void }) {
     this.exit.addEventListener('click', () => this.close());
     this.scene.addEventListener('click', () => {
       if (this.greeting.open) return;
       this.greeting.showModal();
-      this.ok.focus({ preventScroll: true });
+      this.yes.focus({ preventScroll: true });
     });
-    this.ok.addEventListener('click', () => this.greeting.close());
+    document.getElementById('bar-no')!.addEventListener('click', () => this.greeting.close());
+    this.yes.addEventListener('click', () => {
+      this.greeting.close();
+      this.game.open(this.house, this.image);
+    });
     this.greeting.addEventListener('close', () => {
-      if (this.room.open) this.scene.focus({ preventScroll: true });
+      if (this.room.open && !this.game.isOpen) this.scene.focus({ preventScroll: true });
     });
     this.room.addEventListener('close', () => {
+      this.game.close();
       if (this.greeting.open) this.greeting.close();
       this.handlers.onClose();
     });
@@ -39,12 +50,15 @@ export class BarInterior {
     this.picture.alt = house.name + ' 的酒吧，' + bar.style;
     // Load only the selected full-resolution asset, not a thumbnail sprite sheet.
     this.picture.src = bar.image;
+    this.house = house.name;
+    this.image = bar.image;
     this.handlers.onOpen();
     this.room.showModal();
     this.exit.focus({ preventScroll: true });
   }
 
   close(): void {
+    this.game.close();
     if (this.greeting.open) this.greeting.close();
     if (this.room.open) this.room.close();
   }

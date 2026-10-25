@@ -900,7 +900,7 @@ body {
   overflow: hidden;
 }
 .bar-interior[open] { display: block; }
-#bar-exit, #bar-ok {
+#bar-exit, .bar-choices button {
   min-height: 44px;
   padding: 10px 18px;
   border: 2px solid var(--cream-edge);
@@ -953,12 +953,111 @@ body {
 }
 .bar-greeting::backdrop { background: #0007; }
 #bar-greeting-text { margin: 0 0 8px; font-size: 24px; }
-#bar-ok { min-width: 100px; background: #e0ecd5; border-color: var(--ink); }
+.bar-choices button { min-width: 100px; background: #e0ecd5; border-color: var(--ink); }
 #bar-scene:focus-visible { outline: none; }
-#bar-exit:focus-visible, #bar-ok:focus-visible {
+#bar-exit:focus-visible, .bar-choices button:focus-visible {
   outline: 3px solid var(--grass-deep); outline-offset: -3px;
 }
 @media (max-height: 420px) {
   .house-actions { top: 26%; gap: 6px; }
   .house-notice-open { min-height: 44px; padding: 7px 12px; }
+}
+
+.bar-choices { display: flex; justify-content: center; gap: 16px; }
+#bar-yes { background: #ef8767; }
+.bar-game {
+  position: fixed; inset: 0; margin: 0; padding: 0; border: 0;
+  width: 100%; height: 100%; max-width: none; max-height: none;
+  background: #352016; color: #4c301f; overflow: hidden;
+}
+#game-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .4; }
+.game-layout {
+  position: relative; height: 100%; box-sizing: border-box;
+  padding: calc(var(--safe-top) + 16px) calc(var(--safe-right) + 20px) calc(var(--safe-bottom) + 16px) calc(var(--safe-left) + 20px);
+  display: flex; flex-direction: column; gap: 14px;
+  max-width: 1400px; margin: auto;
+}
+.game-header { display: flex; align-items: flex-start; gap: 12px; flex: none; }
+.game-intro {
+  flex: 1; min-width: 0; padding: 16px 24px; border: 3px solid #cda96d;
+  border-radius: 24px; background: linear-gradient(120deg, #fff5df, #efd5a6);
+  box-shadow: 0 5px 16px #160d0977, inset 0 0 0 3px #fff7;
+}
+#game-title { margin: 0 0 6px; font-size: 26px; }
+#game-question { margin: 0; font-size: 20px; font-weight: 700; }
+#game-reference { margin: 8px 0 0; font-size: 16px; }
+.bar-game button { font: inherit; cursor: pointer; touch-action: manipulation; }
+#game-exit, #game-reset {
+  min-height: 44px; border: 2px solid #af895c; border-radius: 12px;
+  background: #fff2d9; color: #523624; box-shadow: 0 3px 0 #5c3827;
+  padding: 8px 16px; font-weight: 700;
+}
+#game-exit { width: 48px; height: 48px; padding: 0; font-size: 28px; flex: none; }
+.game-workspace { display: grid; grid-template-columns: 2fr 3fr; gap: 16px; flex: 1; min-height: 0; }
+.game-panel {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  border: 5px solid #75472d; border-radius: 20px;
+  box-shadow: 0 5px 0 #342018, inset 0 0 0 2px #cb9357;
+  background: linear-gradient(135deg, #855331, #4d2f21); overflow: hidden;
+}
+.game-assembly-panel { background: linear-gradient(135deg, #fff3d9, #ead0a6); }
+.game-panel h3 { margin: 0; font-size: 22px; }
+.game-panel-heading, .game-bank-panel > h3 {
+  display: flex; justify-content: space-between; align-items: center; gap: 6px;
+  padding: 10px 16px; background: #603b27; color: #fff0d1; flex: none;
+}
+#game-progress { font-size: 14px; font-weight: 400; white-space: nowrap; }
+.game-scroll { padding: 16px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+#game-bank { display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
+.game-block {
+  position: relative; display: block; width: 100%; box-sizing: border-box;
+  min-height: 62px; border: 2px solid #ffffff60; border-radius: 12px;
+  padding: 12px 14px 16px; color: white; text-shadow: 0 1px 2px #0005;
+  font-weight: 700 !important; font-size: 18px !important; text-align: left;
+  box-shadow: inset 0 3px 2px #fff3, inset 0 -4px 0 #0002, 0 3px 5px #0004;
+  overflow-wrap: anywhere;
+}
+.game-block::after {
+  content: ''; position: absolute; bottom: -7px; left: 18px; width: 22px; height: 9px;
+  background: inherit; border-radius: 0 0 5px 5px; z-index: 1;
+}
+.game-block-purple { background: linear-gradient(#ac5aee, #8338ce); }
+.game-block-blue { background: linear-gradient(#3dacf8, #1683d9); }
+.game-block-orange { background: linear-gradient(#ffbc3c, #f79415); }
+.game-block-green { background: linear-gradient(#89b942, #518924); }
+.game-slot { min-height: 66px; border: 2px dashed #b99d79; border-radius: 12px; margin-bottom: 12px; background: #9b7b5120; }
+.game-slot > span { display: block; padding: 20px 14px; color: #8d7258; }
+.game-slot:has(.game-block) { border-color: transparent; background: transparent; }
+.game-bank-empty { color: #f8e6c8; text-align: center; }
+.game-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; }
+#game-feedback { margin: 0; font-weight: 700; font-size: 24px; color: #fff0d1; text-shadow: 0 2px 4px #000; }
+#game-feedback[data-result="correct"] { color: #c6f18c; }
+#game-submit { min-height: 56px; padding: 12px 28px; border: 3px solid #b8ce79; border-radius: 18px; background: linear-gradient(#85b93e, #478323); color: white; font-size: 22px; font-weight: 700; box-shadow: inset 0 2px 2px #fff6, 0 4px 0 #30541c; }
+.bar-game button:focus-visible { outline: 3px solid #ffdc82; outline-offset: -3px; }
+@media (max-width: 600px) {
+  .game-layout { gap: 10px; padding: calc(var(--safe-top) + 10px) calc(var(--safe-right) + 10px) calc(var(--safe-bottom) + 14px) calc(var(--safe-left) + 10px); }
+  .game-intro { padding: 12px; border-radius: 18px; }
+  #game-title { font-size: 22px; }
+  #game-question { font-size: 16px; }
+  #game-reference { font-size: 13px; }
+  .game-workspace { grid-template-columns: 1fr 1.15fr; gap: 8px; }
+  .game-panel { border-width: 3px; border-radius: 14px; }
+  .game-panel h3 { font-size: 17px; }
+  .game-panel-heading, .game-bank-panel > h3 { padding: 8px; flex-wrap: wrap; }
+  #game-reset { padding: 6px 10px; }
+  .game-scroll { padding: 10px 6px; }
+  .game-block { font-size: 15px !important; padding: 10px 8px 14px; }
+  #game-feedback { font-size: 20px; }
+  #game-submit { font-size: 18px; padding: 10px 18px; }
+}
+@media (max-height: 500px) {
+  .game-layout { gap: 8px; padding-top: calc(var(--safe-top) + 8px); padding-bottom: calc(var(--safe-bottom) + 10px); }
+  .game-intro { padding: 8px 16px; border-radius: 16px; }
+  #game-title { font-size: 18px; margin-bottom: 2px; }
+  #game-question { font-size: 15px; }
+  #game-reference { font-size: 12px; margin-top: 2px; }
+  .game-panel-heading, .game-bank-panel > h3 { padding: 4px 12px; }
+  .game-panel h3 { font-size: 18px; }
+  #game-submit { min-height: 44px; padding: 7px 20px; font-size: 18px; }
+  #game-feedback { font-size: 20px; }
 }

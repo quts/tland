@@ -49,11 +49,11 @@ for (const name of ['Wilson House', 'Shockley House']) test.describe('bar at ' +
     expect(await page.evaluate(() => window.__town!.position())).toEqual(outside);
     await page.screenshot({ path: testInfo.outputPath('bar-' + view + '.png') });
     await page.locator('#bar-scene').click();
-    const greeting = page.getByRole('dialog', { name: '你好', exact: true });
+    const greeting = page.getByRole('dialog', { name: '我想跟你玩個小遊戲', exact: true });
     await expect(greeting).toBeVisible();
-    await expect(page.getByRole('button', { name: 'OK', exact: true })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'N，留在酒吧', exact: true })).toBeInViewport();
     await page.screenshot({ path: testInfo.outputPath('greeting-' + view + '.png') });
-    await page.getByRole('button', { name: 'OK', exact: true }).click();
+    await page.getByRole('button', { name: 'N，留在酒吧', exact: true }).click();
     await expect(greeting).not.toBeVisible();
     await expect(room).toBeVisible();
     await page.locator('#bar-scene').click();

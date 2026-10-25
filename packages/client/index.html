@@ -77,9 +77,42 @@
           <img id="bar-picture" alt="" decoding="async" draggable="false" />
         </button>
       </dialog>
+      <dialog id="bar-game" class="bar-game" aria-labelledby="game-title">
+        <img id="game-backdrop" alt="" draggable="false" />
+        <div class="game-layout">
+          <header class="game-header">
+            <div class="game-intro">
+              <h2 id="game-title"></h2>
+              <p id="game-question"></p>
+              <p id="game-reference"></p>
+            </div>
+            <button id="game-exit" type="button" aria-label="返回酒吧">←</button>
+          </header>
+          <div class="game-workspace">
+            <section class="game-panel game-bank-panel" aria-labelledby="game-bank-title">
+              <h3 id="game-bank-title">積木區</h3>
+              <div id="game-bank" class="game-scroll"></div>
+            </section>
+            <section class="game-panel game-assembly-panel" aria-labelledby="game-assembly-title">
+              <div class="game-panel-heading">
+                <h3 id="game-assembly-title">組合區 <span id="game-progress"></span></h3>
+                <button id="game-reset" type="button">↻ 重置</button>
+              </div>
+              <div id="game-assembly" class="game-scroll"></div>
+            </section>
+          </div>
+          <footer class="game-footer">
+            <p id="game-feedback" role="status" aria-live="polite"></p>
+            <button id="game-submit" type="button">▶ 提交答案</button>
+          </footer>
+        </div>
+      </dialog>
       <dialog id="bar-greeting" class="bar-greeting" aria-labelledby="bar-greeting-text">
-        <p id="bar-greeting-text">你好</p>
-        <button id="bar-ok" type="button">OK</button>
+        <p id="bar-greeting-text">我想跟你玩個小遊戲</p>
+        <div class="bar-choices">
+          <button id="bar-yes" type="button" aria-label="Y，開始遊戲">Y</button>
+          <button id="bar-no" type="button" aria-label="N，留在酒吧">N</button>
+        </div>
       </dialog>
       <dialog id="house-notice-dialog" class="house-notice-dialog"
         aria-labelledby="house-notice-title" aria-describedby="house-notice-content">

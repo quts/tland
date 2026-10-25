@@ -72,8 +72,16 @@ export class BarBlockGame {
     this.slots = placeGameBlock(this.game, this.slots, id, target);
     this.clearFeedback();
     this.render();
-    (this.assembly.children[target]?.querySelector('button') as HTMLButtonElement | null)
+    (this.assembly.querySelector('[data-slot="' + target + '"] button') as HTMLButtonElement | null)
       ?.focus({ preventScroll: true });
+  }
+
+  private appendFixedBlock(label: string): void {
+    const block = document.createElement('div');
+    block.className = 'game-block game-block-purple game-block-fixed';
+    block.textContent = label;
+    block.setAttribute('aria-label', '固定積木：' + label);
+    this.assembly.append(block);
   }
 
   private render(): void {
@@ -93,6 +101,7 @@ export class BarBlockGame {
       empty.textContent = '積木都放好了';
       this.bank.append(empty);
     }
+    if (this.game.functionFrame) this.appendFixedBlock(this.game.functionFrame.start);
     this.slots.forEach((id, index) => {
       const slot = document.createElement('div');
       slot.className = 'game-slot';
@@ -116,6 +125,7 @@ export class BarBlockGame {
       }
       this.assembly.append(slot);
     });
+    if (this.game.functionFrame) this.appendFixedBlock(this.game.functionFrame.end);
     document.getElementById('game-progress')!.textContent =
       this.slots.filter(Boolean).length + ' / ' + this.slots.length;
   }

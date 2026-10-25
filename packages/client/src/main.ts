@@ -2,6 +2,8 @@ import { CHAT_MAX_LENGTH, getTownMap, sanitizeText, type Emote } from '@tland/sh
 import { Connection } from './net/connection.js';
 import { Hud } from './ui/hud.js';
 import { JoinScreen } from './ui/joinScreen.js';
+import { HouseNoticeboard } from './ui/houseNoticeboard.js';
+import { houseNoticeAt } from './world/houseNotices.js';
 import { ChatDock } from './ui/chat.js';
 import { Minimap } from './ui/minimap.js';
 import { Joystick } from './controls/joystick.js';
@@ -99,6 +101,15 @@ async function main(): Promise<void> {
     },
   );
 
+  const noticeboard = new HouseNoticeboard({
+    onOpen: () => {
+      world.setActive(false);
+      const { x, y, facing } = world.self;
+      connection.send({ t: 'move', x, y, dir: facing, moving: false });
+    },
+    onClose: () => world.setActive(joined),
+  });
+
   const world = new ClientWorld({
     map: getTownMap(),
     onZoneChange: (zone) => hud.showZone(zone),
@@ -115,7 +126,10 @@ async function main(): Promise<void> {
       lastSent = { x, y, dir, moving };
       connection.send({ t: 'move', x, y, dir, moving });
     },
-    onFrame: (self, others) => minimap.draw(self, others),
+    onFrame: (self, others) => {
+      minimap.draw(self, others);
+      noticeboard.update(joined ? houseNoticeAt(self.x, self.y) : null);
+    },
   });
 
   const context: RendererContext = {
@@ -123,7 +137,7 @@ async function main(): Promise<void> {
     overlay: required('app'),
     world,
     joystick,
-    isTyping: () => chat.isTyping,
+    isTyping: () => chat.isTyping || noticeboard.isOpen,
     debug: debugEnabled(location.search),
     switchTo2D: () => location.assign(withView(location.href, '2d')),
   };
@@ -189,7 +203,7 @@ async function main(): Promise<void> {
           world.clearEveryone();
           world.placeSelf(message.you.x, message.you.y);
           for (const player of message.players) world.addRemote(player);
-          world.setActive(true);
+          world.setActive(!noticeboard.isOpen);
           joinScreen.hide();
           hud.showJoystick();
           hud.setPlayerCount(message.players.length + 1);

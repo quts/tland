@@ -114,6 +114,7 @@ export class ClientWorld {
   /** Movement is frozen until the player has actually joined the world. */
   setActive(active: boolean): void {
     this.active = active;
+    if (!active) this.clearPath();
   }
 
   get isActive(): boolean {

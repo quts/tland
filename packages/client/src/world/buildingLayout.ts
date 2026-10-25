@@ -1,5 +1,5 @@
 import type { TownMap } from '@tland/shared';
-import houseData from '../../../shared/src/map/houses.json';
+import houseData from '../../../shared/src/map/houses.json' with { type: 'json' };
 
 export const HOUSE_DATA = houseData;
 export const BUILDING_CELL = 4;

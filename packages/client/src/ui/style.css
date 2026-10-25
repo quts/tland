@@ -807,3 +807,73 @@ body {
     animation: none;
   }
 }
+
+/* House notices: left-side prompt, compact modal with an independently scrollable story. */
+.house-notice-open {
+  position: absolute;
+  z-index: 15;
+  left: calc(var(--safe-left) + 12px);
+  top: 40%;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: var(--outline) solid var(--ink);
+  border-radius: 16px;
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: 0 3px 0 var(--cream-edge);
+  font: inherit;
+  cursor: pointer;
+}
+.house-notice-open[hidden] { display: none; }
+.house-notice-dialog {
+  position: fixed;
+  inset: auto 12px calc(var(--safe-bottom) + 12px);
+  margin: 0 auto;
+  width: min(560px, calc(100% - 24px));
+  max-width: none;
+  max-height: calc(var(--vv-height, 100dvh) / 3);
+  padding: 0;
+  border: var(--outline) solid var(--ink);
+  border-radius: 18px;
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: 0 5px 0 #4b403326;
+}
+.house-notice-dialog[open] { display: flex; flex-direction: column; }
+.house-notice-dialog::backdrop { background: #30291e33; }
+.house-notice-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px 4px 14px;
+  border-bottom: 1px solid var(--cream-edge);
+}
+.house-notice-header h2 { margin: 0; font-size: 17px; overflow-wrap: anywhere; }
+#house-notice-close {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+#house-notice-content {
+  min-height: 0;
+  margin: 0;
+  padding: 12px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-gutter: stable;
+  font-size: 15px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+.house-notice-open:focus-visible,
+#house-notice-close:focus-visible,
+#house-notice-content:focus-visible { outline: 3px solid var(--grass-deep); outline-offset: -3px; }

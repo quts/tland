@@ -41,6 +41,25 @@ describe('ClientWorld', () => {
     expect(world.getPosition()).toEqual(start);
   });
 
+  it('pauses and cancels an existing route while a notice is being read', () => {
+    const { world, clock } = makeWorld();
+    world.setActive(true);
+    const [dx, dy] = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+      .find(([x, y]) => openNeighbour(x!, y!))!;
+    world.walkToTile({ x: map.spawn.x + dx!, y: map.spawn.y + dy! });
+    run(world, clock, 25);
+    world.setActive(false);
+    const paused = world.getPosition();
+    run(world, clock, 500, { x: dx!, y: dy! });
+    expect(world.getPosition()).toEqual(paused);
+    expect(world.self.walking).toBe(false);
+    world.setActive(true);
+    run(world, clock, 500);
+    expect(world.getPosition()).toEqual(paused);
+    run(world, clock, 100, { x: dx!, y: dy! });
+    expect(world.getPosition()).not.toEqual(paused);
+  });
+
   it('walks with the input, faces the way it walks, and collides', () => {
     const { world, clock } = makeWorld();
     world.setActive(true);

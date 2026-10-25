@@ -41,7 +41,10 @@ export class BarBlockGame {
     this.game = game.kind === 'blocks' ? game : null;
     this.slots = this.game?.correctOrder.map(() => null) ?? [];
     this.dialog.classList.toggle('circuit-mode', this.circuitMode);
+    const graphMode = this.game?.exampleGraph === true;
+    this.dialog.classList.toggle('dijkstra-mode', graphMode);
     document.getElementById('circuit-results')!.hidden = !this.circuitMode;
+    document.getElementById('dijkstra-example')!.hidden = !graphMode;
     document.getElementById('game-bank-title')!.textContent = this.circuitMode ? '邏輯閘積木' : '積木區';
     document.getElementById('game-assembly-label')!.textContent = this.circuitMode ? '電路組合區' : '組合區';
     this.submit.textContent = this.circuitMode ? '▶ 測試電路' : '▶ 提交答案';

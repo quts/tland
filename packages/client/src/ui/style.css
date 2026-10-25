@@ -1066,6 +1066,19 @@ body {
 
 /* Half adder: fixed A/B wiring, two editable gate sockets, live test table. */
 .game-panel[hidden] { display: none; }
+.dijkstra-mode .game-workspace { grid-template-columns: minmax(220px, 1fr) minmax(320px, 1.35fr) minmax(220px, .85fr); }
+.dijkstra-mode #game-bank { gap: 9px; }
+.dijkstra-mode .game-block { min-height: 52px; padding: 9px 12px 13px; font-size: 16px !important; }
+.dijkstra-mode .game-slot { min-height: 56px; margin-bottom: 8px; }
+.dijkstra-mode .game-slot > span { padding: 16px 12px; }
+.dijkstra-example { background: linear-gradient(135deg, #fff3d9, #ead0a6); }
+.dijkstra-example > h3 { padding: 12px; background: #603b27; color: #fff0d1; }
+.dijkstra-example svg { width: min(100%, 360px); margin: auto; padding: 12px; box-sizing: border-box; }
+.graph-edges { fill: none; stroke: #584535; stroke-width: 3; }
+.graph-weights text { fill: #392c23; font-size: 20px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; paint-order: stroke; stroke: #fff0d1; stroke-width: 6px; }
+.graph-nodes circle { fill: #3996e2; stroke: #3b3028; stroke-width: 3px; }
+.graph-nodes .graph-source { fill: #ec7270; }
+.graph-nodes text { fill: white; font-size: 23px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
 .circuit-mode .game-workspace { grid-template-columns: minmax(130px, .65fr) minmax(280px, 2fr) minmax(210px, 1fr); }
 .circuit-mode #game-bank { gap: 10px; padding: 12px; }
 .logic-gate {
@@ -1109,6 +1122,12 @@ body {
 .circuit-results td[data-result="retry"] { background: #d6654d44; color: #ffd9c9; }
 .circuit-mode #game-feedback { flex: 1; }
 @media (max-width: 900px) {
+  .dijkstra-mode .game-workspace { grid-template-columns: minmax(115px, 1fr) minmax(0, 1.25fr); grid-template-rows: minmax(320px, 1fr) auto; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
+  .dijkstra-mode .dijkstra-example { grid-column: 1 / -1; min-height: 250px; }
+  .dijkstra-mode .dijkstra-example svg { max-height: 300px; }
+  .dijkstra-mode .game-scroll { padding: 8px; }
+  .dijkstra-mode .game-block { font-size: 14px !important; padding: 8px 6px 12px; }
+  .dijkstra-mode .game-panel-heading { flex-wrap: wrap; }
   .circuit-mode .game-workspace { grid-template-columns: 110px minmax(0, 1fr); grid-template-rows: minmax(320px, 1fr) auto; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
   .circuit-mode .circuit-results { grid-column: 1 / -1; min-height: 280px; }
   .circuit-mode .logic-gate { flex-wrap: nowrap; gap: 4px; min-height: 50px; }

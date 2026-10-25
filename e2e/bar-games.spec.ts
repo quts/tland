@@ -3,7 +3,7 @@ import { HOUSE_DATA } from '../packages/client/src/world/buildingLayout.js';
 import { BAR_GAMES } from '../packages/client/src/world/barGames.js';
 import { collectErrors, joinTown, startStack, type Stack } from './support.js';
 
-for (const name of ['Moore House', 'Engelbart House', 'Shockley House']) test.describe('block game at ' + name, () => {
+for (const name of ['Moore House', 'Engelbart House', 'Shockley House', 'Dijkstra House']) test.describe('block game at ' + name, () => {
   const house = HOUSE_DATA.houses.find(h => h.name === name)!;
   let stack: Stack;
   test.beforeAll(async () => { stack = await startStack(3264, 4293, { x: house.x + 1, y: house.y + 4 }); });
@@ -36,6 +36,16 @@ for (const name of ['Moore House', 'Engelbart House', 'Shockley House']) test.de
       await expect(page.locator('#game-assembly [data-slot]')).toHaveCount(4);
       await expect(page.locator('#game-bank button')).toHaveCount(4);
       expect(await page.locator('.game-block-fixed').evaluateAll(elements => elements.every(el => !(el as HTMLElement).draggable && el.tagName !== 'BUTTON'))).toBe(true);
+    }
+    if (name === 'Dijkstra House') {
+      await expect(page.locator('#dijkstra-example')).toBeVisible();
+      await expect(page.locator('#dijkstra-example svg')).toHaveAttribute('aria-label', /A 到 B 權重 2/);
+      await expect(page.locator('#game-assembly .game-block-fixed')).toHaveText([
+        '輸入：圖與起點 s', '輸出：每個節點的最短距離 dist',
+      ]);
+      await expect(page.locator('#game-bank button')).toHaveCount(8);
+    } else {
+      await expect(page.locator('#dijkstra-example')).toBeHidden();
     }
     if (name !== 'Engelbart House') {
       // Deliberately submitting the mixed bank order must fail.

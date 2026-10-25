@@ -1,3 +1,4 @@
+import { HALF_ADDER_GAME } from './halfAdder.js';
 import { HOUSE_DATA } from './buildingLayout.js';
 
 export interface GameBlock {
@@ -6,6 +7,7 @@ export interface GameBlock {
   readonly color: 'purple' | 'blue' | 'orange' | 'green';
 }
 export interface BlockGame {
+  readonly kind: 'blocks';
   readonly id: string;
   readonly title: string;
   readonly question: string;
@@ -16,6 +18,7 @@ export interface BlockGame {
 }
 
 export const FIBONACCI_GAME: BlockGame = {
+  kind: 'blocks',
   id: 'fibonacci',
   title: '費氏數列',
   question: '請把積木依正確順序組合，完成函式 fib(n)。輸入 n，回傳第 n 個費氏數。',
@@ -33,6 +36,7 @@ export const FIBONACCI_GAME: BlockGame = {
 };
 
 export const PARITY_GAME: BlockGame = {
+  kind: 'blocks',
   id: 'parity',
   title: '奇數還是偶數？',
   question: '給你一個數字 n，你能幫我判斷它是奇數還是偶數嗎？把積木排成正確順序吧！',
@@ -48,6 +52,7 @@ export const PARITY_GAME: BlockGame = {
 };
 
 export const ADDITION_GAME: BlockGame = {
+  kind: 'blocks',
   id: 'addition',
   title: '小小算術題',
   question: '1 + 1 = ?',
@@ -56,13 +61,16 @@ export const ADDITION_GAME: BlockGame = {
   correctOrder: ['two'],
 };
 
-const HOUSE_GAMES: Readonly<Record<string, BlockGame>> = {
+export type BarGame = BlockGame | typeof HALF_ADDER_GAME;
+
+const HOUSE_GAMES: Readonly<Record<string, BarGame>> = {
+  'Wilson House': HALF_ADDER_GAME,
   'Moore House': FIBONACCI_GAME,
   'Shockley House': PARITY_GAME,
 };
 
 /** Replace a house's entry in HOUSE_GAMES when its own question is ready. */
-export const BAR_GAMES: Readonly<Record<string, BlockGame>> = Object.fromEntries(
+export const BAR_GAMES: Readonly<Record<string, BarGame>> = Object.fromEntries(
   HOUSE_DATA.houses.map(house => [
     house.name, HOUSE_GAMES[house.name] ?? ADDITION_GAME,
   ]),

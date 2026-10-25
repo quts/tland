@@ -3,7 +3,7 @@ import { HOUSE_DATA } from '../packages/client/src/world/buildingLayout.js';
 import { BAR_GAMES } from '../packages/client/src/world/barGames.js';
 import { collectErrors, joinTown, startStack, type Stack } from './support.js';
 
-for (const name of ['Moore House', 'Wilson House', 'Shockley House']) test.describe('block game at ' + name, () => {
+for (const name of ['Moore House', 'Engelbart House', 'Shockley House']) test.describe('block game at ' + name, () => {
   const house = HOUSE_DATA.houses.find(h => h.name === name)!;
   let stack: Stack;
   test.beforeAll(async () => { stack = await startStack(3264, 4293, { x: house.x + 1, y: house.y + 4 }); });
@@ -29,6 +29,7 @@ for (const name of ['Moore House', 'Wilson House', 'Shockley House']) test.descr
     await page.locator('#game-submit').click();
     await expect(page.locator('#game-feedback')).toHaveText('你再試試看');
     const question = BAR_GAMES[name]!;
+    if (question.kind !== 'blocks') throw new Error('Expected block game');
     if (name === 'Shockley House') {
       await expect(page.locator('#game-question')).toHaveText('給你一個數字 n，你能幫我判斷它是奇數還是偶數嗎？把積木排成正確順序吧！');
       await expect(page.locator('#game-assembly .game-block-fixed')).toHaveText(['定義函式 isEven(n)', '結束函式']);
@@ -36,7 +37,7 @@ for (const name of ['Moore House', 'Wilson House', 'Shockley House']) test.descr
       await expect(page.locator('#game-bank button')).toHaveCount(4);
       expect(await page.locator('.game-block-fixed').evaluateAll(elements => elements.every(el => !(el as HTMLElement).draggable && el.tagName !== 'BUTTON'))).toBe(true);
     }
-    if (name !== 'Wilson House') {
+    if (name !== 'Engelbart House') {
       // Deliberately submitting the mixed bank order must fail.
       for (const block of question.blocks) await page.locator('#game-bank [data-block-id="' + block.id + '"]').tap();
       await page.locator('#game-submit').click();

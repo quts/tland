@@ -88,21 +88,30 @@
             </div>
             <button id="game-exit" type="button" aria-label="返回酒吧">←</button>
           </header>
-          <div class="game-workspace">
+          <div id="game-workspace" class="game-workspace">
             <section class="game-panel game-bank-panel" aria-labelledby="game-bank-title">
               <h3 id="game-bank-title">積木區</h3>
               <div id="game-bank" class="game-scroll"></div>
             </section>
             <section class="game-panel game-assembly-panel" aria-labelledby="game-assembly-title">
               <div class="game-panel-heading">
-                <h3 id="game-assembly-title">組合區 <span id="game-progress"></span></h3>
+                <h3 id="game-assembly-title"><span id="game-assembly-label">組合區</span> <span id="game-progress"></span></h3>
                 <button id="game-reset" type="button">↻ 重置</button>
               </div>
               <div id="game-assembly" class="game-scroll"></div>
             </section>
+            <section id="circuit-results" class="game-panel circuit-results" aria-labelledby="circuit-results-title" hidden>
+              <h3 id="circuit-results-title">真值表（測試結果）</h3>
+              <div class="game-scroll">
+                <table><thead><tr><th scope="col">A</th><th scope="col">B</th><th scope="col">Sum</th><th scope="col">Carry</th></tr></thead>
+                  <tbody id="circuit-truth"></tbody>
+                </table>
+              </div>
+            </section>
           </div>
           <footer class="game-footer">
             <p id="game-feedback" role="status" aria-live="polite"></p>
+            <button id="game-hint" type="button" hidden aria-pressed="false">💡 提示</button>
             <button id="game-submit" type="button">▶ 提交答案</button>
           </footer>
         </div>

@@ -4,7 +4,8 @@ Click the bartender, choose Y to play or N to stay in the bar. Each game fills t
 
 - Moore House: arrange six blocks to define `fib(n)`, test `n ≤ 1`, return `n`, otherwise return `fib(n − 1) + fib(n − 2)`, and end the function. The bank begins scrambled.
 - Shockley House: four movable blocks inside fixed `isEven(n)` function boundaries: `如果 n % 2 == 0`, `回傳 True`, `否則`, `回傳 False`.
-- Other ten houses: `1 + 1 = ?`, with a single `2` answer block.
+- Wilson House: [interactive half-adder circuit](../half-adder/README.md).
+- Other nine houses: `1 + 1 = ?`, with a single `2` answer block.
 - Tap a bank block to fill the first empty slot. Tap a placed block to return it. Drag blocks into slots to place or swap them. Both panels scroll independently on small displays.
 - Submit shows `太棒了` for the complete correct order and `你再試試看` for incorrect/incomplete answers. Reset clears the arrangement. The back arrow or Escape returns to the bar; returning outdoors restores movement.
 

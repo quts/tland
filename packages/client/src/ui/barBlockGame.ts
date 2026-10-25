@@ -1,3 +1,4 @@
+import { HalfAdderPuzzle } from './halfAdderPuzzle.js';
 import { ADDITION_GAME, BAR_GAMES, isCorrectOrder, placeGameBlock, type BlockGame, type GameBlock } from '../world/barGames.js';
 
 export class BarBlockGame {
@@ -8,6 +9,8 @@ export class BarBlockGame {
   private readonly reset = document.getElementById('game-reset') as HTMLButtonElement;
   private readonly submit = document.getElementById('game-submit') as HTMLButtonElement;
   private game: BlockGame | null = null;
+  private circuitMode = false;
+  private readonly circuit = new HalfAdderPuzzle(() => this.clearFeedback());
   private slots: (string | null)[] = [];
 
   constructor(onClose: () => void) {
@@ -15,14 +18,23 @@ export class BarBlockGame {
     this.dialog.addEventListener('close', onClose);
     this.dialog.addEventListener('keydown', event => event.stopPropagation());
     this.reset.addEventListener('click', () => {
+      this.clearFeedback();
+      if (this.circuitMode) { this.circuit.reset(); return; }
       if (!this.game) return;
       this.slots = this.game.correctOrder.map(() => null);
-      this.clearFeedback();
       this.render();
     });
+    document.getElementById('game-hint')!.addEventListener('click', () => {
+      const hint = document.getElementById('game-hint')!;
+      const shown = hint.getAttribute('aria-pressed') !== 'true';
+      hint.setAttribute('aria-pressed', String(shown));
+      document.getElementById('game-reference')!.textContent = shown
+        ? 'Sum 使用 XOR：輸入不同時輸出 1；Carry 使用 AND：兩個輸入都是 1 時輸出 1。'
+        : '半加器（Half Adder）：Sum = A XOR B；Carry = A AND B';
+    });
     this.submit.addEventListener('click', () => {
-      if (!this.game) return;
-      const correct = isCorrectOrder(this.game, this.slots);
+      if (!this.circuitMode && !this.game) return;
+      const correct = this.circuitMode ? this.circuit.test() : isCorrectOrder(this.game!, this.slots);
       this.feedback.textContent = correct ? '太棒了' : '你再試試看';
       this.feedback.dataset['result'] = correct ? 'correct' : 'retry';
     });
@@ -32,14 +44,24 @@ export class BarBlockGame {
 
   open(house: string, image: string): void {
     if (this.dialog.open) return;
-    this.game = BAR_GAMES[house] ?? ADDITION_GAME;
-    this.slots = this.game.correctOrder.map(() => null);
-    document.getElementById('game-title')!.textContent = this.game.title;
-    document.getElementById('game-question')!.textContent = this.game.question;
-    document.getElementById('game-reference')!.textContent = this.game.reference;
+    const game = BAR_GAMES[house] ?? ADDITION_GAME;
+    this.circuitMode = game.kind === 'half-adder';
+    this.game = game.kind === 'blocks' ? game : null;
+    this.slots = this.game?.correctOrder.map(() => null) ?? [];
+    this.dialog.classList.toggle('circuit-mode', this.circuitMode);
+    document.getElementById('circuit-results')!.hidden = !this.circuitMode;
+    document.getElementById('game-hint')!.hidden = !this.circuitMode;
+    document.getElementById('game-hint')!.setAttribute('aria-pressed', 'false');
+    document.getElementById('game-bank-title')!.textContent = this.circuitMode ? '邏輯閘積木' : '積木區';
+    document.getElementById('game-assembly-label')!.textContent = this.circuitMode ? '電路組合區' : '組合區';
+    this.submit.textContent = this.circuitMode ? '▶ 測試電路' : '▶ 提交答案';
+    document.getElementById('game-title')!.textContent = game.title;
+    document.getElementById('game-question')!.textContent = game.question;
+    document.getElementById('game-reference')!.textContent = game.reference;
     (document.getElementById('game-backdrop') as HTMLImageElement).src = image;
     this.clearFeedback();
-    this.render();
+    if (this.circuitMode) this.circuit.reset();
+    else this.render();
     this.dialog.showModal();
     this.reset.focus({ preventScroll: true });
   }

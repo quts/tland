@@ -1,0 +1,212 @@
+{
+  "selection": {
+    "method": "exact maximum minimum Euclidean distance among original 28 plots; stable row-order tie break",
+    "minimumDistanceSquared": 128,
+    "originalPlots": [
+      {
+        "x": 76,
+        "y": 44
+      },
+      {
+        "x": 72,
+        "y": 48
+      },
+      {
+        "x": 60,
+        "y": 52
+      },
+      {
+        "x": 100,
+        "y": 52
+      },
+      {
+        "x": 68,
+        "y": 56
+      },
+      {
+        "x": 76,
+        "y": 56
+      },
+      {
+        "x": 80,
+        "y": 64
+      },
+      {
+        "x": 72,
+        "y": 68
+      },
+      {
+        "x": 84,
+        "y": 68
+      },
+      {
+        "x": 92,
+        "y": 68
+      },
+      {
+        "x": 100,
+        "y": 68
+      },
+      {
+        "x": 44,
+        "y": 72
+      },
+      {
+        "x": 64,
+        "y": 72
+      },
+      {
+        "x": 76,
+        "y": 72
+      },
+      {
+        "x": 96,
+        "y": 72
+      },
+      {
+        "x": 104,
+        "y": 72
+      },
+      {
+        "x": 48,
+        "y": 76
+      },
+      {
+        "x": 68,
+        "y": 76
+      },
+      {
+        "x": 100,
+        "y": 76
+      },
+      {
+        "x": 52,
+        "y": 80
+      },
+      {
+        "x": 72,
+        "y": 80
+      },
+      {
+        "x": 36,
+        "y": 84
+      },
+      {
+        "x": 64,
+        "y": 88
+      },
+      {
+        "x": 76,
+        "y": 88
+      },
+      {
+        "x": 32,
+        "y": 100
+      },
+      {
+        "x": 40,
+        "y": 104
+      },
+      {
+        "x": 36,
+        "y": 108
+      },
+      {
+        "x": 40,
+        "y": 120
+      }
+    ]
+  },
+  "houses": [
+    {
+      "name": "Wilson House",
+      "x": 76,
+      "y": 44,
+      "variant": 0
+    },
+    {
+      "name": "Engelbart House",
+      "x": 60,
+      "y": 52,
+      "variant": 1
+    },
+    {
+      "name": "Moore House",
+      "x": 100,
+      "y": 52,
+      "variant": 2
+    },
+    {
+      "name": "Berners-Lee House",
+      "x": 76,
+      "y": 56,
+      "variant": 3
+    },
+    {
+      "name": "Hopper House",
+      "x": 92,
+      "y": 68,
+      "variant": 4
+    },
+    {
+      "name": "Dijkstra House",
+      "x": 44,
+      "y": 72,
+      "variant": 5
+    },
+    {
+      "name": "Huffman House",
+      "x": 64,
+      "y": 72,
+      "variant": 6
+    },
+    {
+      "name": "von Neumann House",
+      "x": 76,
+      "y": 72,
+      "variant": 7
+    },
+    {
+      "name": "Turing House",
+      "x": 104,
+      "y": 72,
+      "variant": 8
+    },
+    {
+      "name": "Hawkins House",
+      "x": 52,
+      "y": 80,
+      "variant": 9
+    },
+    {
+      "name": "Cooper House",
+      "x": 36,
+      "y": 84,
+      "variant": 10
+    },
+    {
+      "name": "Dell House",
+      "x": 64,
+      "y": 88,
+      "variant": 11
+    },
+    {
+      "name": "Shockley House",
+      "x": 76,
+      "y": 88,
+      "variant": 12
+    },
+    {
+      "name": "Steve House",
+      "x": 32,
+      "y": 100,
+      "variant": 0
+    },
+    {
+      "name": "Jeff House",
+      "x": 40,
+      "y": 120,
+      "variant": 1
+    }
+  ]
+}

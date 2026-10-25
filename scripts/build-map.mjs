@@ -615,8 +615,6 @@ for (let y = 0; y < HEIGHT; y += 1) {
 /* Emit                                                                */
 /* ------------------------------------------------------------------ */
 
-const rows = grid.map((row) => row.join(''));
-
 const DISTRICT_MERGES = {
   "陶丘": [
     "陶丘"
@@ -712,6 +710,24 @@ const ZONES = Object.entries(DISTRICT_MERGES).map(([name, members]) => {
   return { ...anchor, seeds };
 });
 
+// Retain exactly the fifteen approved, maximally separated original plots.
+const houseData = JSON.parse(readFileSync(join(mapDir, 'houses.json'), 'utf8'));
+const retained = new Set(houseData.houses.map(({ x, y }) => x + ',' + y));
+for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < WIDTH; x++) {
+  if (grid[y][x] !== BUILDING) continue;
+  const key = Math.floor(x / 4) * 4 + ',' + Math.floor(y / 4) * 4;
+  if (!retained.has(key)) grid[y][x] = GRASS;
+}
+
+// Road generation must not leave traversable slivers through a visible cottage.
+for (const { x, y } of houseData.houses) {
+  for (let yy = y; yy < y + 4; yy++) for (let xx = x; xx < x + 4; xx++) {
+    grid[yy][xx] = BUILDING;
+  }
+}
+const rows = grid.map((row) => row.join(''));
+
+
 const town = {
   version: 3,
   name: 'Riverside Town',
@@ -750,7 +766,7 @@ console.log(`${WIDTH} x ${HEIGHT} tiles`);
 console.log('terrain:', named);
 console.log(`walkable ${walkableCount}, stranded tiles turned to hillside: ${stranded}`);
 console.log(`zones: ${ZONES.length}`);
-console.log(`houses: ${built} built from ${considered} candidate plots`);
+console.log(`houses: ${houseData.houses.length} retained from ${built} built / ${considered} candidate plots`);
 
 if (process.argv.includes('--preview')) {
   console.log();

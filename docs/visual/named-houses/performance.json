@@ -1,0 +1,58 @@
+{
+  "cottageScenes": [
+    {
+      "device": "iphone",
+      "drawCalls": 37,
+      "triangles": 114150
+    },
+    {
+      "device": "iphone-landscape",
+      "drawCalls": 51,
+      "triangles": 157387
+    },
+    {
+      "device": "ipad",
+      "drawCalls": 36,
+      "triangles": 111414
+    },
+    {
+      "device": "ipad-landscape",
+      "drawCalls": 63,
+      "triangles": 217082
+    }
+  ],
+  "crowdScenes": [
+    {
+      "device": "iphone",
+      "remotePlayers": 30,
+      "localPlayers": 1,
+      "drawCalls": 120,
+      "triangles": 558524,
+      "over150": 0
+    },
+    {
+      "device": "iphone-landscape",
+      "remotePlayers": 30,
+      "localPlayers": 1,
+      "drawCalls": 138,
+      "triangles": 589906,
+      "over150": 0
+    },
+    {
+      "device": "ipad",
+      "remotePlayers": 30,
+      "localPlayers": 1,
+      "drawCalls": 114,
+      "triangles": 518176,
+      "over150": 0
+    },
+    {
+      "device": "ipad-landscape",
+      "remotePlayers": 30,
+      "localPlayers": 1,
+      "drawCalls": 152,
+      "triangles": 704722,
+      "over150": 2
+    }
+  ]
+}

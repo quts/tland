@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Named cottage review</title>
+<style>body{margin:0;background:#fbf5e9;color:#513821;font:15px system-ui}h1{font-size:24px;margin:20px 24px}#sheet{width:max-content;display:grid;gap:8px;padding:12px}figure{margin:0}canvas{display:block}figcaption{text-align:center;padding:6px}</style></head>
+<body><h1>十五間房屋 · Cottage review</h1><div id="sheet"></div><script type="module">
+import * as THREE from 'three';
+import { houseGeometry, houseSigns } from '/src/three/house.ts';
+import { addTownLights } from '/src/three/lighting.ts';
+import { HOUSE_DATA as houseData } from '/src/world/buildingLayout.ts';
+const params = new URLSearchParams(location.search);
+const sheet = params.get('sheet') || 'turnaround';
+const poses = [
+ ['Front 正面',0,0.12],['Left 左側面',Math.PI/2,0.12],['Right 右側面',-Math.PI/2,0.12],
+ ['Back 背面',Math.PI,0.12],['Top 上視圖',0,Math.PI/2],['Bottom 下視圖',0,-Math.PI/2],
+ ['Front 45°',-0.7,0.48],
+];
+const details = [
+ ['Door 拱門',0,0.12,0,0.95,2.8],
+ ['Window 花箱與窗戶',0,0.1,0.99,1.15,3.6],
+ ['Roof & chimney 屋頂煙囪',-0.5,0.5,0.65,3.08,2.3],
+ ['Name sign 名字牌',0,0,0,1.94,3.3],
+];
+const views = sheet === 'variants' ? houseData.houses.map(h => [h.name,-0.65,0.4,0,1.7,1,h.variant])
+ : sheet === 'details' ? details : poses;
+document.querySelector('#sheet').style.gridTemplateColumns = 'repeat('+(sheet === 'variants' ? 5 : views.length)+',280px)';
+const renderer = new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(2); renderer.setSize(280,290,false);
+const material = new THREE.MeshPhongMaterial({vertexColors:true,specular:0x4a4032,shininess:24});
+const cache = new Map();
+let triangles=0;
+for(let index=0;index<views.length;index++){
+ const [label,yaw,pitch,tx=0,ty=1.7,zoom=1,variant=0]=views[index];
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0xfbf5e9);addTownLights(scene);
+ let geometry=cache.get(variant);
+ if(!geometry){geometry=houseGeometry(variant);cache.set(variant,geometry);}
+ triangles=geometry.getAttribute('position').count/3;
+ const group=new THREE.Group();
+ group.add(new THREE.Mesh(geometry,material));
+ group.add(houseSigns([{x:-2,y:-2,variant,name:sheet==='variants'?label:'Wilson House'}]));
+ scene.add(group);
+ // Orbit camera around the model; detail targets stay in model coordinates.
+ const camera=new THREE.OrthographicCamera(-2.75/zoom,2.75/zoom,2.85/zoom,-2.85/zoom,0.1,50);
+ camera.position.set(tx+Math.sin(yaw)*10*Math.cos(pitch),ty+Math.sin(pitch)*10,Math.cos(yaw)*10*Math.cos(pitch));
+ camera.lookAt(tx,ty,0);
+ renderer.render(scene,camera);
+ const canvas=document.createElement('canvas');canvas.width=560;canvas.height=580;
+ canvas.style.width='280px';canvas.style.height='290px';
+ canvas.getContext('2d').drawImage(renderer.domElement,0,0);
+ const figure=document.createElement('figure'),caption=document.createElement('figcaption');
+ caption.textContent=label;figure.append(canvas,caption);document.querySelector('#sheet').append(figure);
+}
+window.__review={views:views.length,triangles,palettes:cache.size};
+window.__ready=true;
+</script></body></html>

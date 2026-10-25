@@ -18,6 +18,12 @@ describe('bar block games', () => {
     expect(isCorrectOrder(DIJKSTRA_GAME, DIJKSTRA_GAME.correctOrder)).toBe(true);
     expect(isCorrectOrder(DIJKSTRA_GAME, DIJKSTRA_GAME.blocks.map(b => b.id))).toBe(false);
     expect(isCorrectOrder(DIJKSTRA_GAME, [
+      'all-inf', 'source-zero', 'repeat', 'select-min', 'visit-u', 'neighbors', 'if-shorter', 'relax',
+    ])).toBe(true);
+    expect(isCorrectOrder(DIJKSTRA_GAME, [
+      'all-inf', 'source-zero', 'repeat', 'visit-u', 'select-min', 'neighbors', 'if-shorter', 'relax',
+    ])).toBe(false);
+    expect(isCorrectOrder(DIJKSTRA_GAME, [
       'all-inf', 'source-zero', 'repeat', 'select-min', 'neighbors', 'if-shorter', 'visit-u', 'relax',
     ])).toBe(false);
     expect(isCorrectOrder(DIJKSTRA_GAME, [

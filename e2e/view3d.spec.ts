@@ -180,6 +180,7 @@ test.describe('3D view with other players', () => {
       // measure once they are all actually being drawn (a body is a call).
       await expect.poll(() => drawCalls(page), { timeout: 15_000 }).toBeGreaterThanOrEqual(31);
       const calls = await drawCalls(page);
+      console.log('crowd draw calls', calls, 'of', DRAW_CALL_BUDGET);
       expect(calls).toBeLessThan(DRAW_CALL_BUDGET);
       await page.screenshot({ path: testInfo.outputPath('crowd.png') });
     } finally {

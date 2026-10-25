@@ -4,84 +4,116 @@
 
 Validated on 2026-10-25 in Apple Container on macOS arm64. Builds, unit tests
 and browser tests ran inside Linux containers; every image is a render of the
-same geometry the game uses, under the town's own lighting, through an
-`OrthographicCamera` so no view's proportions are bent by perspective.
+same geometry the game uses, in the same resting pose, under the town's own
+lighting, through an `OrthographicCamera` so no view's proportions are bent by
+perspective.
 
-## Seven views
+## Shoulder validation
 
-Head and face, brown bowl cut, rounded torso in lavender, shoulders, sleeves
-and hands, shoes. Nothing else.
-
-![Turnaround](turnaround.png)
-
-## Shoulders and arms
+Front, left, right, back, front 45°, and one arm raised 90° forward. The
+raised arm is the same geometry posed by rotating its group — no hole opens at
+the shoulder, and the shoulder does not detach.
 
 ![Shoulders and arms](shoulders-and-arms.png)
 
-## What changed, and why
+## Seven views
+
+![Turnaround](turnaround.png)
+
+## What the shoulder-to-arm construction replaced
+
+The previous build had the joint **on** the torso's surface with a lathe whose
+upper end was an elongated dome. Two things followed from that, and both were
+rejected:
+
+- From the front and back, the dome stood up past the torso as a **point**,
+  because it was taller than a hemisphere of the same radius.
+- From the side, the sleeve **grazed** the torso's surface over a long shallow
+  stretch. Two surfaces crossing at a shallow angle draw a long thin crease —
+  the **U-shaped groove**. Moving or rotating the sleeve only moved the groove,
+  which is why that was the wrong thing to keep adjusting.
+
+What replaced it:
 
 | | Before | Now |
 | --- | --- | --- |
-| Head | squashed 0.95 | 0.98, nearly spherical, so the face stays full from the side |
-| Hair | a shell hugging the skull, hem ending on a rim | a mushroom standing off it, hem rolled back under so the edge has thickness |
-| Torso | ball, or ball plus a shoulder ball | one turned profile: egg, drawn in at the shoulders, fullest at the belly |
-| Shoulder | a dome stuck on the end of a cylinder | dome, taper and cuff are one turned surface — a dome plus a cylinder leaves a ring where they meet |
-| Arm splay | 20° | 22°, and the arm now hangs forward of the body's centre so the sleeve clears the torso's side |
-| Hand | 0.078, narrower than the cuff | 0.085 rounded ellipsoid, reading as a ball at the end of the sleeve |
-| Neck | a cylinder between head and collar | none — this brief asks for head and collar kept compact |
+| Joint | on the torso surface, pushed forward of its centre | **inside** the upper torso: `pivot.x` 0.177 against a torso radius of about 0.21 at that height |
+| Upper end | a dome 0.122 tall over a radius of 0.109 | a **true hemisphere**, 0.098 over 0.098, so it swells instead of peaking |
+| Sleeve | one turned surface, dome plus taper | still one turned surface, but tapering gently over a longer run so it **extends diagonally out and down** past the belly |
+| Hand | sphere scaled 1.16 along the arm | ellipsoid, stretch 1.18, plugging the cuff from inside |
+| Wrist | a ring of skin showed between cuff and hand | the cuff overlaps the hand by 0.062, and the hand is wider at the hem than the hem is — nothing shows through |
+| Arms | merged into the body mesh | **their own meshes, in their own groups** |
 
-That last row reverses the previous pass, which added a neck on the strength
-of the earlier sheets' `圓領` panel. This brief says `不要增加脖子長度`, so the
-neck is gone and the head sits straight on the collar. Worth a word at review:
-the two briefs disagree and the newer one won.
+Because the cap is a hemisphere centred on a joint that sits inside the body,
+the part of the sleeve outside the torso reads as a rounded shoulder swelling
+out of it, and the crossing happens where the torso's surface is steep — behind
+the sleeve from every camera. No socket is carved into the torso, nothing is
+hidden with a material or a shadow, and the overlap is the only thing doing the
+work.
+
+A test holds the premise: the joint must be inside the torso's turned profile
+at its own height, and the sleeve radius must be large enough that the cap
+still clears the surface.
+
+## How the pivots work
+
+```
+root (position, heading, scale)
+├── body mesh            torso, head, hair, ears, shoes
+├── arm-left   group  at (-pivot.x, pivot.y, pivot.z)
+│   └── arm mesh         sleeve + hand, built hanging down -y from the origin
+└── arm-right  group  at (+pivot.x, pivot.y, pivot.z)
+    └── arm mesh         the same geometry, turned the other way
+```
+
+Each arm is built in its own space with the origin **on** the joint, so the
+group's own rotation is a rotation about the joint and nothing else.
+`poseArm(side, pitch, splay)` sets it: positive splay swings the hand away from
+the body on either side, positive pitch swings it forward. Both sides share one
+geometry — the arm is a surface of revolution about its own axis, so its mirror
+image is the same shape turned, which avoids a negative scale (that would flip
+the winding and cull the arm away).
+
+The arms are no longer merged into the body, so they move independently and at
+runtime: they now swing in antiphase as a character walks.
+
+Each character costs 3 draw calls instead of 1. Measured with thirty avatars
+in frame: **126 of the 150 budget**, up from 74. Faces and blob shadows are
+still one `InstancedMesh` each for the whole crowd.
+
+## Preserved, as asked
+
+Overall height, head-to-body ratio, torso volume and profile, eye and mouth
+placement, shoe size and position, and the lavender are all untouched. The
+hair is as approved in the previous round: one shell cut by a single tilted
+plane, which is why the hem reads as one smooth contour from every angle, with
+no nape lump.
 
 ## Architecture
 
 ```
 three/character/proportions.ts   every measurement, one coordinate system
-three/character/baseCharacter.ts head, hair, ears, torso, arms, shoes
+three/character/baseCharacter.ts body parts, and the arm in its own space
 three/character/scarf.ts         independent component
 three/character/hat.ts           independent component, stacked from HEAD_TOP
 three/character/accessories.ts   glasses, satchel, bowtie
-three/character/index.ts         assembly, showHat / showScarf
+three/character/index.ts         assembly, showHat / showScarf, poseArm
 ```
-
-`avatar3d.ts` keeps its public surface and is now the view's side of it: the
-geometry cache and the face texture.
-
-Nothing hard-codes a position of its own; each component reads `PROPORTIONS`.
-The scarf and the hats were moved across unchanged — fitting them to the new
-head and shoulders is Phase 3 and Phase 4, and neither is allowed to reshape
-what Phase 1 settles. The only thing a hat says about the head is whether it
-covers the crown, so the hair can leave it off.
-
-### The arm pivot
-
-Each arm is built in its own space with the origin on the shoulder joint,
-running down -y, then turned about that origin and set on the body. That is
-what puts the pivot on the joint instead of the middle of the sleeve: one
-`armTilt` turns the shoulder cap, sleeve, forearm and hand together without
-moving where they attach. A test holds it — swinging the arms widens the
-figure without lifting or dropping it, and the hand stays one arm's length
-from the joint.
-
-Live per-frame arm animation would need the arms split into their own meshes.
-They are merged into the single per-character geometry today, which is what
-keeps thirty avatars inside the draw-call budget. The geometry and the pivot
-are ready for it; the split is not done, and it is not free.
 
 ## Automated validation
 
-- `npm run typecheck` clean; `npm test` — **194 passed** (4 new).
+- `npm run typecheck` clean; `npm test` — **196 passed** (6 new).
 - Playwright v1.64.1-noble, 4 GB / 6 CPUs — **72 passed** across iPhone,
   iPhone landscape, iPad and iPad landscape.
-- New tests cover the two toggles, the shoulder pivot, and that the character
+- New tests cover both toggles, that no arm is baked into the body, that each
+  arm's group sits on its joint, that posing one arm leaves the other alone,
+  that the hand stays one arm's length from the joint at every angle tried
+  (including 90°), that the joint is inside the torso, and that the character
   is symmetric left to right to six decimal places.
-- The existing geometry test still covers all 25 hat/accessory combinations.
 
 ## Not in this phase
 
-Scarf (Phase 3) and hat (Phase 4) are untouched beyond being moved into their
-own files. They still render in the game, from the same toggles, so nothing a
+Scarf (Phase 3) and hat (Phase 4) are untouched beyond living in their own
+files. They still render in the game from the same toggles, so nothing a
 player has picked has stopped working — they have simply not been fitted to
 the new head and shoulders yet.

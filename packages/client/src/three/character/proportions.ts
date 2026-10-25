@@ -18,7 +18,14 @@ export const PROPORTIONS = {
     squash: 0.98,
   },
 
-  /** A rounded mushroom standing off the skull, not a shell hugging it. */
+  /**
+   * A rounded mushroom standing off the skull, cut by a single tilted plane.
+   *
+   * `fringe` and `nape` are where that plane crosses the front and the back
+   * of the head; everything between is the plane, not an interpolation. A
+   * plane cutting a sphere leaves a circle, which is why the hem reads as one
+   * smooth contour from every angle instead of a diagonal across the cheek.
+   */
   hair: {
     /** Multiple of the head radius: the gap is what gives the cut body. */
     thickness: 1.075,
@@ -27,7 +34,7 @@ export const PROPORTIONS = {
     /** Where the hem sits, as sphere angles down from the crown. */
     brow: Math.PI * 0.25,
     fringe: Math.PI * 0.335,
-    nape: Math.PI * 0.7,
+    nape: Math.PI * 0.66,
     /** How much of the hem rolls back under, giving the edge thickness. */
     roll: 0.3,
   },
@@ -52,28 +59,43 @@ export const PROPORTIONS = {
   },
 
   /**
-   * The arm. Everything below is measured down the arm's own axis from the
-   * shoulder joint, which is the rotation pivot: `tilt` turns the whole arm
-   * about that point, so the shoulder stays put as the hand swings.
+   * The arm, measured down its own axis from the shoulder joint.
+   *
+   * The joint sits *inside* the upper torso, not on its surface. That is what
+   * makes the shoulder continuous: the sleeve's upper end is a true
+   * hemisphere centred on the joint, so the part of it outside the body reads
+   * as a rounded swelling out of the torso while the rest stays buried. On
+   * the surface it stands up as a point instead, and grazing the surface from
+   * in front draws the shallow U-shaped crease that reads as a groove.
+   *
+   * `tilt` turns the whole arm about the joint. Because every part is placed
+   * along this axis in the arm's own space, the joint is the pivot for free:
+   * the arm is its own Three.js group, posed by rotating that group.
    */
   arm: {
-    pivot: { x: 0.215, y: 0.442, z: 0.035 },
-    /** Radians from straight down. The reference asks for 15-25 degrees. */
-    tilt: 0.38,
+    /** Inside the torso at this height — see above. */
+    pivot: { x: 0.177, y: 0.455, z: 0 },
+    /** Radians from straight down: outward and downward, 15-25 degrees. */
+    tilt: 0.42,
+    radius: 0.098,
     /**
-     * The sleeve as one profile turned about the arm's axis, measured down
-     * from the shoulder joint: a dome over the joint, a soft taper to the
-     * cuff, then a lip rolling under to the forearm. Turning the whole thing
-     * from one profile is what keeps the shoulder and the sleeve a single
-     * surface — a dome plus a cylinder leaves a ring where they meet.
+     * The sleeve as one profile turned about the arm's axis, as
+     * [radius, distance down from the joint]: a hemisphere over the joint,
+     * then a soft taper to an open cuff. One surface, so there is no ring
+     * where a cap would meet a tube, and the upper end is exactly a
+     * hemisphere, so it swells rather than peaks.
      */
     sleeve: [
-      [0, -0.088], [0.046, -0.082], [0.076, -0.06], [0.092, -0.028],
-      [0.097, 0.012], [0.095, 0.06], [0.09, 0.12], [0.084, 0.175],
-      [0.082, 0.2], [0.074, 0.214], [0.06, 0.22], [0.057, 0.238],
+      [0, -0.098], [0.038, -0.09], [0.069, -0.069], [0.09, -0.038], [0.098, 0],
+      [0.097, 0.06], [0.094, 0.13], [0.09, 0.2], [0.085, 0.247],
+      [0.079, 0.263], [0.072, 0.27],
     ] as ReadonlyArray<readonly [number, number]>,
-    forearmRadius: 0.057,
-    hand: { at: 0.277, radius: 0.085, squash: 0.94 },
+    /**
+     * The hand plugs the open cuff: an ellipsoid stretched along the arm and
+     * wider at the hem than the hem itself, so the wrist stays inside the
+     * sleeve and nothing shows through the opening.
+     */
+    hand: { at: 0.305, radius: 0.082, stretch: 1.18 },
   },
 
   /** Short, rounded, and clearly two of them. */

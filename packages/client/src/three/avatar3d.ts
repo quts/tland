@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { EYE, MOUTH, avatarTextureKey, type AvatarParts } from '../gfx/avatar.js';
 import { PROPORTIONS } from './character/proportions.js';
-import { buildCharacterGeometry, type CharacterOptions } from './character/index.js';
+import {
+  buildArmGeometry, buildCharacterGeometry, type CharacterOptions,
+} from './character/index.js';
 
 /**
  * 3D avatars.
@@ -13,7 +15,10 @@ import { buildCharacterGeometry, type CharacterOptions } from './character/index
  */
 
 export { PROPORTIONS, HEAD_TOP, alongArm } from './character/proportions.js';
-export { buildCharacterGeometry, type CharacterOptions } from './character/index.js';
+export {
+  assembleCharacter, buildArmGeometry, buildCharacterGeometry,
+  type AssembledCharacter, type CharacterOptions,
+} from './character/index.js';
 
 /** Head centre and radius; the face patch is placed from these. */
 export const HEAD_Y = PROPORTIONS.head.y;
@@ -96,23 +101,38 @@ export function faceGeometry(): THREE.BufferGeometry {
 
 /**
  * Geometry per avatar combination, built once and shared by everyone
- * wearing the same thing.
+ * wearing the same thing. Bodies and arms are cached apart, because the arms
+ * are their own meshes and only depend on the skin and the shirt.
  */
 export class AvatarGeometryCache {
-  private readonly geometries = new Map<string, THREE.BufferGeometry>();
+  private readonly bodies = new Map<string, THREE.BufferGeometry>();
+  private readonly arms = new Map<string, THREE.BufferGeometry>();
 
   get(parts: AvatarParts): THREE.BufferGeometry {
-    const key = avatarTextureKey(parts);
-    let geometry = this.geometries.get(key);
-    if (geometry === undefined) {
-      geometry = buildCharacterGeometry(parts);
-      this.geometries.set(key, geometry);
-    }
-    return geometry;
+    return cached(this.bodies, avatarTextureKey(parts), () => buildCharacterGeometry(parts));
+  }
+
+  getArm(parts: AvatarParts): THREE.BufferGeometry {
+    return cached(this.arms, `${parts.body}-${parts.shirt}`, () => buildArmGeometry(parts));
   }
 
   dispose(): void {
-    for (const geometry of this.geometries.values()) geometry.dispose();
-    this.geometries.clear();
+    for (const store of [this.bodies, this.arms]) {
+      for (const geometry of store.values()) geometry.dispose();
+      store.clear();
+    }
   }
+}
+
+function cached(
+  store: Map<string, THREE.BufferGeometry>,
+  key: string,
+  build: () => THREE.BufferGeometry,
+): THREE.BufferGeometry {
+  let geometry = store.get(key);
+  if (geometry === undefined) {
+    geometry = build();
+    store.set(key, geometry);
+  }
+  return geometry;
 }

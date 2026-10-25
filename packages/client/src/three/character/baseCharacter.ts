@@ -28,19 +28,40 @@ const bodyShade: Shade = { from: 0.82, to: 1.04, bottom: 0.06, top: P.body.colla
  * out as a staircase. Sweeping the bottom edge per column gives the cut, and
  * rolling the last rows back towards the skull gives the hem thickness — the
  * difference between a mushroom and a hard shell.
+ *
+ * The sweep is a single tilted plane: high at the brow, low at the nape. A
+ * plane cutting a sphere leaves a circle, so the hem is one smooth contour
+ * from every angle. Blending the two angles column by column instead would
+ * drop the hem fastest at the flanks and cut a diagonal across the cheek.
  */
 function hairShell(radius: number, hem: number): THREE.BufferGeometry {
   const { brow, fringe, roll } = P.hair;
   const inner = P.head.radius * 1.01;
   const columns = 48;
   const rows = 10;
+  // The cutting plane, as y = base + lean * z, through the hem's front and
+  // back anchors on the shell.
+  const yAt = (theta: number): number => Math.cos(theta) * radius * P.head.squash;
+  const lean = (yAt(fringe) - yAt(hem)) / ((Math.sin(fringe) + Math.sin(hem)) * radius);
+  const base = yAt(fringe) - lean * Math.sin(fringe) * radius;
+  /** Where that plane crosses this meridian, by bisection on the angle. */
+  const hemAt = (phi: number): number => {
+    let lo = brow;
+    let hi = Math.PI * 0.92;
+    for (let k = 0; k < 28; k += 1) {
+      const mid = (lo + hi) / 2;
+      const z = Math.sin(phi) * Math.sin(mid) * radius;
+      if (yAt(mid) > base + lean * z) lo = mid;
+      else hi = mid;
+    }
+    return (lo + hi) / 2;
+  };
   const positions = new Float32Array((columns + 1) * (rows + 1) * 3);
   const index: number[] = [];
   for (let i = 0; i <= columns; i += 1) {
     // phi 0 is the left flank and pi/2 straight ahead, so measure from the face.
     const phi = (i / columns) * Math.PI * 2;
-    const behind = (1 - Math.cos(phi - Math.PI / 2)) / 2;
-    const bottom = fringe + (hem - fringe) * behind;
+    const bottom = hemAt(phi);
     for (let j = 0; j <= rows; j += 1) {
       const t = j / rows;
       // Ease the last of the rows inward and a little further round, so the
@@ -81,11 +102,6 @@ export function hairParts(color: number, withBack = true): THREE.BufferGeometry[
     ),
     painted(hairShell(r, withBack ? P.hair.nape : Math.PI * 0.52), color, shade),
   ];
-  if (withBack) {
-    // A soft nape, so the back of the cut is not a hard rim.
-    parts.push(painted(new THREE.SphereGeometry(1, 22, 12).scale(0.19, 0.092, 0.145)
-      .translate(0, P.head.y - 0.185, -0.135), color, shade));
-  }
   // Dome the whole cut about the head's centre: scaling the crown alone
   // would crack it away from the shell.
   for (const part of parts) {
@@ -95,40 +111,36 @@ export function hairParts(color: number, withBack = true): THREE.BufferGeometry[
 }
 
 /**
- * One arm, built in its own space with the origin on the shoulder joint and
- * the arm running down -y, then turned about that origin and set on the body.
+ * One arm, in its own space: the origin is the shoulder joint and the arm
+ * hangs down -y, unrotated.
  *
- * Building it this way is what puts the pivot on the joint rather than in the
- * middle of the sleeve: `tilt` — or any pose angle — rotates the shoulder
- * cap, sleeve, forearm and hand together without moving where they attach.
+ * It is never baked into the body. The caller puts it in a group at the
+ * joint and turns that group, which is what makes the joint the pivot and
+ * leaves each arm free to move on its own.
  */
-function armParts(side: number, colors: BaseColors, tilt: number): THREE.BufferGeometry[] {
+export function armParts(colors: BaseColors): THREE.BufferGeometry[] {
   const a = P.arm;
-  const parts = [
-    // Shoulder, sleeve and cuff are one turned surface: see `sleeve` above.
+  const shade: Shade = { from: 0.84, to: 1.02, bottom: -a.hand.at, top: a.radius };
+  return [
+    // Shoulder, sleeve and cuff are one turned surface: see `sleeve`.
     painted(new THREE.LatheGeometry(
-      a.sleeve.map(([r, down]) => new THREE.Vector2(r, -down)), 26,
-    ), colors.shirt, bodyShade),
-    painted(new THREE.CylinderGeometry(a.forearmRadius, a.forearmRadius, 0.08, 16)
-      .translate(0, -0.245, 0), colors.skin, bodyShade),
-    painted(new THREE.SphereGeometry(a.hand.radius, 20, 16)
-      .scale(1, a.hand.squash, 1).translate(0, -a.hand.at, 0), colors.skin, bodyShade),
+      a.sleeve.map(([r, down]) => new THREE.Vector2(r, -down)), 28,
+    ), colors.shirt, shade),
+    // The hand plugs the cuff: an ellipsoid stretched along the arm, its
+    // widest ring just inside the hem, so no wrist shows through it.
+    painted(new THREE.SphereGeometry(a.hand.radius, 22, 18)
+      .scale(1, a.hand.stretch, 0.95).translate(0, -a.hand.at, 0), colors.skin, shade),
   ];
-  for (const part of parts) {
-    part.rotateZ(side * tilt).translate(side * a.pivot.x, a.pivot.y, a.pivot.z);
-  }
-  return parts;
 }
 
 /**
- * The whole base character. `armTilt` defaults to the resting splay; passing
- * another angle swings both arms about their shoulder joints.
+ * The body: everything except the arms — shoes, torso, head, ears, hair.
+ * The arms are separate meshes, so they can be posed.
  */
 export function baseCharacterParts(
   colors: BaseColors,
-  options: { readonly hair?: boolean; readonly armTilt?: number } = {},
+  options: { readonly hair?: boolean } = {},
 ): THREE.BufferGeometry[] {
-  const tilt = options.armTilt ?? P.arm.tilt;
   const [sx, sy, sz] = P.shoe.scale;
   const [ex, ey, ez] = P.ear.scale;
   return [
@@ -140,7 +152,6 @@ export function baseCharacterParts(
     painted(new THREE.LatheGeometry(
       P.body.profile.map(([r, y]) => new THREE.Vector2(r, y)), 32,
     ).scale(1, 1, P.body.depth), colors.shirt, bodyShade),
-    ...[-1, 1].flatMap((side) => armParts(side, colors, tilt)),
     // Head.
     painted(new THREE.SphereGeometry(P.head.radius, 30, 22)
       .scale(1, P.head.squash, 1).translate(0, P.head.y, 0), colors.skin, skinShade),

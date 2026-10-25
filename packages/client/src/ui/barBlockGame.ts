@@ -24,14 +24,6 @@ export class BarBlockGame {
       this.slots = this.game.correctOrder.map(() => null);
       this.render();
     });
-    document.getElementById('game-hint')!.addEventListener('click', () => {
-      const hint = document.getElementById('game-hint')!;
-      const shown = hint.getAttribute('aria-pressed') !== 'true';
-      hint.setAttribute('aria-pressed', String(shown));
-      document.getElementById('game-reference')!.textContent = shown
-        ? 'Sum 使用 XOR：輸入不同時輸出 1；Carry 使用 AND：兩個輸入都是 1 時輸出 1。'
-        : '半加器（Half Adder）：Sum = A XOR B；Carry = A AND B';
-    });
     this.submit.addEventListener('click', () => {
       if (!this.circuitMode && !this.game) return;
       const correct = this.circuitMode ? this.circuit.test() : isCorrectOrder(this.game!, this.slots);
@@ -50,14 +42,14 @@ export class BarBlockGame {
     this.slots = this.game?.correctOrder.map(() => null) ?? [];
     this.dialog.classList.toggle('circuit-mode', this.circuitMode);
     document.getElementById('circuit-results')!.hidden = !this.circuitMode;
-    document.getElementById('game-hint')!.hidden = !this.circuitMode;
-    document.getElementById('game-hint')!.setAttribute('aria-pressed', 'false');
     document.getElementById('game-bank-title')!.textContent = this.circuitMode ? '邏輯閘積木' : '積木區';
     document.getElementById('game-assembly-label')!.textContent = this.circuitMode ? '電路組合區' : '組合區';
     this.submit.textContent = this.circuitMode ? '▶ 測試電路' : '▶ 提交答案';
     document.getElementById('game-title')!.textContent = game.title;
     document.getElementById('game-question')!.textContent = game.question;
-    document.getElementById('game-reference')!.textContent = game.reference;
+    const reference = document.getElementById('game-reference')!;
+    reference.textContent = game.reference;
+    reference.hidden = game.reference.length === 0;
     (document.getElementById('game-backdrop') as HTMLImageElement).src = image;
     this.clearFeedback();
     if (this.circuitMode) this.circuit.reset();

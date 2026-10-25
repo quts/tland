@@ -19,7 +19,9 @@ for (const view of ['2d', '3d']) test('Wilson simulates the half adder in ' + vi
   await expect(page.locator('#game-bank button')).toHaveCount(4);
   expect(await game.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await expect(page.locator('#game-submit')).toBeInViewport();
-  await expect(page.locator('#game-hint')).toBeInViewport();
+  await expect(page.locator('#game-hint')).toHaveCount(0);
+  await expect(page.locator('#game-reference')).toBeHidden();
+  await expect(page.locator('.game-intro')).not.toContainText('XOR');
   const sum = page.locator('[data-output="sum"]');
   const carry = page.locator('[data-output="carry"]');
   const choose = async (gate: string, output: 'sum' | 'carry') => {
@@ -36,8 +38,6 @@ for (const view of ['2d', '3d']) test('Wilson simulates the half adder in ' + vi
   await expect(page.locator('#game-feedback')).toHaveText('你再試試看');
   await expect(page.locator('#circuit-truth tr').last().locator('td').nth(2)).toHaveText('1');
   await expect(page.locator('#circuit-truth td[data-result="retry"]')).toHaveCount(1);
-  await page.locator('#game-hint').click();
-  await expect(page.locator('#game-reference')).toContainText('Sum 使用 XOR');
   if (testInfo.project.name === 'ipad-landscape') {
     await page.locator('#game-bank [data-gate="XOR"]').dragTo(sum);
   } else await choose('XOR', 'sum');

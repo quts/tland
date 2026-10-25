@@ -29,27 +29,38 @@ import { merge, painted } from './geometry.js';
  */
 
 /** Head centre and radius; the face patch and hats are placed from these. */
-export const HEAD_Y = 0.80;
-export const HEAD_RADIUS = 0.30;
+export const HEAD_Y = 0.825;
+export const HEAD_RADIUS = 0.285;
 const HEAD_SQUASH = 0.95;
 /** Top of the bare skull — where hair sits and hats are stacked from. */
 const HEAD_TOP = HEAD_Y + HEAD_RADIUS * HEAD_SQUASH;
-/** The body ball: a wide egg the head rests on, its top at the collar. */
-const BODY_Y = 0.30;
+/** The body ball, and the round collar cut into the top of it. */
+const BODY_Y = 0.285;
 const BODY_RADIUS = 0.25;
-const COLLAR_Y = BODY_Y + BODY_RADIUS * 1.02;
+const COLLAR_Y = BODY_Y + BODY_RADIUS;
+const NECK_RADIUS = 0.1;
 /**
- * The arm: a sleeve capsule hanging down the side of the body with a bare
- * hand at its end, splayed out just enough to clear the hip. `ARM_TILT` is
- * measured from straight down, so the shoulder tucks in as the hand swings
- * out, which is what keeps the joint inside the body ball.
+ * The arm, measured down its own axis from the shoulder: a loose cylindrical
+ * sleeve, a bare forearm, then the hand. `ARM_TILT` is the splay from
+ * straight down — the shoulder tucks in as the hand swings out, which is what
+ * keeps the joint buried in the body ball while the hand clears the hip.
  */
-const SLEEVE_RADIUS = 0.075;
-const SLEEVE_HALF = 0.145;
-const ARM_Y = 0.34;
-const ARM_X = 0.265;
+const SHOULDER_X = 0.215;
+const SHOULDER_Y = 0.46;
 const ARM_TILT = 0.30;
-const HAND_RADIUS = 0.082;
+const SLEEVE_LENGTH = 0.15;
+const FOREARM_RADIUS = 0.052;
+const HAND_RADIUS = 0.078;
+const HAND_AT = 0.2;
+
+/** A point `down` along the arm's axis from the shoulder, on the given side. */
+function alongArm(side: number, down: number): [number, number, number] {
+  return [
+    side * (SHOULDER_X + down * Math.sin(ARM_TILT)),
+    SHOULDER_Y - down * Math.cos(ARM_TILT),
+    0.01,
+  ];
+}
 /**
  * Avatars are modelled about a tile tall and drawn larger: chunky enough to
  * read at phone zoom, the way the 2D sprites stand taller than their tile.
@@ -115,7 +126,7 @@ function hairShell(radius: number, hem: number): THREE.BufferGeometry {
  */
 function hair(color: number, withBack: boolean): THREE.BufferGeometry[] {
   const shade = { from: 0.7, to: 1.04, bottom: HEAD_Y - 0.26, top: HEAD_TOP };
-  const r = HEAD_RADIUS * 1.045;
+  const r = HEAD_RADIUS * 1.1;
   const parts = [
     painted(
       new THREE.SphereGeometry(r, 30, 12, 0, Math.PI * 2, 0, BROW + 0.04)
@@ -267,21 +278,41 @@ export function buildAvatarGeometry(parts: AvatarParts): THREE.BufferGeometry {
     // Boots, a little apart, just clearing the hem of the body.
     ...[-1, 1].map((side) => painted(new THREE.SphereGeometry(0.085, 16, 10)
       .scale(1, 0.62, 1.3).translate(side * 0.095, 0.053, 0.015), BOOT)),
-    // Body: one round ball, wider than it is deep.
-    painted(new THREE.SphereGeometry(BODY_RADIUS, 26, 18).scale(1, 1.02, 0.88)
-      .translate(0, BODY_Y, 0), shirt, bodyShade),
-    // Sleeves, hanging down the sides with the shoulder sunk into the body.
+    // Body. A plain ball narrows too fast where the arms attach and leaves
+    // them hanging off the side, so the torso is turned from a profile
+    // instead: belly at its widest, still broad across the shoulders, then
+    // drawn in to the collar. One surface, so there is no seam to shade.
+    painted(new THREE.LatheGeometry([
+      [0, 0.03], [0.105, 0.033], [0.175, 0.062], [0.228, 0.13], [0.249, 0.22],
+      [0.25, 0.3], [0.24, 0.375], [0.216, 0.435], [0.18, 0.487], [0.132, 0.52],
+      [0.105, 0.534], [0, 0.537],
+    ].map(([x, y]) => new THREE.Vector2(x, y)), 30).scale(1, 1, 0.88), shirt, bodyShade),
+    // A short neck, and the round collar the shirt gathers into around it.
+    painted(new THREE.CylinderGeometry(NECK_RADIUS, NECK_RADIUS * 1.12, 0.12, 18)
+      .translate(0, COLLAR_Y + 0.025, 0), skin,
+    { from: 0.82, to: 0.98, bottom: COLLAR_Y - 0.04, top: COLLAR_Y + 0.085 }),
+    painted(new THREE.TorusGeometry(NECK_RADIUS * 1.16, 0.026, 8, 24).rotateX(Math.PI / 2)
+      .translate(0, COLLAR_Y + 0.002, 0), shirt, bodyShade),
+    // Sleeves: loose cylinders, flared a little towards the cuff, over a
+    // rounded shoulder that blends the joint into the torso.
     ...[-1, 1].map((side) => painted(
-      new THREE.CapsuleGeometry(SLEEVE_RADIUS, SLEEVE_HALF * 2 - SLEEVE_RADIUS * 2, 6, 14)
-        .rotateZ(side * ARM_TILT).translate(side * ARM_X, ARM_Y, 0.01), shirt, bodyShade,
+      new THREE.SphereGeometry(0.093, 18, 12).translate(...alongArm(side, 0.025)),
+      shirt, bodyShade,
     )),
-    // Hands: a ball a touch wider than the cuff, at the end of each sleeve.
     ...[-1, 1].map((side) => painted(
-      new THREE.SphereGeometry(HAND_RADIUS, 16, 12).translate(
-        side * (ARM_X + SLEEVE_HALF * Math.sin(ARM_TILT)),
-        ARM_Y - SLEEVE_HALF * Math.cos(ARM_TILT),
-        0.01,
-      ), skin, bodyShade,
+      new THREE.CylinderGeometry(0.088, 0.093, SLEEVE_LENGTH, 20)
+        .rotateZ(side * ARM_TILT).translate(...alongArm(side, SLEEVE_LENGTH / 2)),
+      shirt, bodyShade,
+    )),
+    // Bare forearm out of the cuff, then the hand.
+    ...[-1, 1].map((side) => painted(
+      new THREE.CylinderGeometry(FOREARM_RADIUS, FOREARM_RADIUS, 0.07, 14)
+        .rotateZ(side * ARM_TILT).translate(...alongArm(side, SLEEVE_LENGTH + 0.005)),
+      skin, bodyShade,
+    )),
+    ...[-1, 1].map((side) => painted(
+      new THREE.SphereGeometry(HAND_RADIUS, 18, 14).translate(...alongArm(side, HAND_AT)),
+      skin, bodyShade,
     )),
     // Head, resting straight on the body: there is no neck.
     painted(
@@ -290,8 +321,8 @@ export function buildAvatarGeometry(parts: AvatarParts): THREE.BufferGeometry {
       skinShade,
     ),
     // Tiny ears break up the round head without adding draw calls.
-    ...[-1, 1].map((side) => painted(new THREE.SphereGeometry(0.048, 12, 8)
-      .scale(0.7, 1, 0.7).translate(side * 0.295, HEAD_Y - 0.035, 0), skin, skinShade)),
+    ...[-1, 1].map((side) => painted(new THREE.SphereGeometry(0.046, 14, 10)
+      .scale(0.55, 0.95, 0.75).translate(side * 0.262, HEAD_Y - 0.095, -0.01), skin, skinShade)),
     ...hatParts(parts.hat, hairColor),
     ...accessoryParts(parts.accessory, shirt),
   ];

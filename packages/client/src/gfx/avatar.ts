@@ -138,13 +138,13 @@ function drawHat(
     case 'sunhat':
       // A straw boater: flat crown, coral band, wide flat brim. It rides high
       // on the skull, the way the 3D one does, so the fringe stays visible.
-      outlinedRoundedRect(g, cx - 9, brow - 11.5, 18, 10, 3.5, STRAW);
+      outlinedRoundedRect(g, cx - 9, brow - 11, 18, 8, 3.5, STRAW);
       g.fillStyle(SCARF, 1);
-      g.fillRect(cx - 9, brow - 9, 18, 3);
+      g.fillRect(cx - 9, brow - 9.5, 18, 2);
       g.fillStyle(OUTLINE, 1);
-      g.fillEllipse(cx, brow - 2.5, 36, 11);
+      g.fillEllipse(cx, brow - 3, 36, 9);
       g.fillStyle(STRAW, 1);
-      g.fillEllipse(cx, brow - 2.5, 32, 7.5);
+      g.fillEllipse(cx, brow - 3, 32, 6);
       return;
     case 'beanie':
       outlinedRoundedRect(g, cx - 9.5, brow - 7, 19, 11, 6, PALETTE.petalLilac);
@@ -229,9 +229,9 @@ function drawAccessory(
 
 /* Vertical layout, measured down from the top of the frame. */
 const FEET_Y = FRAME_HEIGHT - 4;
-const BODY_BOTTOM = FEET_Y - 4;
-const BODY_TOP = BODY_BOTTOM - 16;
-const HEAD_Y = BODY_TOP - 7;
+const BODY_BOTTOM = FEET_Y - 3;
+const BODY_TOP = BODY_BOTTOM - 15;
+const HEAD_Y = 17;
 const HEAD_RADIUS = 10.5;
 
 function drawFrame(
@@ -256,15 +256,29 @@ function drawFrame(
   g.fillRoundedRect(cx - 7.5, FEET_Y - 4.5, 6, 5.5, 2.5);
   g.fillRoundedRect(cx + 1.5, FEET_Y - 4.5, 6, 5.5, 2.5);
 
-  // Arms: a sleeve hanging from the collar with a bare hand at its end,
-  // drawn behind the torso so the shoulder sinks into the body.
+  // Arms: a short sleeve off the shoulder with a bare hand below it, drawn
+  // behind the torso so the shoulder sinks into the body.
   for (const side of [-1, 1] as const) {
-    outlinedRoundedRect(g, cx + side * 10 - 3, BODY_TOP + 2.5, 6, 10, 3, shirt);
-    outlinedCircle(g, cx + side * 11.5, BODY_TOP + 12, 3.1, skin);
+    const ax = cx + side * 10;
+    const top = BODY_TOP + 1;
+    // Outlined in one pass and filled in another, so no dark seam appears
+    // where the sleeve meets the hand, with a thinner outline than the body's:
+    // at this size a 2px ring swallows the arm. The bare forearm the 3D view
+    // models would be under a pixel here, so the cuff meets the hand directly.
+    g.fillStyle(OUTLINE, 1);
+    g.fillRoundedRect(ax - 4.7, top - 2, 9.4, 12, 4.7);
+    g.fillCircle(ax, top + 11, 4.7);
+    g.fillStyle(shirt, 1);
+    g.fillRoundedRect(ax - 3.2, top, 6.4, 8.5, 3.2);
+    g.fillStyle(skin, 1);
+    g.fillCircle(ax, top + 11, 3.2);
   }
 
-  // Torso: one round ball, the head sitting straight on it.
-  outlinedRoundedRect(g, cx - 10, BODY_TOP, 20, 17, 9, shirt);
+  // Torso, and the round collar the shirt gathers into under the chin. The
+  // neck itself is a couple of pixels at this size, so the collar stands for
+  // it: the 3D view models the neck proper.
+  outlinedRoundedRect(g, cx - 9, BODY_TOP, 18, 15, 7, shirt);
+  outlinedRoundedRect(g, cx - 5.5, BODY_TOP - 3, 11, 5, 2.5, shirt);
 
   drawAccessory(g, ox, parts.accessory, facing, BODY_TOP, HEAD_Y);
 

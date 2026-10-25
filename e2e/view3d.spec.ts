@@ -105,7 +105,9 @@ test.describe('3D view', () => {
 
     await expect.poll(async () => (await fingerprint()).covered).toBeGreaterThan(500);
     const before = await fingerprint();
-    await page.locator('#pick-hat .chip').nth(2).click();
+    // The last hat, never the one the join screen starts on: picking what is
+    // already worn would redraw the same pixels and prove nothing.
+    await page.locator('#pick-hat .chip').last().click();
     await expect.poll(async () => (await fingerprint()).weight).not.toBe(before.weight);
     await page.locator('#avatar-preview').screenshot({ path: testInfo.outputPath('preview.png') });
     expect(errors).toEqual([]);

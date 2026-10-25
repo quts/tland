@@ -58,16 +58,16 @@ export class JoinScreen {
   private submitting = false;
 
   constructor(private readonly options: JoinScreenOptions) {
-    this.buildSwatches('pick-body', BODY_COLORS, '膚色', (index) => {
+    this.buildSwatches('pick-body', BODY_COLORS, '膚色', this.parts.body, (index) => {
       this.parts = { ...this.parts, body: index };
     });
-    this.buildSwatches('pick-shirt', SHIRT_COLORS, '衣服', (index) => {
+    this.buildSwatches('pick-shirt', SHIRT_COLORS, '衣服', this.parts.shirt, (index) => {
       this.parts = { ...this.parts, shirt: index };
     });
-    this.buildChips('pick-hat', HATS, HAT_LABELS, (value) => {
+    this.buildChips('pick-hat', HATS, HAT_LABELS, this.parts.hat, (value) => {
       this.parts = { ...this.parts, hat: value };
     });
-    this.buildChips('pick-accessory', ACCESSORIES, ACCESSORY_LABELS, (value) => {
+    this.buildChips('pick-accessory', ACCESSORIES, ACCESSORY_LABELS, this.parts.accessory, (value) => {
       this.parts = { ...this.parts, accessory: value };
     });
 
@@ -149,6 +149,7 @@ export class JoinScreen {
     containerId: string,
     colors: readonly number[],
     label: string,
+    selected: number,
     onPick: (index: number) => void,
   ): void {
     const container = required(containerId);
@@ -158,7 +159,7 @@ export class JoinScreen {
       button.className = 'swatch';
       button.style.background = `#${color.toString(16).padStart(6, '0')}`;
       button.setAttribute('aria-label', `${label} ${index + 1}`);
-      button.setAttribute('aria-pressed', String(index === 0));
+      button.setAttribute('aria-pressed', String(index === selected));
       button.addEventListener('click', () => {
         for (const sibling of container.children) {
           sibling.setAttribute('aria-pressed', 'false');
@@ -175,15 +176,16 @@ export class JoinScreen {
     containerId: string,
     values: readonly T[],
     labels: Record<T, string>,
+    selected: T,
     onPick: (value: T) => void,
   ): void {
     const container = required(containerId);
-    values.forEach((value, index) => {
+    values.forEach((value) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'chip';
       button.textContent = labels[value];
-      button.setAttribute('aria-pressed', String(index === 0));
+      button.setAttribute('aria-pressed', String(value === selected));
       button.addEventListener('click', () => {
         for (const sibling of container.children) {
           sibling.setAttribute('aria-pressed', 'false');

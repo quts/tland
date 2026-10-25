@@ -98,7 +98,27 @@ describe('character components', () => {
     }
   });
 
-  it('keeps the shoulder joint inside the torso, so no hole opens when posed', () => {
+  it('keeps the shoulder a sphere about the pivot, so no pose can open it', () => {
+    const { joint } = PROPORTIONS.arm;
+    const position = buildArmGeometry(OUTFIT).getAttribute('position');
+    let onTheBall = 0;
+    for (let i = 0; i < position.count; i += 1) {
+      const y = position.getY(i);
+      if (y <= 0) continue;
+      // Above the joint, the arm may not reach past the joint's own radius.
+      // Everything there is therefore inside one sphere centred on the pivot,
+      // and a sphere about its centre is unmoved by rotation — so turning the
+      // arm cannot uncover anything the resting pose was covering.
+      const distance = Math.hypot(position.getX(i), y, position.getZ(i));
+      expect(distance, `vertex ${i}`).toBeLessThanOrEqual(joint + 1e-6);
+      if (distance > joint - 1e-6) onTheBall += 1;
+    }
+    // And it is the ball, not merely inside it: the sleeve's top *is* that
+    // hemisphere, so there is no separate cap with a boundary of its own.
+    expect(onTheBall).toBeGreaterThan(100);
+  });
+
+  it('keeps the shoulder joint inside the torso', () => {
     const { pivot, radius } = PROPORTIONS.arm;
     // The torso's radius at the joint's height, from the profile it is turned
     // from. The joint has to be inside it, or the sleeve's rounded upper end

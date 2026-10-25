@@ -10,7 +10,15 @@ import { Bot, TILE, collectErrors, joinTown, startStack, type Stack } from './su
  * a phone; see TESTING.md.
  */
 
-const DRAW_CALL_BUDGET = 150;
+/**
+ * Raised from 150 when the arms came out of the body mesh so they could be
+ * posed. A character is three draw calls now instead of one, and thirty of
+ * them in an iPad landscape frame measure 158 where they measured about 90.
+ * Faces and blob shadows are still one InstancedMesh each for the whole
+ * crowd; if this ever needs to come back down, the arms are the thing to
+ * batch, at the cost of the per-arm groups.
+ */
+const DRAW_CALL_BUDGET = 180;
 
 async function drawCalls(page: Page): Promise<number> {
   // Counters describe the last frame; give a few frames to settle first.

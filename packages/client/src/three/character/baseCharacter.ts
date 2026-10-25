@@ -120,11 +120,21 @@ export function hairParts(color: number, withBack = true): THREE.BufferGeometry[
  */
 export function armParts(colors: BaseColors): THREE.BufferGeometry[] {
   const a = P.arm;
-  const shade: Shade = { from: 0.84, to: 1.02, bottom: -a.hand.at, top: a.radius };
+  // The ramp starts at the brightness the torso has at the joint's height, so
+  // the arm does not step in tone where it meets the body. The arm's colours
+  // are baked in its own space and then rotated, so they cannot be keyed to
+  // world height the way the torso's are.
+  const atJoint = bodyShade.from
+    + (bodyShade.to - bodyShade.from)
+      * ((a.pivot.y - bodyShade.bottom) / (bodyShade.top - bodyShade.bottom));
+  const shade: Shade = { from: 0.86, to: atJoint, bottom: -a.hand.at, top: a.joint };
   return [
-    // Shoulder, sleeve and cuff are one turned surface: see `sleeve`.
+    // Shoulder, sleeve and cuff are one turned surface: the top of the
+    // profile is the joint's own hemisphere, so there is no cap boundary to
+    // see and nothing to come apart when the arm swings. Turned finely, so
+    // where it crosses the torso the crease is a smooth curve, not faceted.
     painted(new THREE.LatheGeometry(
-      a.sleeve.map(([r, down]) => new THREE.Vector2(r, -down)), 28,
+      a.sleeve.map(([r, down]) => new THREE.Vector2(r, -down)), 40,
     ), colors.shirt, shade),
     // The hand plugs the cuff: an ellipsoid stretched along the arm, its
     // widest ring just inside the hem, so no wrist shows through it.

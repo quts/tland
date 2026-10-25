@@ -61,12 +61,12 @@ export const PROPORTIONS = {
   /**
    * The arm, measured down its own axis from the shoulder joint.
    *
-   * The joint sits *inside* the upper torso, not on its surface. That is what
-   * makes the shoulder continuous: the sleeve's upper end is a true
-   * hemisphere centred on the joint, so the part of it outside the body reads
-   * as a rounded swelling out of the torso while the rest stays buried. On
-   * the surface it stands up as a point instead, and grazing the surface from
-   * in front draws the shallow U-shaped crease that reads as a groove.
+   * The joint sits *inside* the upper torso, and a ball centred exactly on it
+   * is the shoulder. Because a sphere about its own centre is unchanged by
+   * rotation, that ball fills the socket identically at every angle — so the
+   * joint cannot open a gap however the arm is posed. Everything else hangs
+   * below it, far enough inside that the sleeve's open rim never leaves the
+   * ball: `hypot(radius, sleeveTuck) < joint`, checked by a test.
    *
    * `tilt` turns the whole arm about the joint. Because every part is placed
    * along this axis in the arm's own space, the joint is the pivot for free:
@@ -79,11 +79,20 @@ export const PROPORTIONS = {
     tilt: 0.42,
     radius: 0.098,
     /**
+     * The shoulder, as the radius of a ball centred on the joint.
+     *
+     * Nothing on the arm above the joint reaches past it, and the sleeve's
+     * own upper end *is* that ball's top half — so the shoulder is a sphere
+     * about the pivot, and a sphere about its own centre does not move when
+     * you rotate it. The socket is therefore filled identically at every
+     * angle and no pose can open a gap, with no separate cap to show a
+     * boundary of its own. A test holds both halves of that.
+     */
+    joint: 0.098,
+    /**
      * The sleeve as one profile turned about the arm's axis, as
-     * [radius, distance down from the joint]: a hemisphere over the joint,
-     * then a soft taper to an open cuff. One surface, so there is no ring
-     * where a cap would meet a tube, and the upper end is exactly a
-     * hemisphere, so it swells rather than peaks.
+     * [radius, distance down from the joint]: the joint's own hemisphere,
+     * then a soft taper to an open cuff, all one surface.
      */
     sleeve: [
       [0, -0.098], [0.038, -0.09], [0.069, -0.069], [0.09, -0.038], [0.098, 0],

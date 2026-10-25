@@ -108,6 +108,23 @@
                 </table>
               </div>
             </section>
+            <section id="dijkstra-example" class="game-panel dijkstra-example" aria-labelledby="dijkstra-example-title" hidden>
+              <h3 id="dijkstra-example-title">範例圖（起點 A）</h3>
+              <svg viewBox="0 0 260 260" role="img" aria-label="起點 A；A 到 B 權重 2，A 到 C 權重 5，A 到 D 權重 4，B 到 D 權重 1，C 到 D 權重 2">
+                <g class="graph-edges">
+                  <path d="M130 36 44 130 M130 36 216 130 M130 36 130 218 M44 130 130 218 M216 130 130 218" />
+                </g>
+                <g class="graph-weights">
+                  <text x="68" y="76">2</text><text x="185" y="76">5</text><text x="142" y="131">4</text>
+                  <text x="67" y="194">1</text><text x="188" y="194">2</text>
+                </g>
+                <g class="graph-nodes">
+                  <circle class="graph-source" cx="130" cy="36" r="22"/><circle cx="44" cy="130" r="22"/>
+                  <circle cx="216" cy="130" r="22"/><circle cx="130" cy="218" r="22"/>
+                  <text x="130" y="36">A</text><text x="44" y="130">B</text><text x="216" y="130">C</text><text x="130" y="218">D</text>
+                </g>
+              </svg>
+            </section>
           </div>
           <footer class="game-footer">
             <p id="game-feedback" role="status" aria-live="polite"></p>

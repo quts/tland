@@ -15,6 +15,7 @@ export interface BlockGame {
   readonly blocks: readonly GameBlock[];
   readonly correctOrder: readonly string[];
   readonly functionFrame?: { readonly start: string; readonly end: string };
+  readonly exampleGraph?: boolean;
 }
 
 export const FIBONACCI_GAME: BlockGame = {
@@ -51,6 +52,28 @@ export const PARITY_GAME: BlockGame = {
   correctOrder: ['if', 'true', 'else', 'false'],
 };
 
+export const DIJKSTRA_GAME: BlockGame = {
+  kind: 'blocks',
+  id: 'dijkstra',
+  title: 'Dijkstra 最短路徑',
+  question: '從起點 s 出發，將積木排成正確順序，求出到所有節點的最短距離。圖中的邊權重皆為正數。',
+  reference: '',
+  functionFrame: { start: '輸入：圖與起點 s', end: '輸出：每個節點的最短距離 dist' },
+  exampleGraph: true,
+  // Keep the bank mixed so it does not reveal the solution.
+  blocks: [
+    { id: 'source-zero', label: 'dist[s] = 0', color: 'purple' },
+    { id: 'if-shorter', label: '如果 dist[v] > dist[u] + w(u, v)', color: 'blue' },
+    { id: 'visit-u', label: '將 u 加入已訪問集合', color: 'orange' },
+    { id: 'all-inf', label: '對所有節點 v，dist[v] = ∞', color: 'purple' },
+    { id: 'relax', label: '更新 dist[v] = dist[u] + w(u, v)', color: 'green' },
+    { id: 'neighbors', label: '對 u 的每個未訪問鄰居 v', color: 'blue' },
+    { id: 'repeat', label: '重複，直到沒有可達的未訪問節點', color: 'orange' },
+    { id: 'select-min', label: '從未訪問節點選出 dist 最小的節點 u', color: 'blue' },
+  ],
+  correctOrder: ['all-inf', 'source-zero', 'repeat', 'select-min', 'neighbors', 'if-shorter', 'relax', 'visit-u'],
+};
+
 export const ADDITION_GAME: BlockGame = {
   kind: 'blocks',
   id: 'addition',
@@ -66,6 +89,7 @@ export type BarGame = BlockGame | typeof HALF_ADDER_GAME;
 const HOUSE_GAMES: Readonly<Record<string, BarGame>> = {
   'Wilson House': HALF_ADDER_GAME,
   'Moore House': FIBONACCI_GAME,
+  'Dijkstra House': DIJKSTRA_GAME,
   'Shockley House': PARITY_GAME,
 };
 

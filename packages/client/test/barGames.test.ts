@@ -1,15 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { ADDITION_GAME, BAR_GAMES, FIBONACCI_GAME, PARITY_GAME, isCorrectOrder, placeGameBlock } from '../src/world/barGames.js';
+import { ADDITION_GAME, BAR_GAMES, DIJKSTRA_GAME, FIBONACCI_GAME, PARITY_GAME, isCorrectOrder, placeGameBlock } from '../src/world/barGames.js';
 import { HALF_ADDER_GAME } from '../src/world/halfAdder.js';
 import { HOUSE_DATA } from '../src/world/buildingLayout.js';
 
 describe('bar block games', () => {
-  it('routes Moore to Fibonacci and Shockley to parity and Wilson to half adder and nine other houses to the placeholder', () => {
+  it('routes each dedicated house game and eight other houses to the placeholder', () => {
     expect(Object.keys(BAR_GAMES)).toEqual(HOUSE_DATA.houses.map(h => h.name));
     expect(BAR_GAMES['Wilson House']).toBe(HALF_ADDER_GAME);
     expect(BAR_GAMES['Moore House']).toBe(FIBONACCI_GAME);
     expect(BAR_GAMES['Shockley House']).toBe(PARITY_GAME);
-    expect(Object.values(BAR_GAMES).filter(g => g === ADDITION_GAME)).toHaveLength(9);
+    expect(BAR_GAMES['Dijkstra House']).toBe(DIJKSTRA_GAME);
+    expect(Object.values(BAR_GAMES).filter(g => g === ADDITION_GAME)).toHaveLength(8);
+  });
+  it('requires the Dijkstra initialization, minimum selection, relaxation, then visit order', () => {
+    expect(DIJKSTRA_GAME.blocks).toHaveLength(8);
+    expect(DIJKSTRA_GAME.exampleGraph).toBe(true);
+    expect(isCorrectOrder(DIJKSTRA_GAME, DIJKSTRA_GAME.correctOrder)).toBe(true);
+    expect(isCorrectOrder(DIJKSTRA_GAME, DIJKSTRA_GAME.blocks.map(b => b.id))).toBe(false);
+    expect(isCorrectOrder(DIJKSTRA_GAME, [
+      'all-inf', 'source-zero', 'repeat', 'select-min', 'neighbors', 'if-shorter', 'visit-u', 'relax',
+    ])).toBe(false);
+    expect(isCorrectOrder(DIJKSTRA_GAME, [
+      'all-inf', 'source-zero', 'repeat', 'select-min', 'neighbors', 'if-shorter', 'relax', null,
+    ])).toBe(false);
   });
   it('accepts only the complete Fibonacci function in the correct order', () => {
     const game = FIBONACCI_GAME;

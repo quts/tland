@@ -6,7 +6,7 @@ No external asset websites are used.
 ## Graphics
 
 **Outdoor game graphics are drawn in code** — Phaser `Graphics` primitives and, where
-relevant, `generateTexture()`. The bar-interior illustration below is the sole bundled raster artwork.
+relevant, `generateTexture()`. The bar-interior images below are the bundled raster artwork.
 
 The optional 3D view (`?view=3d`) follows the same rule: every mesh is built
 from three.js primitive geometry (boxes, cylinders, spheres, icosahedra) or
@@ -16,12 +16,19 @@ displays the user-supplied illustration listed below.
 
 ## Bar interiors
 
-`packages/client/public/images/bar-interiors-reference.jpg` is the twelve-panel
-bar reference image supplied by the user in this conversation for the requested
-house interiors. It is included unchanged. SVG view windows display one panel
-per house; no external artwork or additional image generation is involved.
-This records the user-provided source and requested use, not a claim that the
-image has an open-source license.
+The twelve `packages/client/public/images/bars/*-v2.webp` images were generated
+for this project using the built-in OpenAI image_gen tool on 2026-10-25, using
+the user's supplied bar scene as a design/quality reference. Each is a separate
+1536 × 1024 scene; the original thumbnail contact sheet is no longer shipped.
+
+The base prompt removes the reference's dialog/buttons/cursor. Eleven color
+edits preserve the same bartender, layout and framing. The exact prompt set is
+recorded in `docs/visual/bar-interiors/prompts-v2.json`.
+
+Generated PNGs were encoded as **lossless WebP without resizing**. Every
+decoded pixel was compared with its generated PNG source and matched exactly.
+Dimensions, encoded sizes and file hashes are recorded in
+`docs/visual/bar-interiors/assets-v2.json`.
 
 ## The map outline
 

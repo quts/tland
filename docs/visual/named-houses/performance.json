@@ -1,0 +1,25 @@
+{
+  "houseCount": 12,
+  "cottageScenes": [
+    {
+      "device": "iphone",
+      "drawCalls": 39,
+      "triangles": 118193
+    },
+    {
+      "device": "iphone-landscape",
+      "drawCalls": 51,
+      "triangles": 157280
+    },
+    {
+      "device": "ipad",
+      "drawCalls": 36,
+      "triangles": 111307
+    },
+    {
+      "device": "ipad-landscape",
+      "drawCalls": 63,
+      "triangles": 217390
+    }
+  ]
+}

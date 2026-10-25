@@ -55,13 +55,14 @@ describe('town map', () => {
     expect(map.zones.map(zone => zone.name).sort()).toEqual(["陶丘","岬門","潮岬","鏡湖","三澗","青林","霧泉","暖灣","金脈","北苑","西汀","河口","平原"].sort());
   });
 
-  it('unions complete former districts without redrawing their borders', () => {
-    // Expected ownership comes from the pre-merge map, relabelled by the approved groups.
+  it('keeps deterministic merged district ownership after reclaiming house plots', () => {
+    // Same merged seed groups; reclaimed house footprints create new walking routes.
+    // This fingerprint covers the twelve-cottage collision terrain.
     const labels: string[] = [];
     for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
       labels.push((map.zoneAt(x, y) ?? '-') + '\n');
     }
-    expect(createHash('sha256').update(labels.join('')).digest('hex')).toBe('0f8cb14b3dadee08bca525dd56d916dc1f673f5d53eaec537563fc03cf73c972');
+    expect(createHash('sha256').update(labels.join('')).digest('hex')).toBe('8b334a0b1aa3602c75e6a0552ab032237ecb8225601f72051345dd0569a5d9e2');
   });
 
   it('gives every zone a distinct name', () => {

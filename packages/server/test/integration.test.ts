@@ -299,14 +299,13 @@ describe('game server', () => {
 
     const target = { x: bob.position.x + 8, y: bob.position.y };
     bob.moveTo(target.x, target.y);
-    await ticks(3);
-
-    const update = alice
-      .all('state')
-      .flatMap((state) => state.players)
-      .find((player) => player.id === bob.id);
-    expect(update).toBeDefined();
-    expect(update?.x).toBeCloseTo(target.x, 0);
+    // A state sent just before the move may still arrive after clear().
+    // Assert the latest relay eventually reaches the target, not the first
+    // buffered packet or an assumed number of scheduler ticks.
+    await expect.poll(() => alice.all('state')
+      .flatMap(state => state.players)
+      .filter(player => player.id === bob.id)
+      .at(-1)?.x, { timeout: 2000 }).toBeCloseTo(target.x, 0);
   });
 
   it('never echoes a player their own position', async () => {

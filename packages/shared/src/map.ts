@@ -1,4 +1,5 @@
 import townData from './map/town.json' with { type: 'json' };
+import houseData from './map/houses.json' with { type: 'json' };
 import { hashCoords } from './random.js';
 import {
   TERRAIN_BY_CHAR,
@@ -233,6 +234,15 @@ export function getTownMap(): TownMap {
 
   const grid = expandTerrain();
   scatterProps(grid);
+  // Keep cottage door approaches free of randomly scattered trees and benches.
+  // Terrain stays authoritative: a shore/water tile is never silently filled.
+  for (const house of houseData.houses) {
+    for (const x of [house.x + 1, house.x + 2]) {
+      for (const y of [house.y + 4, house.y + 5]) {
+        if (inBounds(grid, x, y)) grid.props[indexOf(grid, x, y)] = 'none';
+      }
+    }
+  }
 
   const spawn = { x: townData.spawn.x, y: townData.spawn.y };
   // Never bury the spawn under a bench.

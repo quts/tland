@@ -1,50 +1,36 @@
-import { hashCoords, type TownMap } from '@tland/shared';
+import type { TownMap } from '@tland/shared';
+import houseData from '../../../shared/src/map/houses.json';
 
-const BUILDING_SEED = 0x2f91;
-
-/** Buildings are authored as 4x4 blocks of building tiles. */
+export const HOUSE_DATA = houseData;
 export const BUILDING_CELL = 4;
-
-/**
- * How often each building variant appears, out of 100.
- *
- * Towers are landmarks, so they stay rare; a street of them would look like a
- * bug rather than a skyline.
- */
-const BUILDING_WEIGHTS = [30, 28, 16, 7, 19] as const;
-
-export const BUILDING_VARIANTS = BUILDING_WEIGHTS.length;
-
-function pickBuildingVariant(roll: number): number {
-  let remaining = roll % 100;
-  for (let variant = 0; variant < BUILDING_WEIGHTS.length; variant += 1) {
-    remaining -= BUILDING_WEIGHTS[variant] as number;
-    if (remaining < 0) return variant;
-  }
-  return 0;
-}
+export const HOUSE_NAMES = houseData.houses.map(house => house.name);
+export const BUILDING_VARIANTS = 13;
 
 export interface BuildingPlot {
-  /** Top-left tile of the 4x4 block. */
   readonly x: number;
   readonly y: number;
   readonly variant: number;
+  readonly name: string;
 }
 
-/**
- * One plot per authored building cell.
- *
- * A 4x4 block of building tiles whose top-left corner falls on a cell boundary
- * marks exactly one building. Shared by both renderers so a given plot is the
- * same kind of building whichever way you look at it.
- */
+/** Authored plots are shared with collision terrain; names never depend on hash order. */
 export function buildingPlots(map: TownMap): BuildingPlot[] {
-  const plots: BuildingPlot[] = [];
-  for (let y = 0; y < map.height; y += BUILDING_CELL) {
-    for (let x = 0; x < map.width; x += BUILDING_CELL) {
-      if (map.terrainAt(x, y) !== 'building') continue;
-      plots.push({ x, y, variant: pickBuildingVariant(hashCoords(x, y, BUILDING_SEED)) });
-    }
-  }
-  return plots;
+  return houseData.houses.filter(house => map.terrainAt(house.x, house.y) === 'building');
 }
+
+/** One fixed cottage, with the thirteen reference color schemes. */
+export const HOUSE_COLORS = [
+  [0xf1e2c4, 0xe57768, 0xb77b40],
+  [0xe7e8dd, 0x7298c7, 0x6e98b5],
+  [0xf1dfbd, 0xf4a064, 0xc58b45],
+  [0xe7e2c9, 0x90b08c, 0x7e9b70],
+  [0xe9dfe9, 0xaf9acb, 0xa48aba],
+  [0xf4ddd3, 0xef9a9f, 0xd78286],
+  [0xf5e8bd, 0xf2c456, 0xc5893b],
+  [0xe1e0dc, 0x567393, 0x52768e],
+  [0xeee1c8, 0xa17b62, 0xb07e40],
+  [0xe4ebdb, 0x8dc9bc, 0x64aea1],
+  [0xf1ddd0, 0xc96875, 0xb98143],
+  [0xe3e2db, 0x777875, 0x72817c],
+  [0xf3e5c6, 0xf8ae4e, 0xca8e3d],
+] as const;

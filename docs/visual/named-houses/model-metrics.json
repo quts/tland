@@ -1,0 +1,20 @@
+[
+  {
+    "sheet": "turnaround",
+    "views": 7,
+    "triangles": 14460,
+    "palettes": 1
+  },
+  {
+    "sheet": "variants",
+    "views": 12,
+    "triangles": 14460,
+    "palettes": 12
+  },
+  {
+    "sheet": "details",
+    "views": 4,
+    "triangles": 14460,
+    "palettes": 1
+  }
+]

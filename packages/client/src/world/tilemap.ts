@@ -179,5 +179,12 @@ function placeBuildings(scene: Phaser.Scene, map: TownMap, depthBase: number): v
     // Drawn at texture resolution, displayed at world resolution.
     sprite.setScale(1 / GFX_SCALE);
     sprite.setDepth(depthBase + baseY);
+    const label = scene.add.text((plot.x + 2) * TILE_SIZE, baseY - 72, plot.name, {
+      fontFamily: 'sans-serif', fontSize: '9px', fontStyle: 'bold', color: '#513821',
+      align: 'center', padding: { x: 0, y: 0 },
+    });
+    label.setOrigin(0.5, 0.5);
+    if (label.width > 70) label.setScale(70 / label.width);
+    label.setDepth(depthBase + baseY + 0.1);
   }
 }

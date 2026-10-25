@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { hashCoords, type TownMap } from '@tland/shared';
 import { PALETTE } from '../gfx/palette.js';
 import { BUILDING_CELL, buildingPlots } from '../world/buildingLayout.js';
+import { houseGeometry, houseSigns } from './house.js';
 import { merge, painted } from './geometry.js';
 import { buildSunShadows, type ShadowCaster } from './sunShadows.js';
 
@@ -92,42 +93,6 @@ function fenceGeometry(): THREE.BufferGeometry {
   return merge(parts);
 }
 
-/** A unit block standing on the ground; instances stretch it to a building. */
-function wallGeometry(): THREE.BufferGeometry {
-  return merge([
-    painted(new THREE.BoxGeometry(1.035, 0.07, 1.035).translate(0, 0.035, 0), 0xffffff, {
-      from: 0.72, to: 0.82, bottom: 0, top: 0.07,
-    }),
-    painted(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), 0xffffff, {
-      from: 0.78, to: 1, bottom: 0, top: 0.6,
-    }),
-  ]);
-}
-
-/** A square pyramid, aligned to the walls, sitting on y = 0. */
-function roofGeometry(): THREE.BufferGeometry {
-  const roof = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1).rotateY(Math.PI / 4).translate(0, 0.5, 0);
-  return merge([
-    painted(new THREE.BoxGeometry(1, 0.045, 1).translate(0, 0.005, 0), 0xffffff,
-      { from: 0.72, to: 0.86, bottom: -0.02, top: 0.03 }),
-    painted(roof, 0xffffff, { from: 0.86, to: 1.04, bottom: 0, top: 1 }),
-  ]);
-}
-
-/** A door and two windows on the south face, which is the one the camera sees. */
-function frontGeometry(): THREE.BufferGeometry {
-  return merge([
-    painted(new THREE.BoxGeometry(0.19, 0.29, 0.045).translate(0, 0.145, 0.505), PALETTE.benchShade),
-    painted(new THREE.BoxGeometry(0.15, 0.25, 0.025).translate(0, 0.125, 0.535), PALETTE.door),
-    painted(new THREE.BoxGeometry(0.23, 0.025, 0.1).translate(0, 0.013, 0.54), PALETTE.wallAlt),
-    ...[-0.3, 0.3].flatMap((x) => [
-      painted(new THREE.BoxGeometry(0.2, 0.18, 0.045).translate(x, 0.5, 0.505), PALETTE.wallAlt),
-      painted(new THREE.BoxGeometry(0.15, 0.12, 0.025).translate(x, 0.5, 0.535), PALETTE.roofCool),
-      painted(new THREE.BoxGeometry(0.22, 0.025, 0.07).translate(x, 0.41, 0.53), PALETTE.wall),
-    ]),
-  ]);
-}
-
 /* ------------------------------------------------------------------ */
 /* Placement                                                           */
 /* ------------------------------------------------------------------ */
@@ -201,11 +166,6 @@ function tint(base: number, x: number, y: number, amount: number): number {
 
 /** Share of hill tiles that carry a tree. */
 const HILL_TREE_CHANCE = 0.3;
-
-const BUILDING_HEIGHTS = [1.8, 2.15, 2.5, 4.2, 1.6] as const;
-/** Richer painted roofs retain colour under the warm key and front bounce. */
-const ROOFS = [0xd98275, 0x6fa7c8, 0x5eaa8b] as const;
-const WALLS = [PALETTE.wall, PALETTE.wallAlt] as const;
 
 export interface BuiltProps {
   readonly group: THREE.Group;
@@ -296,25 +256,31 @@ export function buildProps(
     }
   }
 
-  const walls: Placement[] = [];
-  const roofs: Placement[] = [];
-  const fronts: Placement[] = [];
-  for (const plot of buildingPlots(map)) {
-    const footprint = BUILDING_CELL - 0.5;
+  const plots = buildingPlots(map);
+  const houseMaterial = new THREE.MeshPhongMaterial({
+    vertexColors: true, specular: 0x4a4032, shininess: 24,
+  });
+  const houseGeometries = new Map<number, THREE.BufferGeometry>();
+  for (const plot of plots) {
+    let geometry = houseGeometries.get(plot.variant);
+    if (!geometry) {
+      geometry = houseGeometry(plot.variant);
+      houseGeometries.set(plot.variant, geometry);
+    }
     const cx = plot.x + BUILDING_CELL / 2;
     const cz = plot.y + BUILDING_CELL / 2;
-    const h = BUILDING_HEIGHTS[plot.variant] ?? 1.6;
-    const r = hashCoords(plot.x, plot.y, 0x2f92);
-    walls.push({ x: cx, y: 0, z: cz, rotation: 0, sx: footprint, sy: h, sz: footprint, color: WALLS[r % 2] as number });
-    // A broad contact shadow anchors the walls, using the existing instanced blob.
-    shadows.push({ x: cx + 0.35, y: 0, z: cz + 0.4, rotation: 0,
-      sx: (footprint + 1.25) / 0.62, sy: 1, sz: (footprint + 1.1) / 0.62, color: 0xffffff });
-    casters.push({ x: cx, z: cz, width: footprint * 1.12, depth: footprint * 1.12,
-      height: h + 0.35, shape: 'box' });
-    // Towers get a low cap; houses get a proper roof.
-    roofs.push({ x: cx, y: h, z: cz, rotation: 0, sx: footprint * 1.12, sy: plot.variant === 3 ? 0.5 : 1.15, sz: footprint * 1.12, color: ROOFS[(r >>> 3) % 3] as number });
-    fronts.push({ x: cx, y: 0, z: cz, rotation: 0, sx: footprint, sy: Math.min(h, 2), sz: footprint, color: 0xffffff });
+    const house = new THREE.Mesh(geometry, houseMaterial);
+    house.name = plot.name;
+    house.position.set(cx, 0, cz);
+    house.updateMatrix();
+    house.matrixAutoUpdate = false;
+    group.add(house);
+    shadows.push({ x: cx + 0.2, y: 0, z: cz + 0.25, rotation: 0,
+      sx: 4.1 / 0.62, sy: 1, sz: 4.1 / 0.62, color: 0xffffff });
+    casters.push({ x: cx, z: cz, width: 3.4, depth: 3,
+      height: 3.25, shape: 'box' });
   }
+  if (plots.length > 0) group.add(houseSigns(plots));
 
   instanced('trees', treeGeometry(), material, trees, group);
   instanced('flowers', flowerGeometry(), material, flowers, group);
@@ -322,9 +288,6 @@ export function buildProps(
   instanced('benches', benchGeometry(), material, benches, group);
   instanced('rocks', rockGeometry(), material, rocks, group);
   instanced('fences', fenceGeometry(), material, fences, group);
-  instanced('walls', wallGeometry(), material, walls, group);
-  instanced('roofs', roofGeometry(), material, roofs, group);
-  instanced('fronts', frontGeometry(), material, fronts, group);
   instanced('shadows', shadowGeometry, shadowMaterial, shadows, shadowGroup);
 
   shadowGroup.add(buildSunShadows(map, casters));

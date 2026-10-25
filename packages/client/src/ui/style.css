@@ -1061,3 +1061,5 @@ body {
   #game-submit { min-height: 44px; padding: 7px 20px; font-size: 18px; }
   #game-feedback { font-size: 20px; }
 }
+
+.game-block-fixed { margin-bottom: 14px; }

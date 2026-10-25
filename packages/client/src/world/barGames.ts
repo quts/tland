@@ -12,6 +12,7 @@ export interface BlockGame {
   readonly reference: string;
   readonly blocks: readonly GameBlock[];
   readonly correctOrder: readonly string[];
+  readonly functionFrame?: { readonly start: string; readonly end: string };
 }
 
 export const FIBONACCI_GAME: BlockGame = {
@@ -31,6 +32,21 @@ export const FIBONACCI_GAME: BlockGame = {
   correctOrder: ['define', 'if', 'base', 'else', 'recur', 'end'],
 };
 
+export const PARITY_GAME: BlockGame = {
+  id: 'parity',
+  title: '奇數還是偶數？',
+  question: '給你一個數字 n，你能幫我判斷它是奇數還是偶數嗎？把積木排成正確順序吧！',
+  reference: '偶數回傳 True，奇數回傳 False。',
+  functionFrame: { start: '定義函式 isEven(n)', end: '結束函式' },
+  blocks: [
+    { id: 'false', label: '回傳 False', color: 'blue' },
+    { id: 'else', label: '否則', color: 'orange' },
+    { id: 'if', label: '如果 n % 2 == 0', color: 'blue' },
+    { id: 'true', label: '回傳 True', color: 'blue' },
+  ],
+  correctOrder: ['if', 'true', 'else', 'false'],
+};
+
 export const ADDITION_GAME: BlockGame = {
   id: 'addition',
   title: '小小算術題',
@@ -40,10 +56,15 @@ export const ADDITION_GAME: BlockGame = {
   correctOrder: ['two'],
 };
 
-/** Replace any house's entry here when its own question is ready. */
+const HOUSE_GAMES: Readonly<Record<string, BlockGame>> = {
+  'Moore House': FIBONACCI_GAME,
+  'Shockley House': PARITY_GAME,
+};
+
+/** Replace a house's entry in HOUSE_GAMES when its own question is ready. */
 export const BAR_GAMES: Readonly<Record<string, BlockGame>> = Object.fromEntries(
   HOUSE_DATA.houses.map(house => [
-    house.name, house.name === 'Moore House' ? FIBONACCI_GAME : ADDITION_GAME,
+    house.name, HOUSE_GAMES[house.name] ?? ADDITION_GAME,
   ]),
 );
 

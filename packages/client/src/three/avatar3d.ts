@@ -39,6 +39,18 @@ const BODY_Y = 0.30;
 const BODY_RADIUS = 0.25;
 const COLLAR_Y = BODY_Y + BODY_RADIUS * 1.02;
 /**
+ * The arm: a sleeve capsule hanging down the side of the body with a bare
+ * hand at its end, splayed out just enough to clear the hip. `ARM_TILT` is
+ * measured from straight down, so the shoulder tucks in as the hand swings
+ * out, which is what keeps the joint inside the body ball.
+ */
+const SLEEVE_RADIUS = 0.075;
+const SLEEVE_HALF = 0.145;
+const ARM_Y = 0.34;
+const ARM_X = 0.265;
+const ARM_TILT = 0.30;
+const HAND_RADIUS = 0.082;
+/**
  * Avatars are modelled about a tile tall and drawn larger: chunky enough to
  * read at phone zoom, the way the 2D sprites stand taller than their tile.
  */
@@ -224,10 +236,13 @@ function accessoryParts(accessory: Accessory, shirt: number): THREE.BufferGeomet
     }
     case 'satchel':
       return [
-        painted(new THREE.BoxGeometry(0.15, 0.13, 0.06).translate(0.215, 0.26, 0.06), PALETTE.bench, {
-          from: 0.8, to: 1, bottom: 0.19, top: 0.33,
+        // In front of the hip: the arm hangs where this used to sit.
+        painted(new THREE.BoxGeometry(0.14, 0.13, 0.06).rotateY(-0.3)
+          .translate(0.185, 0.235, 0.15), PALETTE.bench, {
+          from: 0.8, to: 1, bottom: 0.17, top: 0.3,
         }),
-        painted(new THREE.TorusGeometry(0.25, 0.014, 4, 24).rotateY(Math.PI / 2).rotateX(0.55).translate(0.02, 0.4, 0), PALETTE.benchShade),
+        painted(new THREE.TorusGeometry(0.25, 0.014, 4, 24).rotateY(Math.PI / 2).rotateX(0.75)
+          .translate(0.02, 0.4, 0.04), PALETTE.benchShade),
       ];
     case 'bowtie': {
       // A contrasting tie, so it does not vanish into the shirt.
@@ -255,11 +270,19 @@ export function buildAvatarGeometry(parts: AvatarParts): THREE.BufferGeometry {
     // Body: one round ball, wider than it is deep.
     painted(new THREE.SphereGeometry(BODY_RADIUS, 26, 18).scale(1, 1.02, 0.88)
       .translate(0, BODY_Y, 0), shirt, bodyShade),
-    // Short sleeves ending in bare hands.
-    ...[-1, 1].map((side) => painted(new THREE.CapsuleGeometry(0.072, 0.07, 5, 12)
-      .rotateZ(side * -0.32).translate(side * 0.247, 0.355, 0.01), shirt, bodyShade)),
-    ...[-1, 1].map((side) => painted(new THREE.SphereGeometry(0.062, 14, 10)
-      .translate(side * 0.295, 0.254, 0.02), skin, bodyShade)),
+    // Sleeves, hanging down the sides with the shoulder sunk into the body.
+    ...[-1, 1].map((side) => painted(
+      new THREE.CapsuleGeometry(SLEEVE_RADIUS, SLEEVE_HALF * 2 - SLEEVE_RADIUS * 2, 6, 14)
+        .rotateZ(side * ARM_TILT).translate(side * ARM_X, ARM_Y, 0.01), shirt, bodyShade,
+    )),
+    // Hands: a ball a touch wider than the cuff, at the end of each sleeve.
+    ...[-1, 1].map((side) => painted(
+      new THREE.SphereGeometry(HAND_RADIUS, 16, 12).translate(
+        side * (ARM_X + SLEEVE_HALF * Math.sin(ARM_TILT)),
+        ARM_Y - SLEEVE_HALF * Math.cos(ARM_TILT),
+        0.01,
+      ), skin, bodyShade,
+    )),
     // Head, resting straight on the body: there is no neck.
     painted(
       new THREE.SphereGeometry(HEAD_RADIUS, 26, 18).scale(1, HEAD_SQUASH, 1).translate(0, HEAD_Y, 0),

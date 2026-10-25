@@ -22,6 +22,15 @@ geometry the game uses, under the same town lighting.
 
 ![Turnaround](turnaround.png)
 
+## Arms
+
+A second brief covered the arm and shoulder specifically: the arm is a sleeve
+hanging straight down from under the scarf — not a stub pointing outward —
+with a bare hand ball at its end, and a shoulder that sinks into the body
+ball rather than meeting it at a seam. Close-up of the same seven views:
+
+![Arms](arms.png)
+
 ## In the game
 
 | Before (avatar preview) | After (avatar preview) |
@@ -42,6 +51,10 @@ outlined style, sharing the hair, scarf, straw, boot and eye colours with the
 
 - Proportions: head radius 0.30 at y 0.80 over a 0.25 body ball whose top is
   the collar, so there is no neck; boots sit just under the hem.
+- Arms hang: a sleeve capsule from just under the scarf down past the hip,
+  splayed 17 degrees so the shoulder tucks inside the body ball as the hand
+  swings clear of it, with a hand ball a touch wider than the cuff. The
+  satchel moved to the front of the hip, where the arm no longer covers it.
 - Hair is a bowl cut: a crown cap plus a shell whose hem sweeps from just
   above the eyes at the front, past the ears, down to the nape. The shell is
   built by hand — a ring of sphere sections gives a staircase, because a

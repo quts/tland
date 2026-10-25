@@ -256,19 +256,11 @@ function drawFrame(
   g.fillRoundedRect(cx - 7.5, FEET_Y - 4.5, 6, 5.5, 2.5);
   g.fillRoundedRect(cx + 1.5, FEET_Y - 4.5, 6, 5.5, 2.5);
 
-  // Arms, behind the torso so the sleeves tuck in neatly.
+  // Arms: a sleeve hanging from the collar with a bare hand at its end,
+  // drawn behind the torso so the shoulder sinks into the body.
   for (const side of [-1, 1] as const) {
-    outlinedRoundedRect(
-      g,
-      cx + side * 11.5 - 2.5,
-      BODY_TOP + 2,
-      5,
-      7,
-      2.5,
-      shirt,
-    );
-    // Hand.
-    outlinedCircle(g, cx + side * 11.5, BODY_TOP + 10, 2.8, skin);
+    outlinedRoundedRect(g, cx + side * 10 - 3, BODY_TOP + 2.5, 6, 10, 3, shirt);
+    outlinedCircle(g, cx + side * 11.5, BODY_TOP + 12, 3.1, skin);
   }
 
   // Torso: one round ball, the head sitting straight on it.

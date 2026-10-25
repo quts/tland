@@ -1,19 +1,27 @@
 # Asset licenses
 
-Everything shipped by this project is either generated at runtime from code or
-listed below. There are no downloaded sprites, icons, logos, sounds, or music.
+Everything shipped by this project is generated from code or listed below.
+No external asset websites are used.
 
 ## Graphics
 
-**All graphics are drawn in code** — Phaser `Graphics` primitives and, where
-relevant, `generateTexture()`. No raster or vector art files are bundled, and
-no third-party art is used, traced, or adapted.
+**Outdoor game graphics are drawn in code** — Phaser `Graphics` primitives and, where
+relevant, `generateTexture()`. The bar-interior illustration below is the sole bundled raster artwork.
 
 The optional 3D view (`?view=3d`) follows the same rule: every mesh is built
 from three.js primitive geometry (boxes, cylinders, spheres, icosahedra) or
 from the map grid, coloured with per-vertex colours from the project palette.
-The only textures are drawn at runtime on a canvas. No models, image
-textures, or environment maps are downloaded or bundled.
+The only textures are drawn at runtime on a canvas. No models or environment maps are downloaded. The separate bar-interior view
+displays the user-supplied illustration listed below.
+
+## Bar interiors
+
+`packages/client/public/images/bar-interiors-reference.jpg` is the twelve-panel
+bar reference image supplied by the user in this conversation for the requested
+house interiors. It is included unchanged. SVG view windows display one panel
+per house; no external artwork or additional image generation is involved.
+This records the user-provided source and requested use, not a claim that the
+image has an open-source license.
 
 ## The map outline
 
@@ -24,7 +32,7 @@ opening to the sea on one side, which is the shape the setting calls for.
 
 The coarse geography it evokes is a matter of where land and water happen to
 be, which is not something anyone owns. No map publisher's rendering, styling,
-tiles or data are reused, and **no reference image ships with this
+tiles or data are reused, and **no reference map image ships with this
 repository**.
 
 Everything inside the outline — rivers, hills, parks, streets, towns — is

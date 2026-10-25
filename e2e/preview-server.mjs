@@ -25,6 +25,7 @@ const CONTENT_TYPES = new Map([
   ['.map', 'application/json; charset=utf-8'],
   ['.svg', 'image/svg+xml'],
   ['.png', 'image/png'],
+  ['.jpg', 'image/jpeg'],
 ]);
 
 /** Resolve a request path inside ROOT, refusing anything that escapes it. */

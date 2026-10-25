@@ -50,7 +50,7 @@ describe('sun projections', () => {
       new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial());
     try {
       for (let i = 0; i < MAX_PLAYERS; i += 1) layer.add(String(i),
-        { body: 0, shirt: 4, hat: 'sunhat', accessory: 'scarf' }, i * 32, 32, 'down');
+        { body: 0, shirt: 4 }, i * 32, 32, 'down');
       layer.sync();
       const faces = layer.group.getObjectByName('faces') as THREE.InstancedMesh;
       const shadows = layer.group.getObjectByName('character-shadows') as THREE.InstancedMesh;

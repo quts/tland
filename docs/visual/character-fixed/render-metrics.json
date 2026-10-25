@@ -1,0 +1,29 @@
+[
+  {
+    "sheet": "turnaround",
+    "views": 7,
+    "paletteMaterials": 1,
+    "bodyGeometries": 1,
+    "armGeometries": 1,
+    "bodyTriangles": 11248,
+    "armTriangles": 1548
+  },
+  {
+    "sheet": "closeups",
+    "views": 6,
+    "paletteMaterials": 1,
+    "bodyGeometries": 1,
+    "armGeometries": 1,
+    "bodyTriangles": 11248,
+    "armTriangles": 1548
+  },
+  {
+    "sheet": "variants",
+    "views": 6,
+    "paletteMaterials": 6,
+    "bodyGeometries": 1,
+    "armGeometries": 1,
+    "bodyTriangles": 11248,
+    "armTriangles": 1548
+  }
+]

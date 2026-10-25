@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { getTownMap } from '@tland/shared';
-import { AVATAR_SCALE, buildAvatarGeometry } from '../packages/client/src/three/avatar3d.js';
+import { AVATAR_SCALE, characterBodyGeometry } from '../packages/client/src/three/avatar3d.js';
 import { cameraBasis, CAMERA_PITCH_DEG, viewportFrame } from '../packages/client/src/three/cameraRig.js';
 import { collectErrors, startStack, type Stack } from './support.js';
 for (const scene of ['street', 'woodland'] as const) test.describe('camera ' + scene, () => {
@@ -21,16 +21,15 @@ for (const scene of ['street', 'woodland'] as const) test.describe('camera ' + s
   page.on('websocket', socket => sockets.push(socket.url()));
   await page.goto(stack.baseURL + '/?view=3d');
   await expect(page.locator('#join-button')).toHaveText('進入小鎮');
-  await page.locator('#pick-hat .chip').nth(2).click();
   await page.locator('#pick-shirt .swatch').nth(4).click();
-  await page.locator('#pick-accessory .chip').nth(1).click();
   await page.locator('#nickname').fill('鏡頭比較'); await page.locator('#join-button').click();
   await page.waitForFunction(() => window.__town?.joined() === true);
   await expect.poll(() => page.evaluate(() => window.__town?.stats()?.drawCalls ?? 0)).toBeGreaterThan(0);
   await page.waitForTimeout(1200);
   const viewport = page.viewportSize()!, frame = viewportFrame(viewport.width, viewport.height, { halfWidth: 0, halfHeight: 0 });
   const stats = await page.evaluate(() => ({ position: window.__town!.position(), stats: window.__town!.stats(), canvas: document.querySelector('#game canvas')!.getBoundingClientRect().toJSON() }));
-  const geometry = buildAvatarGeometry({ body: 0, shirt: 4, hat: 'sunhat', accessory: 'scarf' });
+  // One shared geometry: every character is this shape.
+  const geometry = characterBodyGeometry();
   const vertices = geometry.getAttribute('position');
   let top = -Infinity, bottom = Infinity;
   const up = cameraBasis().up;
@@ -38,7 +37,6 @@ for (const scene of ['street', 'woodland'] as const) test.describe('camera ' + s
     const projected = AVATAR_SCALE * (vertices.getX(i) * up.x + vertices.getY(i) * up.y + vertices.getZ(i) * up.z);
     top = Math.max(top, projected); bottom = Math.min(bottom, projected);
   }
-  geometry.dispose();
   const pixelsPerTile = viewport.height / (frame.halfHeight * 2);
   const silhouette = { top: viewport.height / 2 - top * pixelsPerTile, bottom: viewport.height / 2 - bottom * pixelsPerTile, height: (top - bottom) * pixelsPerTile };
   const tag = (await page.locator('.name-tag', { hasText: '鏡頭比較' }).boundingBox())!;

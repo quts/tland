@@ -13,9 +13,7 @@ test.describe('avatar readability', () => {
     });
     await page.goto(stack.baseURL + '/?view=3d');
     await expect(page.locator('#join-button')).toHaveText('進入小鎮');
-    await page.locator('#pick-hat .chip').nth(2).click();
     await page.locator('#pick-shirt .swatch').nth(4).click();
-    await page.locator('#pick-accessory .chip').nth(1).click();
     await page.locator('#avatar-preview').screenshot({ path: testInfo.outputPath('reference-preview.png') });
     await page.locator('#nickname').fill('草帽小紫');
     await page.locator('#join-button').click();

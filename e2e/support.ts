@@ -47,7 +47,6 @@ export async function joinTown(page: Page, url: string, nickname: string): Promi
   const button = page.locator('#join-button');
   await expect(button).toHaveText('進入小鎮', { timeout: 20_000 });
   await page.locator('#nickname').fill(nickname);
-  await page.locator('#pick-hat .chip').nth(2).click();
   await page.locator('#pick-shirt .swatch').nth(3).click();
   await button.click();
   await expect(page.locator('#join')).toBeHidden();
@@ -100,8 +99,6 @@ export class Bot {
       avatar: {
         body: look % 8,
         shirt: (look * 3) % 8,
-        hat: ['none', 'cap', 'sunhat', 'beanie', 'bloom'][look % 5],
-        accessory: ['none', 'scarf', 'glasses', 'satchel', 'bowtie'][(look >> 1) % 5],
       },
     });
     const welcome = (await bot.next('welcome')) as Message & {

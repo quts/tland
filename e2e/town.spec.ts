@@ -55,7 +55,6 @@ async function joinTown(page: Page, nickname: string): Promise<void> {
   await expect(button).toHaveText('進入小鎮', { timeout: 20_000 });
 
   await page.locator('#nickname').fill(nickname);
-  await page.locator('#pick-hat .chip').nth(2).click();
   await page.locator('#pick-shirt .swatch').nth(3).click();
   await button.click();
 

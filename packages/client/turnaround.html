@@ -1,0 +1,94 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>turnaround</title>
+<style>html,body{margin:0;background:#fdf7ec;font:13px/1.4 system-ui,sans-serif;color:#5b4237}
+#sheet{width:max-content;display:grid;grid-template-columns:repeat(var(--cols,4),264px);gap:4px}
+figure{margin:0}figcaption{text-align:center;padding:2px 0 6px}
+canvas{display:block;background:#fdf7ec}</style></head>
+<body><div id="sheet"></div>
+<script type="module">
+import * as THREE from 'three';
+import {
+  CharacterMaterialCache, assembleCharacter, faceGeometry, faceTexture,
+} from '/src/three/avatar3d.ts';
+import { CHARACTER_PALETTES } from '/src/three/character/colors.ts';
+import { addTownLights } from '/src/three/lighting.ts';
+
+const q = new URLSearchParams(location.search);
+const VARIANTS = [4, 1, 0, 2, 3, 5].map(i => [CHARACTER_PALETTES[i].name, CHARACTER_PALETTES[i].colors]);
+const SHEETS = {
+  turnaround: [
+    ['Front 正面', 0, -0.35], ['Left 左側面', Math.PI / 2, -0.35], ['Right 右側面', -Math.PI / 2, -0.35],
+    ['Back 背面', Math.PI, -0.35], ['Top 上視圖', 0, -Math.PI / 2], ['Bottom 下視圖', 0, Math.PI / 2], ['Front 45°', -0.75, -0.55],
+  ],
+  closeups: [
+    ['Scarf front', 0, -0.12], ['Scarf left', Math.PI / 2, -0.12],
+    ['Scarf right', -Math.PI / 2, -0.12], ['Scarf back', Math.PI, -0.12],
+    ['Scarf tail 圍巾垂帶', 0, -0.2], ['Hat 草帽', -0.7, -0.55],
+  ],
+  variants: VARIANTS.map(([name], i) => [name, -0.5, -0.4, i]),
+};
+const views = SHEETS[q.get('sheet') ?? 'turnaround'];
+document.getElementById('sheet').style.setProperty('--cols', String(views.length));
+
+const palettes = new CharacterMaterialCache();
+const faceMaterial = new THREE.MeshPhongMaterial({
+  specular: 0x262016, shininess: 24, map: faceTexture(), transparent: true,
+  depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2,
+});
+
+const geometries = new Set();
+const armGeometries = new Set();
+const zoom = Number(q.get('zoom') ?? 1);
+const cy = Number(q.get('cy') ?? 0.58);
+for (const [name, yaw, pitch, variant] of views) {
+  const figure = document.createElement('figure');
+  const canvas = document.createElement('canvas');
+  canvas.width = 528; canvas.height = 640;
+  const caption = document.createElement('figcaption');
+  caption.textContent = name;
+  figure.append(canvas, caption);
+  document.getElementById('sheet').append(figure);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(2);
+  renderer.setSize(264, 320, false);
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xfdf7ec);
+  addTownLights(scene);
+
+  const colors = VARIANTS[variant ?? 0][1];
+  const character = assembleCharacter(palettes.get(colors));
+  geometries.add(character.body.geometry.uuid);
+  armGeometries.add(character.arm(-1).children[0].geometry.uuid);
+  character.root.add(new THREE.Mesh(faceGeometry(), faceMaterial));
+  character.root.rotation.y = yaw;
+  scene.add(character.root);
+
+  const detail = q.get('sheet') === 'closeups';
+  const isHat = name.includes('草帽');
+  const isTail = name.includes('垂帶');
+  const localZoom = detail ? (isHat ? 1.65 : isTail ? 2.8 : 1.9) : zoom;
+  const targetY = detail ? (isHat ? 1.09 : isTail ? 0.46 : 0.63) : cy;
+  const h = 0.72 / localZoom, w = h * 264 / 320;
+  const camera = new THREE.OrthographicCamera(-w, w, h, -h, 0.1, 20);
+  const r = 5;
+  camera.position.set(0, targetY + Math.sin(-pitch) * r, Math.cos(pitch) * r);
+  camera.lookAt(0, targetY, 0);
+  renderer.render(scene, camera);
+  const snapshot = document.createElement('canvas');
+  snapshot.width = canvas.width; snapshot.height = canvas.height;
+  snapshot.style.width = '264px'; snapshot.style.height = '320px';
+  snapshot.getContext('2d').drawImage(canvas, 0, 0);
+  canvas.replaceWith(snapshot);
+  renderer.dispose();
+  renderer.forceContextLoss();
+}
+window.__ready = true;
+window.__materials = palettes.size;
+window.__review = {
+  views: views.length, paletteMaterials: palettes.size,
+  bodyGeometries: geometries.size, armGeometries: armGeometries.size,
+  bodyTriangles: assembleCharacter(palettes.get(VARIANTS[0][1])).body.geometry.getAttribute('position').count / 3,
+  armTriangles: assembleCharacter(palettes.get(VARIANTS[0][1])).arm(-1).children[0].geometry.getAttribute('position').count / 3,
+};
+</script></body></html>

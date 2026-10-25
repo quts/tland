@@ -33,8 +33,6 @@ const NEAR = option('near', null);
 const QUIET = process.argv.includes('--quiet');
 
 const map = getTownMap();
-const HATS = ['none', 'cap', 'sunhat', 'beanie', 'bloom'];
-const ACCESSORIES = ['none', 'scarf', 'glasses', 'satchel', 'bowtie'];
 const EMOTES = ['wave', 'heart', 'laugh', 'sleep'];
 const LINES = ['今天天氣真好', '要去河邊散步嗎', '這裡好熱鬧', '你好呀', '我迷路了', '晚點見', '那邊有花', '走累了'];
 /** A little under the server's limit, so no step is ever refused. */
@@ -91,8 +89,6 @@ class Bot {
           avatar: {
             body: this.index % 8,
             shirt: (this.index * 3) % 8,
-            hat: HATS[this.index % HATS.length],
-            accessory: ACCESSORIES[(this.index >> 1) % ACCESSORIES.length],
           },
         });
         return;

@@ -1,0 +1,197 @@
+/**
+ * Every measurement the character is built from, in one place.
+ *
+ * One relative coordinate system: y = 0 is the ground, and roughly one unit
+ * is a tile before `AVATAR_SCALE` is applied. Each component reads from here
+ * and nothing hard-codes a position of its own, so the proportions can be
+ * tuned without hunting through the geometry.
+ */
+export const PROPORTIONS = {
+  /**
+   * The head: nearly spherical rather than a squashed disc, so the face
+   * stays full from the side as well as the front.
+   */
+  head: {
+    y: 0.8,
+    radius: 0.3,
+    /** Vertical scale. Close to 1 keeps the skull round. */
+    squash: 0.98,
+  },
+
+  /**
+   * A rounded mushroom standing off the skull, cut by a single tilted plane.
+   *
+   * `fringe` and `nape` are where that plane crosses the front and the back
+   * of the head; everything between is the plane, not an interpolation. A
+   * plane cutting a sphere leaves a circle, which is why the hem reads as one
+   * smooth contour from every angle instead of a diagonal across the cheek.
+   */
+  hair: {
+    /** Multiple of the head radius: the gap is what gives the cut body. */
+    thickness: 1.075,
+    /** Extra height on the crown, so it domes rather than caps. */
+    lift: 1.03,
+    /** Where the hem sits, as sphere angles down from the crown. */
+    brow: Math.PI * 0.25,
+    fringe: Math.PI * 0.335,
+    nape: Math.PI * 0.66,
+    /** How much of the hem rolls back under, giving the edge thickness. */
+    roll: 0.3,
+  },
+
+  ear: { x: 0.272, y: -0.085, radius: 0.048, scale: [0.6, 1.05, 0.8] },
+
+  /**
+   * The torso, as a lathe profile of [radius, height] pairs: an egg, drawn
+   * in at the shoulders, fullest at the belly, rounded off at the bottom.
+   * The arms attach where it is still broad, so the shoulder sinks in.
+   */
+  body: {
+    profile: [
+      [0, 0.03], [0.1, 0.035], [0.175, 0.072], [0.228, 0.142], [0.247, 0.232],
+      [0.25, 0.305], [0.241, 0.382], [0.222, 0.442], [0.182, 0.492],
+      [0.123, 0.527], [0.075, 0.541], [0, 0.545],
+    ] as ReadonlyArray<readonly [number, number]>,
+    /** Flattening front to back, so the figure is wider than it is deep. */
+    depth: 0.88,
+    /** Top of the profile: where a collar or a scarf sits. */
+    collarY: 0.545,
+  },
+
+  /**
+   * The arm, measured down its own axis from the shoulder joint.
+   *
+   * The joint sits *inside* the upper torso, and a ball centred exactly on it
+   * is the shoulder. Because a sphere about its own centre is unchanged by
+   * rotation, that ball fills the socket identically at every angle — so the
+   * joint cannot open a gap however the arm is posed. Everything else hangs
+   * below it, far enough inside that the sleeve's open rim never leaves the
+   * ball: `hypot(radius, sleeveTuck) < joint`, checked by a test.
+   *
+   * `tilt` turns the whole arm about the joint. Because every part is placed
+   * along this axis in the arm's own space, the joint is the pivot for free:
+   * the arm is its own Three.js group, posed by rotating that group.
+   */
+  arm: {
+    /** Inside the torso at this height — see above. */
+    pivot: { x: 0.177, y: 0.455, z: 0 },
+    /** Radians from straight down: outward and downward, 15-25 degrees. */
+    tilt: 0.42,
+    radius: 0.098,
+    /**
+     * The shoulder, as the radius of a ball centred on the joint.
+     *
+     * Nothing on the arm above the joint reaches past it, and the sleeve's
+     * own upper end *is* that ball's top half — so the shoulder is a sphere
+     * about the pivot, and a sphere about its own centre does not move when
+     * you rotate it. The socket is therefore filled identically at every
+     * angle and no pose can open a gap, with no separate cap to show a
+     * boundary of its own. A test holds both halves of that.
+     */
+    joint: 0.098,
+    /**
+     * The sleeve as one profile turned about the arm's axis, as
+     * [radius, distance down from the joint]: the joint's own hemisphere,
+     * then a soft taper to an open cuff, all one surface.
+     */
+    sleeve: [
+      [0, -0.098], [0.038, -0.09], [0.069, -0.069], [0.09, -0.038], [0.098, 0],
+      [0.097, 0.06], [0.094, 0.13], [0.09, 0.2], [0.085, 0.247],
+      [0.079, 0.263], [0.072, 0.27],
+    ] as ReadonlyArray<readonly [number, number]>,
+    /**
+     * The hand plugs the open cuff: an ellipsoid stretched along the arm and
+     * wider at the hem than the hem itself, so the wrist stays inside the
+     * sleeve and nothing shows through the opening.
+     */
+    hand: { at: 0.305, radius: 0.082, stretch: 1.18 },
+  },
+
+  /**
+   * The scarf: a thick loop round the lower neck, and one short tail hanging
+   * down the front. Both are measured from the head, since what the loop has
+   * to wrap is the bottom of the head, not the top of the torso.
+   */
+  /**
+   * The straw hat. The crown and the brim are each a turned profile of
+   * [radius, height] pairs, measured from where the hat sits on the hair.
+   */
+  hat: {
+    crown: [
+      [0, 0], [0.206, 0], [0.216, 0.008], [0.219, 0.022], [0.218, 0.082],
+      [0.214, 0.098], [0.2, 0.111], [0.166, 0.118], [0, 0.118],
+    ] as ReadonlyArray<readonly [number, number]>,
+    crownTop: 0.118,
+    brim: [
+      [0.19, -0.012], [0.3, -0.02], [0.372, -0.022], [0.404, -0.015],
+      [0.412, -0.003], [0.404, 0.009], [0.372, 0.015], [0.3, 0.013],
+      [0.19, 0.004], [0.19, -0.012],
+    ] as ReadonlyArray<readonly [number, number]>,
+    ribbonRadius: 0.2265,
+    ribbonHeight: 0.044,
+    ribbonY: 0.042,
+    /** Tipped back, and set down onto the hair. */
+    tip: -0.12,
+    lift: -0.072,
+    back: -0.022,
+  },
+
+  scarf: {
+    /** Height of the band's centre line where it goes round the neck. */
+    y: 0.575,
+    /** Radius of that centre line, about where the head's surface is. */
+    radius: 0.205,
+    /**
+     * Half-width and half-thickness of the cloth: a band, not a tube. Thick
+     * enough that the top of the shoulder passes inside it rather than
+     * through it — the scarf rests on the shoulders, and the base geometry
+     * is not reshaped to make room.
+     */
+    width: 0.088,
+    thickness: 0.077,
+    /** How much the wrap wanders, as a fraction of its radius. */
+    waver: 0.085,
+    /** How far the centre line rises and falls around the neck. */
+    roll: 0.018,
+    /** Where the wrap starts, in radians; the tail ends up front-left. */
+    start: -1.04,
+    /** Turns round the neck. Over one, so the cloth laps over its own start. */
+    turns: 1.1,
+    /** How much of the sweep is the wrap; the rest is the tail. */
+    lap: 0.74,
+    /** How far the far end of the lap rides over the start. */
+    lapLift: 0.032,
+    tailLength: 0.235,
+    /** How wide and how flat the cloth goes as it falls into the tail. */
+    tailSpread: 0.05,
+    tailFlatten: 0.4,
+  },
+
+  /** Short, rounded, and clearly two of them. */
+  shoe: { x: 0.098, y: 0.052, radius: 0.085, scale: [1, 0.62, 1.3] },
+
+  /**
+   * Avatars are modelled about a tile tall and drawn larger: chunky enough
+   * to read at phone zoom, the way the 2D sprites stand taller than a tile.
+   */
+  scale: 1.85,
+  /** Where the top of the tallest hat ends, drawn size, for name tags. */
+  top: 1.3 * 1.85,
+} as const;
+
+/** Top of the bare skull: hats stack from here, hair domes over it. */
+export const HEAD_TOP =
+  PROPORTIONS.head.y + PROPORTIONS.head.radius * PROPORTIONS.head.squash;
+
+/**
+ * A point `down` the arm's axis from the shoulder pivot, on the given side.
+ * Used for both geometry and, later, for posing: the pivot never moves.
+ */
+export function alongArm(side: number, down: number): [number, number, number] {
+  const { pivot, tilt } = PROPORTIONS.arm;
+  return [
+    side * (pivot.x + down * Math.sin(tilt)),
+    pivot.y - down * Math.cos(tilt),
+    pivot.z,
+  ];
+}

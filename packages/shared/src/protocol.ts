@@ -23,8 +23,6 @@ export type Direction = (typeof DIRECTIONS)[number];
 export interface AvatarSpec {
   body: number;
   shirt: number;
-  hat: string;
-  accessory: string;
 }
 
 /** Everything one player needs in order to draw another. */
@@ -230,11 +228,6 @@ function avatar(value: unknown): AvatarSpec {
   return {
     body: Math.abs(Math.trunc(body)) % 64,
     shirt: Math.abs(Math.trunc(shirt)) % 64,
-    hat: typeof source['hat'] === 'string' ? source['hat'].slice(0, 16) : 'none',
-    accessory:
-      typeof source['accessory'] === 'string'
-        ? source['accessory'].slice(0, 16)
-        : 'none',
   };
 }
 

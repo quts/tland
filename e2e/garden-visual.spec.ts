@@ -30,9 +30,7 @@ for (const theme of ['garden', 'woodland'] as const) test.describe('sunlit ' + t
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     await page.goto(stack.baseURL + '/?view=3d');
     await expect(page.locator('#join-button')).toHaveText('進入小鎮');
-    await page.locator('#pick-hat .chip').nth(2).click();
     await page.locator('#pick-shirt .swatch').nth(4).click();
-    await page.locator('#pick-accessory .chip').nth(1).click();
     await page.locator('#nickname').fill(theme === 'garden' ? '花園驗證' : '樹林驗證');
     await page.locator('#join-button').click();
     await page.waitForFunction(() => window.__town?.joined() === true);

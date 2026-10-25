@@ -97,7 +97,7 @@ class TestClient {
     this.send({
       t: 'join',
       nick,
-      avatar: { body: 0, shirt: 0, hat: 'none', accessory: 'none' },
+      avatar: { body: 0, shirt: 0 },
     });
     await this.next('welcome');
   }
@@ -240,7 +240,7 @@ describe('game server', () => {
       const spawn = room.room.join(
         { id: `p${i}`, send: () => {} },
         `p${i}`,
-        { body: 0, shirt: 0, hat: 'none', accessory: 'none' },
+        { body: 0, shirt: 0 },
         Date.now(),
       );
       seen.add(`${Math.round(spawn.x)},${Math.round(spawn.y)}`);
@@ -256,7 +256,7 @@ describe('game server', () => {
       const spawn = crowd.room.join(
         { id: `p${i}`, send: () => {} },
         `p${i}`,
-        { body: 0, shirt: 0, hat: 'none', accessory: 'none' },
+        { body: 0, shirt: 0 },
         Date.now(),
       );
       const tile = `${Math.floor(spawn.x / TILE_SIZE)},${Math.floor(spawn.y / TILE_SIZE)}`;
@@ -273,7 +273,7 @@ describe('game server', () => {
     client.send({
       t: 'join',
       nick: '   ',
-      avatar: { body: 0, shirt: 0, hat: 'none', accessory: 'none' },
+      avatar: { body: 0, shirt: 0 },
     });
     const error = await client.next('error');
     expect(error).toMatchObject({ code: 'bad_nickname' });
@@ -454,7 +454,7 @@ describe('game server', () => {
     extra.send({
       t: 'join',
       nick: 'four',
-      avatar: { body: 0, shirt: 0, hat: 'none', accessory: 'none' },
+      avatar: { body: 0, shirt: 0 },
     });
     const error = await extra.next('error');
     expect(error).toMatchObject({ code: 'room_full', fatal: true });

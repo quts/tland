@@ -1,7 +1,11 @@
 import * as THREE from 'three';
 import { MAX_PLAYERS, TILE_SIZE, type Direction } from '@tland/shared';
 import type { AvatarParts } from '../gfx/avatar.js';
-import { AVATAR_TOP, AVATAR_SCALE, AvatarGeometryCache, faceGeometry, faceTexture } from './avatar3d.js';
+import {
+  AVATAR_TOP, AVATAR_SCALE, CharacterMaterialCache, assembleCharacter,
+  faceGeometry, faceTexture, type AssembledCharacter,
+} from './avatar3d.js';
+import { characterColorsFor } from '../gfx/avatar.js';
 import { SHADOW_X, SHADOW_Z } from './lighting.js';
 
 /** Room for everyone the server admits, plus the local player. */
@@ -15,7 +19,7 @@ const HEADING_FOR: Record<Direction, number> = {
 };
 
 interface Character {
-  readonly body: THREE.Mesh;
+  readonly figure: AssembledCharacter;
   heading: number;
   lastX: number;
   lastY: number;
@@ -36,20 +40,19 @@ const lift = new THREE.Vector3();
 /**
  * Every avatar on screen.
  *
- * Bodies are one mesh each, from cached merged geometry. Faces and blob
+ * A character is a body mesh from cached merged geometry, plus an arm in a
+ * group of its own on each shoulder so the arms can be posed. Faces and blob
  * shadows are the same for everyone, so all of them together are one
- * InstancedMesh each, rewritten every frame from the bodies' transforms:
- * thirty players cost thirty-two draw calls, not ninety.
+ * InstancedMesh each, rewritten every frame from the characters' transforms.
  */
 export class CharacterLayer {
   readonly group = new THREE.Group();
   private readonly characters = new Map<string, Character>();
-  private readonly cache = new AvatarGeometryCache();
+  private readonly palettes = new CharacterMaterialCache();
   private readonly faces: THREE.InstancedMesh;
   private readonly shadows: THREE.InstancedMesh;
 
   constructor(
-    private readonly material: THREE.Material,
     shadowGeometry: THREE.BufferGeometry,
     shadowMaterial: THREE.Material,
   ) {
@@ -81,32 +84,34 @@ export class CharacterLayer {
 
   add(id: string, avatar: AvatarParts, x: number, y: number, direction: Direction): void {
     this.remove(id);
-    const body = new THREE.Mesh(this.cache.get(avatar), this.material);
-    body.name = `avatar-${id}`;
+    const figure = assembleCharacter(this.palettes.get(characterColorsFor(avatar)));
+    figure.root.name = `avatar-${id}`;
     const character: Character = {
-      body,
+      figure,
       heading: HEADING_FOR[direction],
       lastX: x,
       lastY: y,
       walkPhase: 0,
       drawn: new THREE.Vector3(x / TILE_SIZE, 0, y / TILE_SIZE),
     };
-    body.position.copy(character.drawn);
-    body.rotation.y = character.heading;
-    body.scale.setScalar(AVATAR_SCALE);
+    figure.root.position.copy(character.drawn);
+    figure.root.rotation.y = character.heading;
+    figure.root.scale.setScalar(AVATAR_SCALE);
     this.characters.set(id, character);
-    this.group.add(body);
+    this.group.add(figure.root);
   }
 
   setAvatar(id: string, avatar: AvatarParts): void {
     const character = this.characters.get(id);
-    if (character !== undefined) character.body.geometry = this.cache.get(avatar);
+    if (character === undefined) return;
+    // Colour only: the geometry is shared and is never rebuilt.
+    character.figure.setMaterial(this.palettes.get(characterColorsFor(avatar)));
   }
 
   remove(id: string): void {
     const character = this.characters.get(id);
     if (character === undefined) return;
-    this.group.remove(character.body);
+    this.group.remove(character.figure.root);
     this.characters.delete(id);
   }
 
@@ -135,8 +140,14 @@ export class CharacterLayer {
     character.walkPhase = walking ? character.walkPhase + seconds * 13 : 0;
     const bob = walking ? Math.abs(Math.sin(character.walkPhase)) * 0.06 : 0;
     character.drawn.set(x / TILE_SIZE, 0, y / TILE_SIZE);
-    character.body.position.set(character.drawn.x, bob, character.drawn.z);
-    character.body.rotation.set(0, character.heading, walking ? Math.sin(character.walkPhase) * 0.06 : 0);
+    const root = character.figure.root;
+    root.position.set(character.drawn.x, bob, character.drawn.z);
+    root.rotation.set(0, character.heading, walking ? Math.sin(character.walkPhase) * 0.06 : 0);
+    // The arms are their own groups now, so they can swing: opposite phases,
+    // settling back to the resting splay when the character stops.
+    const swing = walking ? Math.sin(character.walkPhase) * 0.4 : 0;
+    character.figure.poseArm(-1, swing);
+    character.figure.poseArm(1, -swing);
   }
 
   /** Copy each body's transform onto its face and shadow instances. */
@@ -154,9 +165,9 @@ export class CharacterLayer {
   // Bound once, so syncing every frame allocates nothing.
   private readonly syncOne = (character: Character): void => {
     if (this.synced >= CAPACITY) return;
-    const body = character.body;
-    body.updateMatrix();
-    this.faces.setMatrixAt(this.synced, body.matrix);
+    const root = character.figure.root;
+    root.updateMatrix();
+    this.faces.setMatrixAt(this.synced, root.matrix);
     lift.set(character.drawn.x, 0, character.drawn.z);
     this.shadows.setMatrixAt(this.synced * 2, matrix.compose(lift, identity, shadowScale));
     // Keep the contact blob at the feet and add a sun-aligned oval in the same batch.
@@ -166,16 +177,15 @@ export class CharacterLayer {
     this.synced += 1;
   };
 
-  /** A standalone mesh for the avatar preview, sharing this layer's resources. */
+  /** A standalone figure for the avatar preview, sharing this layer's resources. */
   previewMesh(avatar: AvatarParts): THREE.Group {
-    const group = new THREE.Group();
-    group.add(new THREE.Mesh(this.cache.get(avatar), this.material));
-    group.add(new THREE.Mesh(this.faces.geometry, this.faces.material));
-    return group;
+    const figure = assembleCharacter(this.palettes.get(characterColorsFor(avatar)));
+    figure.root.add(new THREE.Mesh(this.faces.geometry, this.faces.material));
+    return figure.root;
   }
 
   dispose(): void {
-    this.cache.dispose();
+    this.palettes.dispose();
     this.faces.geometry.dispose();
     const faceMaterial = this.faces.material as THREE.MeshLambertMaterial;
     faceMaterial.map?.dispose();

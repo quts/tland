@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { describe, expect, it } from 'vitest';
 import { getTownMap, isWalkableTerrain } from '@tland/shared';
 import { BUILDING_CELL, HOUSE_DATA, HOUSE_NAMES, HOUSE_COLORS, buildingPlots } from '../src/world/buildingLayout.js';
@@ -7,19 +8,19 @@ const map = getTownMap();
 const squareDistance = (a: { x: number; y: number }, b: { x: number; y: number }): number =>
   (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 
-describe('fifteen named cottages', () => {
-  it('uses exactly the requested names and fifteen complete collision footprints', () => {
+describe('twelve named cottages', () => {
+  it('uses exactly the requested names and twelve complete collision footprints', () => {
     expect(HOUSE_NAMES).toEqual([
       'Wilson House', 'Engelbart House', 'Moore House', 'Berners-Lee House', 'Hopper House',
       'Dijkstra House', 'Huffman House', 'von Neumann House', 'Turing House', 'Hawkins House',
-      'Cooper House', 'Dell House', 'Shockley House', 'Steve House', 'Jeff House',
+      'Cooper House', 'Shockley House',
     ]);
-    expect(buildingPlots(map)).toHaveLength(15);
+    expect(buildingPlots(map)).toHaveLength(12);
     let count = 0;
     for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
       if (map.terrainAt(x, y) === 'building') count++;
     }
-    expect(count).toBe(15 * BUILDING_CELL ** 2);
+    expect(count).toBe(12 * BUILDING_CELL ** 2);
     for (const house of buildingPlots(map)) {
       for (let y = house.y; y < house.y + 4; y++) for (let x = house.x; x < house.x + 4; x++) {
         expect(map.terrainAt(x, y)).toBe('building');
@@ -38,9 +39,10 @@ describe('fifteen named cottages', () => {
     }
   });
 
-  it('maximizes the minimum Euclidean distance among the original 28 plots exactly', () => {
+  it('retains the approved positions after removing three from the optimal initial fifteen', () => {
     const points = HOUSE_DATA.selection.originalPlots;
-    const chosen = HOUSE_DATA.houses;
+    const chosen = HOUSE_DATA.selection.initialPlots;
+    for (const house of HOUSE_DATA.houses) expect(chosen.some(p => p.x === house.x && p.y === house.y)).toBe(true);
     expect(new Set(chosen.map(p => p.x + ',' + p.y)).size).toBe(15);
     for (const house of chosen) expect(points.some(p => p.x === house.x && p.y === house.y)).toBe(true);
     const distances = chosen.flatMap((a, i) => chosen.slice(i + 1).map(b => squareDistance(a, b)));
@@ -78,8 +80,12 @@ describe('fifteen named cottages', () => {
     expect(positions.count / 3).toBeLessThan(15_000);
     for (let variant = 1; variant < HOUSE_COLORS.length; variant++) {
       const next = houseGeometry(variant);
-      expect(next.getAttribute('position').array).toEqual(positions.array);
-      expect(next.getAttribute('normal').array).toEqual(baseline.getAttribute('normal').array);
+      // Native byte comparison preserves exact equality without recursively walking
+      // millions of typed-array elements through the assertion framework.
+      const bytes = (array: ArrayBufferView): Buffer =>
+        Buffer.from(array.buffer, array.byteOffset, array.byteLength);
+      expect(bytes(next.getAttribute('position').array).equals(bytes(positions.array))).toBe(true);
+      expect(bytes(next.getAttribute('normal').array).equals(bytes(baseline.getAttribute('normal').array))).toBe(true);
       next.dispose();
     }
     baseline.dispose();

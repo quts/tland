@@ -24,7 +24,7 @@ try {
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#fbf5e9'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.font = 'bold 24px sans-serif'; ctx.fillStyle = '#513821';
-    ctx.fillText('15 Houses · Location plan', 24, 35);
+    ctx.fillText(houses.houses.length + ' Houses · Location plan', 24, 35);
     ctx.font = '14px sans-serif'; ctx.fillText('Minimum pairwise distance: 11.31 tiles (exact optimum)', 24, 60);
     const colors = { '~':'#bad5da', '.':'#dce6bc', ',':'#eadfbf', '^':'#a6b696', '=':'#f1e3c8', '*':'#cee0ac', B:'#d6b58b', '#':'#dce6bc' };
     for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++){

@@ -710,7 +710,7 @@ const ZONES = Object.entries(DISTRICT_MERGES).map(([name, members]) => {
   return { ...anchor, seeds };
 });
 
-// Retain exactly the fifteen approved, maximally separated original plots.
+// Retain the approved plots; explicit removals never relocate the other houses.
 const houseData = JSON.parse(readFileSync(join(mapDir, 'houses.json'), 'utf8'));
 const retained = new Set(houseData.houses.map(({ x, y }) => x + ',' + y));
 for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < WIDTH; x++) {

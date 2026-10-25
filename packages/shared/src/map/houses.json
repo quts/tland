@@ -1,6 +1,6 @@
 {
   "selection": {
-    "method": "exact maximum minimum Euclidean distance among original 28 plots; stable row-order tie break",
+    "method": "initial exact max-min selection of 15 among 28; then remove Steve, Dell and Jeff without relocating the other 12",
     "minimumDistanceSquared": 128,
     "originalPlots": [
       {
@@ -115,6 +115,68 @@
         "x": 40,
         "y": 120
       }
+    ],
+    "initialPlots": [
+      {
+        "x": 76,
+        "y": 44
+      },
+      {
+        "x": 60,
+        "y": 52
+      },
+      {
+        "x": 100,
+        "y": 52
+      },
+      {
+        "x": 76,
+        "y": 56
+      },
+      {
+        "x": 92,
+        "y": 68
+      },
+      {
+        "x": 44,
+        "y": 72
+      },
+      {
+        "x": 64,
+        "y": 72
+      },
+      {
+        "x": 76,
+        "y": 72
+      },
+      {
+        "x": 104,
+        "y": 72
+      },
+      {
+        "x": 52,
+        "y": 80
+      },
+      {
+        "x": 36,
+        "y": 84
+      },
+      {
+        "x": 64,
+        "y": 88
+      },
+      {
+        "x": 76,
+        "y": 88
+      },
+      {
+        "x": 32,
+        "y": 100
+      },
+      {
+        "x": 40,
+        "y": 120
+      }
     ]
   },
   "houses": [
@@ -185,28 +247,10 @@
       "variant": 10
     },
     {
-      "name": "Dell House",
-      "x": 64,
-      "y": 88,
-      "variant": 11
-    },
-    {
       "name": "Shockley House",
       "x": 76,
       "y": 88,
       "variant": 12
-    },
-    {
-      "name": "Steve House",
-      "x": 32,
-      "y": 100,
-      "variant": 0
-    },
-    {
-      "name": "Jeff House",
-      "x": 40,
-      "y": 120,
-      "variant": 1
     }
   ]
 }

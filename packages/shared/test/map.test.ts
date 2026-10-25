@@ -57,12 +57,12 @@ describe('town map', () => {
 
   it('keeps deterministic merged district ownership after reclaiming house plots', () => {
     // Same merged seed groups; reclaimed house footprints create new walking routes.
-    // This fingerprint covers the fifteen-cottage collision terrain.
+    // This fingerprint covers the twelve-cottage collision terrain.
     const labels: string[] = [];
     for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
       labels.push((map.zoneAt(x, y) ?? '-') + '\n');
     }
-    expect(createHash('sha256').update(labels.join('')).digest('hex')).toBe('007531050538d6ae667b51c4d7b28b1b62dfcc045c2ba2d164c43e30d9db1f85');
+    expect(createHash('sha256').update(labels.join('')).digest('hex')).toBe('8b334a0b1aa3602c75e6a0552ab032237ecb8225601f72051345dd0569a5d9e2');
   });
 
   it('gives every zone a distinct name', () => {

@@ -1,31 +1,27 @@
-# Fifteen named reference cottages
+# Twelve named reference cottages
 
-2026-10-25 · branch: `codex/fifteen-named-houses`
+2026-10-25 · PR #33 · branch: `codex/fifteen-named-houses`
 
-## Placement
+## Current placement
 
-Retained fifteen of the existing twenty-eight plots using **exact max-min
-Euclidean spacing** between plot centers. Since every plot is 4 × 4, center
-and top-left distances are identical. The smallest squared distance is 128
-tiles² (11.3137 tiles). An exact compatibility-graph search proves that no
-fifteen original plots can achieve the next possible squared distance, 144.
-Ties use stable north-to-south / west-to-east ordering.
+Steve House, Dell House and Jeff House have been removed as requested. Their
+48 building tiles are grass in the shared client/server map. The other twelve
+houses retain their positions, names and colors; there is no re-selection or
+relocation. There are exactly 192 building tiles (twelve complete 4 × 4 plots).
 
-The original candidates, selected coordinates and names are recorded in
-`packages/shared/src/map/houses.json`. Removed building tiles become grass;
-rendering and server collision both use the resulting shared terrain. One old
-footprint had a road cut through five tiles; the retained Huffman House now
-has a complete blocking footprint matching the model. Door approaches are
-cleared of random trees/benches, without filling adjacent water.
+The initial fifteen plots were selected by exact max-min Euclidean spacing
+among the original twenty-eight. The optimal minimum distance was √128 =
+11.3137 tiles. The initial selection is retained as provenance and tested
+separately; the remaining twelve are not presented as a new globally optimal
+twelve-house selection.
 
-District seed groups/positions are retained. District ownership is recalculated
-using the existing walking-distance algorithm on the reclaimed terrain; its
-deterministic test fingerprint is updated accordingly.
+The map generator reproduces the checked-in map byte-for-byte. The retained
+Huffman House has a full collision footprint rather than the former road
+sliver. Door approaches are clear of random blocking props. District seeds
+are unchanged; the existing walking-distance algorithm recalculates ownership
+for the reclaimed land, with its deterministic snapshot updated accordingly.
 
-The map generator applies the same selection, preserves the original district
-seed placement, and reproduces the checked-in map byte-for-byte.
-
-![Numbered map](locations.png)
+![Current location plan](locations.png)
 
 | # | Name | Top-left tile x, y | Palette |
 | --- | --- | --- | --- |
@@ -40,45 +36,40 @@ seed placement, and reproduces the checked-in map byte-for-byte.
 | 9 | Turing House | 104, 72 | 9 |
 | 10 | Hawkins House | 52, 80 | 10 |
 | 11 | Cooper House | 36, 84 | 11 |
-| 12 | Dell House | 64, 88 | 12 |
-| 13 | Shockley House | 76, 88 | 13 |
-| 14 | Steve House | 32, 100 | 1 |
-| 15 | Jeff House | 40, 120 | 2 |
+| 12 | Shockley House | 76, 88 | 13 |
 
-## Model
+## Cottage design
 
-One fixed cottage silhouette follows the supplied reference: cream gabled
-walls, broad rounded pitched roof, hollow chimney, arched plank door and brass
-knob, two front windows and one on each side, cream window frames, crossbars,
-flower boxes, steps, corner shrubs and a rounded grass foundation.
+One fixed silhouette follows the reference: rounded pitched roof, gabled
+walls, hollow chimney, arched door/windows, flowerboxes, steps, shrubs,
+rounded grass foundation and a wooden name plaque. Twelve colors from the
+thirteen supported schemes are now used. Each house is 14,460 triangles;
+repeated palette geometries are cached and all names share one texture atlas.
 
-The thirteen reference-inspired palettes repeat for Steve and Jeff. All
-fifteen plaques use the requested names; none uses the sample name from the
-reference. The name text uses a single shared texture atlas and material.
-Color variants have identical vertex positions/normals. Each cottage is
-14,460 triangles; repeated palette geometries are cached within the scene.
-Each modeled footprint stays inside its 4 × 4 collision plot.
+The 2D fallback shows the same color and name with a code-drawn front elevation.
+These are actual WebKit renders of the TypeScript model.
 
-The 2D fallback uses a code-drawn front elevation with the same palette,
-arched details, flowerboxes and matching name plaque. Images below are actual
-WebKit renders of the TypeScript model, not generated concept art.
-
-![All names and colors](variants.png)
+![Twelve named houses](variants.png)
 
 ![Seven views](turnaround.png)
 
-![Model details](details.png)
+![Details](details.png)
 
-## Reproduce
+## CI repair
 
-With the Vite client running:
+The first PR CI run failed because the all-palette geometry test took 8.3
+seconds on the GitHub runner, exceeding its unchanged 5-second timeout.
+Recursive matcher comparison of large typed arrays is replaced with native
+`Buffer.equals` on precisely bounded byte views. Every position and normal
+byte in all thirteen palettes is still compared exactly; no timeout or
+performance budget is raised.
 
-```sh
-node scripts/house-review.mjs
-```
+Local validation also exposed a movement-relay test race: a state packet sent
+before the move could arrive after clearing the receive buffer, and the test
+selected that oldest packet. It now waits for the latest relayed position to
+reach the target instead of relying on a fixed sleep and first packet.
 
-This captures the seven views, fifteen named variants, detail views and location
-plan and fails on browser/shader errors.
+## Validation and reproduction
 
 ```sh
 node scripts/build-map.mjs
@@ -89,41 +80,25 @@ npm run build
 npx playwright test
 ```
 
-The cottage-specific scenarios in `e2e/houses.spec.ts` stand south of Wilson
-House and capture both renderers across the four WebKit device profiles.
-Rendering budgets remain 150 calls / 300,000 triangles for stationary scenes;
-the crowd scenario retains the existing explicit draw-call deviation ceiling.
-Physical iPhone frame rate still requires device testing.
+With the Vite client running:
 
-## Verification results
+```sh
+node scripts/house-review.mjs
+```
 
-- Type checking, ESLint and production build passed.
-- **202 unit tests passed**, including exact spacing optimality, fifteen names,
-  collision footprints, reclaimed terrain, door approaches and invariant geometry.
-- **72 existing WebKit regressions + 8 dedicated cottage scenarios passed**.
-- The map generator reproduces the checked-in JSON byte-for-byte.
-- Visual capture completed without browser/shader errors.
+This captures current locations, twelve named variants, seven views and detail
+views, failing on browser/shader errors. Dedicated cottage scenarios capture
+2D/3D on iPhone/iPad portrait and landscape.
 
-| WebKit device | Cottage scene calls | Cottage scene triangles | 31-character calls | 31-character triangles |
-| --- | ---: | ---: | ---: | ---: |
-| iPhone portrait | 37 | 114,150 | 120 | 558,524 |
-| iPhone landscape | 51 | 157,387 | 138 | 589,906 |
-| iPad portrait | 36 | 111,414 | 114 | 518,176 |
-| iPad landscape | 63 | 217,082 | 152 | 704,722 |
+Stationary rendering limits remain 150 calls / 300,000 triangles. The crowd
+scenario retains its existing explicit call deviation ceiling. Physical-device
+60fps remains unverified.
 
-Stationary cottage scenes remain below 150 calls and 300,000 triangles.
-Crowd draw calls decrease by six in each profile relative to the preceding
-character implementation, but crowd triangles increase with the detailed
-cottages: the widest crowd scene is now 704,722 triangles. iPad landscape
-still exceeds the original 150-call goal by two; the existing regression
-ceiling is unchanged. This is a reported limitation, not a raised budget.
-Software-rendered tests do not establish physical-device 60fps.
+![Current iPhone 3D](cottage-3d-iphone.png)
 
-Actual game captures:
+![Current iPhone 2D](cottage-2d-iphone.png)
 
-![iPhone 3D](cottage-3d-iphone.png)
-
-![iPhone 2D](cottage-2d-iphone.png)
-
-All four device/orientation captures for both renderers are saved beside this
-report. Detailed counters are in `performance.json`.
+Local verification of the twelve-house update: type checking, ESLint, build,
+202 unit tests and all eight dedicated WebKit cottage scenarios passed.
+Current cottage counters are in `performance.json`; all stationary views stay
+below the unchanged budgets.

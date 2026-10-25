@@ -940,7 +940,7 @@ body {
   cursor: pointer;
   touch-action: manipulation;
 }
-#bar-picture { display: block; width: 100%; height: 100%; overflow: hidden; }
+#bar-picture { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .bar-greeting {
   width: min(300px, calc(100% - 32px));
   max-height: 33dvh;

@@ -20,7 +20,8 @@ for (const name of ['Wilson House', 'Shockley House']) test.describe('bar at ' +
     await expect(read).toBeVisible();
     expect((await enter.boundingBox())!.y).toBeGreaterThan((await read.boundingBox())!.y);
     const outside = await page.evaluate(() => window.__town!.position());
-    const loaded = page.waitForResponse(r => r.url().endsWith('/images/bar-interiors-reference.jpg'));
+    const expectedBar = BAR_INTERIORS.find(b => b.house === name)!;
+    const loaded = page.waitForResponse(r => r.url().endsWith(expectedBar.image));
     await enter.click();
     expect((await loaded).status()).toBe(200);
     const room = page.locator('#bar-interior');
@@ -32,8 +33,16 @@ for (const name of ['Wilson House', 'Shockley House']) test.describe('bar at ' +
     expect(full!.y).toBe(0);
     expect(full!.width).toBe(page.viewportSize()!.width);
     expect(full!.height).toBe(page.viewportSize()!.height);
-    await expect(page.locator('#bar-picture')).toHaveAttribute('preserveAspectRatio', 'xMidYMid slice');
-    await expect(page.locator('#bar-picture')).toHaveAttribute('viewBox', BAR_INTERIORS.find(b => b.house === name)!.viewBox);
+    const picture = page.locator('#bar-picture');
+    await expect(picture).toHaveAttribute('src', expectedBar.image);
+    await picture.evaluate(async el => { await (el as HTMLImageElement).decode(); });
+    const quality = await picture.evaluate(el => {
+      const image = el as HTMLImageElement;
+      return { width: image.naturalWidth, height: image.naturalHeight, fit: getComputedStyle(image).objectFit };
+    });
+    expect(quality.width).toBeGreaterThanOrEqual(1536);
+    expect(quality.height).toBeGreaterThanOrEqual(1024);
+    expect(quality.fit).toBe('cover');
     await page.keyboard.down('d');
     await page.waitForTimeout(200);
     await page.keyboard.up('d');

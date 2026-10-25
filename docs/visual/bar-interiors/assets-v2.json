@@ -1,0 +1,122 @@
+[
+  {
+    "name": "classic-warm",
+    "file": "/images/bars/classic-warm-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1366100,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "946154e7f093b7a7c660ff40d84721ead4dadddecaa4eb5becdf6128409f229f"
+  },
+  {
+    "name": "modern-gray",
+    "file": "/images/bars/modern-gray-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1452572,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "4a8ccc1ee1d175e9b3ccf999a7317785e9659a8a2a59e4b03c8141c9ca3fac7e"
+  },
+  {
+    "name": "retro-brick",
+    "file": "/images/bars/retro-brick-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1542016,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "182898c0d30d791da9baf56ed81600e400b6a9708d1e9630ec58074d8f7cc7c5"
+  },
+  {
+    "name": "dark-gentleman",
+    "file": "/images/bars/dark-gentleman-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1418630,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "575e236a8f125290f2f91e69ee235f103d84a944e16816c0b7530496ace9d658"
+  },
+  {
+    "name": "fresh-green",
+    "file": "/images/bars/fresh-green-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1377784,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "03fe3e8e89417f66d947fc10b3af4d20c6f0afcd34c38906fbfdf12183ec3a88"
+  },
+  {
+    "name": "ocean-blue",
+    "file": "/images/bars/ocean-blue-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1409594,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "0da0a9fb9d88e5c1d977120d13666d3d548261c94eccfa42026c637462430422"
+  },
+  {
+    "name": "warm-ivory",
+    "file": "/images/bars/warm-ivory-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1359872,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "f256b233db55dcb05943ca6c84a0105eae679043ab650bf265288126e32378bd"
+  },
+  {
+    "name": "industrial-concrete",
+    "file": "/images/bars/industrial-concrete-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1438332,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "a893431f41470a61c927a5ea10d0b6f5abc54369ce6fadfa45c5a72358726350"
+  },
+  {
+    "name": "soft-pink",
+    "file": "/images/bars/soft-pink-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1344510,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "8874fd69a3a962c7c5e534c09fb0e131227986540a36d7029888e80c0f242158"
+  },
+  {
+    "name": "olive-green",
+    "file": "/images/bars/olive-green-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1394546,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "38bc6d1d20c83cecccdffe35318587acfe288739a9bc978003d7ff6e7db18f04"
+  },
+  {
+    "name": "midnight-blue",
+    "file": "/images/bars/midnight-blue-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1439282,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "df5ddbdeea829c2307af8494205a9105a0c1b5ddea12f518bbb7238c42fdb9dd"
+  },
+  {
+    "name": "milk-tea",
+    "file": "/images/bars/milk-tea-v2.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1384290,
+    "lossless": true,
+    "pixelIdenticalToGeneratedPng": true,
+    "sha256": "19d4ec12177001e5dbe9ebf6ed256fd6fe44b366d0f8816d6fcf16d668974ebd"
+  }
+]

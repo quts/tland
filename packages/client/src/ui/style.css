@@ -1065,7 +1065,7 @@ body {
 .game-block-fixed { margin-bottom: 14px; }
 
 /* Half adder: fixed A/B wiring, two editable gate sockets, live test table. */
-.game-panel[hidden], #game-hint[hidden] { display: none; }
+.game-panel[hidden] { display: none; }
 .circuit-mode .game-workspace { grid-template-columns: minmax(130px, .65fr) minmax(280px, 2fr) minmax(210px, 1fr); }
 .circuit-mode #game-bank { gap: 10px; padding: 12px; }
 .logic-gate {
@@ -1107,8 +1107,6 @@ body {
 .circuit-results th, .circuit-results td { border: 1px solid #b98a5766; padding: 14px 6px; }
 .circuit-results td[data-result="correct"] { background: #8bba5c44; color: #e2ffb9; }
 .circuit-results td[data-result="retry"] { background: #d6654d44; color: #ffd9c9; }
-#game-hint { min-height: 44px; border: 2px solid #c9b997; border-radius: 14px; padding: 8px 14px; background: #f3dec1; color: #503a25; font-weight: 700; }
-#game-hint[aria-pressed="true"] { background: #ffe49e; }
 .circuit-mode #game-feedback { flex: 1; }
 @media (max-width: 900px) {
   .circuit-mode .game-workspace { grid-template-columns: 110px minmax(0, 1fr); grid-template-rows: minmax(320px, 1fr) auto; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
@@ -1126,6 +1124,5 @@ body {
   .circuit-mode .circuit-results th, .circuit-mode .circuit-results td { padding: 8px; }
   .circuit-mode .game-footer { gap: 6px; }
   .circuit-mode #game-submit { font-size: 16px; padding: 10px 12px; }
-  .circuit-mode #game-hint { padding: 8px; font-size: 15px; }
   .circuit-mode #game-feedback { font-size: 17px; }
 }

@@ -10,15 +10,23 @@ import { Bot, TILE, collectErrors, joinTown, startStack, type Stack } from './su
  * a phone; see TESTING.md.
  */
 
+/** The budget this view was built to, and still the target. Unchanged. */
+const DRAW_CALL_BUDGET = 150;
+
 /**
- * Raised from 150 when the arms came out of the body mesh so they could be
- * posed. A character is three draw calls now instead of one, and thirty of
- * them in an iPad landscape frame measure 158 where they measured about 90.
- * Faces and blob shadows are still one InstancedMesh each for the whole
- * crowd; if this ever needs to come back down, the arms are the thing to
- * batch, at the cost of the per-arm groups.
+ * A known, accepted deviation from that budget — not a new budget.
+ *
+ * Taking the arms out of the body mesh so they can be posed costs two draw
+ * calls per character. Thirty avatars measure 126 on iPhone and 158 in iPad
+ * landscape, against about 90 before, so the widest frame is 8 over. That was
+ * accepted at the Phase 1 character review on the understanding that the arms
+ * keep their own groups.
+ *
+ * The ceiling below is what the deviation is held at, so any *further*
+ * regression still fails. Batching the arms is the lever if it ever has to
+ * come back under budget, at the cost of the per-arm groups.
  */
-const DRAW_CALL_BUDGET = 180;
+const KNOWN_DRAW_CALL_DEVIATION = 162;
 
 async function drawCalls(page: Page): Promise<number> {
   // Counters describe the last frame; give a few frames to settle first.
@@ -188,8 +196,10 @@ test.describe('3D view with other players', () => {
       // measure once they are all actually being drawn (a body is a call).
       await expect.poll(() => drawCalls(page), { timeout: 15_000 }).toBeGreaterThanOrEqual(31);
       const calls = await drawCalls(page);
-      console.log('crowd draw calls', calls, 'of', DRAW_CALL_BUDGET);
-      expect(calls).toBeLessThan(DRAW_CALL_BUDGET);
+      const over = calls - DRAW_CALL_BUDGET;
+      console.log('crowd draw calls', calls, 'of', DRAW_CALL_BUDGET,
+        over > 0 ? `— ${over} over, within the accepted deviation` : '— within budget');
+      expect(calls).toBeLessThanOrEqual(KNOWN_DRAW_CALL_DEVIATION);
       await page.screenshot({ path: testInfo.outputPath('crowd.png') });
     } finally {
       for (const bot of bots) bot.close();

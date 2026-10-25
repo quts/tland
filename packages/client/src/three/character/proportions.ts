@@ -107,6 +107,49 @@ export const PROPORTIONS = {
     hand: { at: 0.305, radius: 0.082, stretch: 1.18 },
   },
 
+  /**
+   * The scarf: a thick loop round the lower neck, and one short tail hanging
+   * down the front. Both are measured from the head, since what the loop has
+   * to wrap is the bottom of the head, not the top of the torso.
+   */
+  scarf: {
+    wrap: {
+      /** Height of the loop's centre line. */
+      y: 0.58,
+      /** Radius of that centre line, about where the head's surface is. */
+      radius: 0.21,
+      /**
+       * Half-thickness of the fabric. Thick enough that the top of the
+       * shoulder passes inside the loop rather than through it — the loop
+       * rests on the shoulders, and the base geometry is not reshaped to
+       * make room.
+       */
+      thickness: 0.075,
+      /**
+       * How much the loop wanders, as a fraction of its radius and
+       * thickness. A loop of constant radius reads as a rigid donut; these
+       * make it sit unevenly, the way wound fabric does.
+       */
+      waver: 0.1,
+      /** How far the centre line rises and falls around the neck. */
+      roll: 0.016,
+    },
+    tail: {
+      /** Off-centre, as the reference has it, and in front of the chest. */
+      x: -0.075,
+      /** Where the top of the tail sits; it starts inside the loop. */
+      topY: 0.59,
+      length: 0.21,
+      /** Half-width and half-depth: a soft strap, not a rope. */
+      width: 0.077,
+      depth: 0.028,
+      /** Radius of the rounded bottom end, before it is scaled to the strap. */
+      round: 0.05,
+      /** Tipped forward, so the lower end clears the belly. */
+      lean: 0.12,
+    },
+  },
+
   /** Short, rounded, and clearly two of them. */
   shoe: { x: 0.098, y: 0.052, radius: 0.085, scale: [1, 0.62, 1.3] },
 

@@ -8,15 +8,19 @@ import {
 const OUTFIT = { body: 0, shirt: 4, hat: 'sunhat', accessory: 'scarf' } as const;
 const BARE = { showHat: false, showScarf: false } as const;
 
-/** The vertices of one geometry, as a set of rounded "x,y,z" keys. */
-function points(geometry: THREE.BufferGeometry): Set<string> {
+/** The vertices of one geometry, as rounded "x,y,z" keys. */
+function pointsOf(geometry: THREE.BufferGeometry): string[] {
   const position = geometry.getAttribute('position');
-  const set = new Set<string>();
+  const keys: string[] = [];
   for (let i = 0; i < position.count; i += 1) {
-    set.add([position.getX(i), position.getY(i), position.getZ(i)]
+    keys.push([position.getX(i), position.getY(i), position.getZ(i)]
       .map((v) => v.toFixed(4)).join(','));
   }
-  return set;
+  return keys;
+}
+
+function points(geometry: THREE.BufferGeometry): Set<string> {
+  return new Set(pointsOf(geometry));
 }
 
 function figure(): ReturnType<typeof assembleCharacter> {
@@ -138,6 +142,45 @@ describe('character components', () => {
     // And far enough in that the whole cap is swallowed, from any angle.
     expect(pivot.x + radius).toBeGreaterThan(torsoRadius);
     expect(radius).toBeGreaterThan(torsoRadius - pivot.x);
+  });
+
+  it('winds the scarf unevenly, and rests it on the shoulders', () => {
+    const { wrap, tail } = PROPORTIONS.scarf;
+    const { pivot, joint } = PROPORTIONS.arm;
+    const bare = buildCharacterGeometry(OUTFIT, BARE);
+    const scarfed = buildCharacterGeometry(OUTFIT, { showHat: false });
+    // The scarf is merged into the body like every other fixed part, so it
+    // adds geometry and no draw call of its own.
+    expect(scarfed.getAttribute('position').count)
+      .toBeGreaterThan(bare.getAttribute('position').count);
+
+    // Whatever the scarf added, measured around the neck: a loop of constant
+    // radius is a torus, which is the one shape wound fabric never makes.
+    const added = new Set(pointsOf(bare));
+    const radii = new Map<number, { min: number; max: number }>();
+    const position = scarfed.getAttribute('position');
+    for (let i = 0; i < position.count; i += 1) {
+      const key = [position.getX(i), position.getY(i), position.getZ(i)]
+        .map((v) => v.toFixed(4)).join(',');
+      if (added.has(key)) continue;
+      const y = position.getY(i);
+      if (Math.abs(y - wrap.y) > 0.01) continue;
+      const bucket = Math.round(Math.atan2(position.getX(i), position.getZ(i)) * 6);
+      const radius = Math.hypot(position.getX(i), position.getZ(i));
+      const seen = radii.get(bucket) ?? { min: Infinity, max: -Infinity };
+      radii.set(bucket, { min: Math.min(seen.min, radius), max: Math.max(seen.max, radius) });
+    }
+    const outer = [...radii.values()].map((r) => r.max);
+    expect(outer.length).toBeGreaterThan(8);
+    expect(Math.max(...outer) - Math.min(...outer)).toBeGreaterThan(0.01);
+
+    // It rests on the shoulders: the top of the shoulder ball passes inside
+    // the loop's thickness rather than through its surface.
+    expect(wrap.y - wrap.thickness).toBeLessThan(pivot.y + joint);
+    expect(wrap.radius + wrap.thickness).toBeGreaterThan(pivot.x + joint);
+    // The tail is a strap, not a rope, and short enough to leave the torso.
+    expect(tail.width).toBeGreaterThan(tail.depth * 2);
+    expect(tail.length).toBeLessThan(PROPORTIONS.body.collarY / 2);
   });
 
   it('is symmetric left to right', () => {

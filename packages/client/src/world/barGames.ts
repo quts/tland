@@ -16,6 +16,8 @@ export interface BlockGame {
   readonly correctOrder: readonly string[];
   readonly functionFrame?: { readonly start: string; readonly end: string };
   readonly exampleGraph?: boolean;
+  /** Other orders that are also semantically correct; same length as correctOrder. */
+  readonly alternativeOrders?: readonly (readonly string[])[];
 }
 
 export const FIBONACCI_GAME: BlockGame = {
@@ -72,6 +74,10 @@ export const DIJKSTRA_GAME: BlockGame = {
     { id: 'select-min', label: '從未訪問節點選出 dist 最小的節點 u', color: 'blue' },
   ],
   correctOrder: ['all-inf', 'source-zero', 'repeat', 'select-min', 'neighbors', 'if-shorter', 'relax', 'visit-u'],
+  // Marking u visited right after selection is equivalent: neighbors are already restricted to unvisited nodes.
+  alternativeOrders: [
+    ['all-inf', 'source-zero', 'repeat', 'select-min', 'visit-u', 'neighbors', 'if-shorter', 'relax'],
+  ],
 };
 
 export const ADDITION_GAME: BlockGame = {
@@ -101,8 +107,9 @@ export const BAR_GAMES: Readonly<Record<string, BarGame>> = Object.fromEntries(
 );
 
 export function isCorrectOrder(game: BlockGame, slots: readonly (string | null)[]): boolean {
-  return slots.length === game.correctOrder.length &&
-    slots.every((id, index) => id === game.correctOrder[index]);
+  const orders = [game.correctOrder, ...(game.alternativeOrders ?? [])];
+  return orders.some(order =>
+    slots.length === order.length && slots.every((id, index) => id === order[index]));
 }
 
 /** Move, swap or insert a block without allowing duplicate/foreign blocks. */

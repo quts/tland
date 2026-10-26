@@ -16,6 +16,7 @@ export interface BlockGame {
   readonly correctOrder: readonly string[];
   readonly functionFrame?: { readonly start: string; readonly end: string };
   readonly exampleGraph?: boolean;
+  readonly digitCards?: boolean;
   /** Other orders that are also semantically correct; same length as correctOrder. */
   readonly alternativeOrders?: readonly (readonly string[])[];
 }
@@ -80,6 +81,25 @@ export const DIJKSTRA_GAME: BlockGame = {
   ],
 };
 
+export const TURING_GAME: BlockGame = {
+  kind: 'blocks',
+  id: 'turing-addition',
+  title: '數字卡片挑戰',
+  question: '34957 + 70764 = ?',
+  reference: '把六張數字卡片依正確順序放進答案欄。',
+  digitCards: true,
+  blocks: [
+    { id: 'zero', label: '0', color: 'orange' },
+    { id: 'one-a', label: '1', color: 'orange' },
+    { id: 'one-b', label: '1', color: 'orange' },
+    { id: 'two', label: '2', color: 'orange' },
+    { id: 'five', label: '5', color: 'orange' },
+    { id: 'seven', label: '7', color: 'orange' },
+  ],
+  correctOrder: ['one-a', 'zero', 'five', 'seven', 'two', 'one-b'],
+  alternativeOrders: [['one-b', 'zero', 'five', 'seven', 'two', 'one-a']],
+};
+
 export const ADDITION_GAME: BlockGame = {
   kind: 'blocks',
   id: 'addition',
@@ -96,6 +116,7 @@ const HOUSE_GAMES: Readonly<Record<string, BarGame>> = {
   'Wilson House': HALF_ADDER_GAME,
   'Moore House': FIBONACCI_GAME,
   'Dijkstra House': DIJKSTRA_GAME,
+  'Turing House': TURING_GAME,
   'Shockley House': PARITY_GAME,
 };
 

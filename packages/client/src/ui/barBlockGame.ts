@@ -42,11 +42,13 @@ export class BarBlockGame {
     this.slots = this.game?.correctOrder.map(() => null) ?? [];
     this.dialog.classList.toggle('circuit-mode', this.circuitMode);
     const graphMode = this.game?.exampleGraph === true;
+    const digitMode = this.game?.digitCards === true;
     this.dialog.classList.toggle('dijkstra-mode', graphMode);
+    this.dialog.classList.toggle('digit-mode', digitMode);
     document.getElementById('circuit-results')!.hidden = !this.circuitMode;
     document.getElementById('dijkstra-example')!.hidden = !graphMode;
-    document.getElementById('game-bank-title')!.textContent = this.circuitMode ? '邏輯閘積木' : '積木區';
-    document.getElementById('game-assembly-label')!.textContent = this.circuitMode ? '電路組合區' : '組合區';
+    document.getElementById('game-bank-title')!.textContent = this.circuitMode ? '邏輯閘積木' : digitMode ? '數字卡片' : '積木區';
+    document.getElementById('game-assembly-label')!.textContent = this.circuitMode ? '電路組合區' : digitMode ? '答案欄' : '組合區';
     this.submit.textContent = this.circuitMode ? '▶ 測試電路' : '▶ 提交答案';
     document.getElementById('game-title')!.textContent = game.title;
     document.getElementById('game-question')!.textContent = game.question;
